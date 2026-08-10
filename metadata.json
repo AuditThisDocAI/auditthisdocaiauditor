@@ -1,0 +1,6 @@
+{
+  "name": "Audit This Doc AI",
+  "description": "AI-Powered Accounting, Auditing & Business Management platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
