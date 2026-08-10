@@ -70,9 +70,6 @@ Total Paid (Visa ending *4920): $583.20`
 export function DocumentAuditor() {
   const [docText, setDocText] = useState('');
   const [docName, setDocName] = useState('');
-  const [uploadedFileName, setUploadedFileName] = useState('');
-  const [fileData, setFileData] = useState<{ name: string; mimeType: string; base64: string } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditResult, setAuditResult] = useState<any>(null);
   const [auditCount, setAuditCount] = useState<number>(0);
@@ -81,8 +78,6 @@ export function DocumentAuditor() {
   const [inputQuestion, setInputQuestion] = useState('');
   const [isAskingAria, setIsAskingAria] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
   useEffect(() => {
     const savedCount = localStorage.getItem('audit_this_doc_free_count');
     if (savedCount) {
@@ -90,52 +85,9 @@ export function DocumentAuditor() {
     }
   }, []);
 
-  const handleFileUpload = (file: File) => {
-    if (!file) return;
-    setUploadedFileName(file.name);
-    setDocName(file.name.replace(/\.[^/.]+$/, ""));
-
-    const isText = file.type.startsWith('text/') || file.name.endsWith('.txt') || file.name.endsWith('.csv') || file.name.endsWith('.json');
-
-    if (isText) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result;
-        if (typeof result === 'string') {
-          setDocText(result);
-          setFileData(null);
-        }
-      };
-      reader.readAsText(file);
-    } else {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        if (result && result.startsWith('data:')) {
-          const matches = result.match(/^data:(.*?);base64,(.*)$/);
-          if (matches && matches.length === 3) {
-            const mimeType = matches[1];
-            const base64 = matches[2];
-            setFileData({ name: file.name, mimeType, base64 });
-            setDocText(`[Uploaded Document File Attached: ${file.name} (${Math.round(file.size / 1024)} KB)]\nFile type: ${mimeType}\n\nDr. Aria AI will OCR and inspect image/PDF contents directly for forensic auditing.`);
-          }
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
-    }
-  };
-
   const handleRunAudit = async () => {
-    if (!docText.trim() && !fileData) {
-      alert('Please enter text or upload a document to audit.');
+    if (!docText.trim()) {
+      alert('Please enter or paste document text to audit.');
       return;
     }
 
@@ -154,8 +106,7 @@ export function DocumentAuditor() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           documentText: docText,
-          documentName: docName || uploadedFileName || 'Submitted Document',
-          fileData
+          documentName: docName || 'Submitted Document'
         })
       });
 
@@ -168,7 +119,7 @@ export function DocumentAuditor() {
       }
 
       if (!response.ok || data.error) {
-        alert(data?.error || 'Error analyzing document. Please try a smaller text sample or file.');
+        alert(data?.error || 'Error analyzing document. Please try a smaller text sample.');
         return;
       }
       
@@ -181,7 +132,7 @@ export function DocumentAuditor() {
       setChatMessages([
         {
           sender: 'aria',
-          text: `Hello, I'm Dr. Aria (PhD in Forensic Auditing). I've completed the audit for "${docName || uploadedFileName || 'Submitted Document'}". Our calculated Risk Score is ${data.riskScore}/100 (${data.riskLevel} Risk). Feel free to ask me any questions about our findings!`
+          text: `Hello, I'm Dr. Aria (PhD in Forensic Auditing). I've completed the audit for "${docName || 'Submitted Document'}". Our calculated Risk Score is ${data.riskScore}/100 (${data.riskLevel} Risk). Feel free to ask me any questions about our findings!`
         }
       ]);
 
@@ -288,57 +239,23 @@ export function DocumentAuditor() {
       {/* Main Auditor Interface */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Left Column: Input Form & File Upload */}
+        {/* Left Column: Input Form & Sample Selector */}
         <div className="lg:col-span-6 space-y-6">
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E2E8F0] shadow-sm">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-5">
               <h3 className="font-bold text-[#1E293B] text-lg flex items-center gap-2">
                 <FileText className="w-5 h-5 text-[#7C3AED]" />
-                Upload or Paste Document
+                Document Text Scanner
               </h3>
-              <span className="text-xs text-[#64748B] font-medium">PDF, TXT, CSV, JPG, PNG</span>
-            </div>
-
-            {/* Drag and Drop File Upload Area */}
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`mb-6 p-6 border-2 border-dashed rounded-2xl text-center cursor-pointer transition-all ${
-                isDragging 
-                  ? 'border-[#7C3AED] bg-[#7C3AED]/5' 
-                  : 'border-[#E2E8F0] hover:border-[#7C3AED]/50 bg-[#F8F9FC]'
-              }`}
-            >
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept=".pdf,.txt,.csv,.json,.doc,.docx,.png,.jpg,.jpeg"
-                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-              />
-              <div className="w-12 h-12 rounded-2xl bg-[#7C3AED]/10 text-[#7C3AED] flex items-center justify-center mx-auto mb-3">
-                <FileUp className="w-6 h-6" />
-              </div>
-              <div className="text-sm font-bold text-[#1E293B]">
-                {uploadedFileName ? (
-                  <span className="text-[#7C3AED] flex items-center justify-center gap-1">
-                    <CheckCircle2 className="w-4 h-4" /> Loaded: {uploadedFileName}
-                  </span>
-                ) : (
-                  'Click to upload or drag and drop document'
-                )}
-              </div>
-              <div className="text-xs text-[#64748B] mt-1">
-                Upload invoices, receipts, contracts, or financial statements
-              </div>
+              <span className="text-xs text-[#64748B] font-semibold bg-[#F8F9FC] border border-[#E2E8F0] px-3 py-1 rounded-full">
+                Paste or Try Sample
+              </span>
             </div>
 
             {/* Sample Selector */}
-            <div className="mb-4">
-              <label className="block text-xs font-bold text-[#64748B] uppercase tracking-wider mb-2">
-                Or Try a Sample Document:
+            <div className="mb-6 bg-[#F8F9FC] p-4 rounded-2xl border border-[#E2E8F0]">
+              <label className="block text-xs font-bold text-[#1E293B] uppercase tracking-wider mb-2.5">
+                Load Sample Document:
               </label>
               <div className="grid grid-cols-1 gap-2">
                 {SAMPLES.map((s, idx) => (
@@ -348,10 +265,8 @@ export function DocumentAuditor() {
                     onClick={() => {
                       setDocName(s.title);
                       setDocText(s.text);
-                      setUploadedFileName('');
-                      setFileData(null);
                     }}
-                    className="text-left px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] hover:border-[#7C3AED] hover:bg-[#F8F9FC] transition-all text-xs font-medium text-[#1E293B] flex items-center justify-between"
+                    className="text-left px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] bg-white hover:border-[#7C3AED] hover:bg-[#7C3AED]/5 transition-all text-xs font-medium text-[#1E293B] flex items-center justify-between shadow-xs"
                   >
                     <span>{s.title}</span>
                     <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
@@ -362,23 +277,23 @@ export function DocumentAuditor() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Document Reference Name</label>
+                <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Document Title / Reference</label>
                 <input
                   type="text"
                   value={docName}
                   onChange={(e) => setDocName(e.target.value)}
-                  placeholder="e.g., Invoice #8920 - Apex Consulting"
+                  placeholder="e.g., Vendor Invoice #8920 - Apex Consulting"
                   className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Document Raw Content</label>
+                <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Paste Document Text Content</label>
                 <textarea
                   value={docText}
                   onChange={(e) => setDocText(e.target.value)}
-                  rows={7}
-                  placeholder="Paste text directly or edit loaded file contents..."
+                  rows={9}
+                  placeholder="Paste invoice, contract, receipt, or agreement text here to audit..."
                   className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all font-mono text-xs text-[#1E293B] leading-relaxed"
                 />
               </div>
@@ -422,7 +337,7 @@ export function DocumentAuditor() {
               </div>
               <h3 className="text-xl font-bold text-[#1E293B] mb-2">Awaiting Document Audit</h3>
               <p className="text-sm text-[#64748B] max-w-sm leading-relaxed mb-6">
-                Upload or paste a document on the left to run Dr. Aria's forensic auditing scan.
+                Paste document text or select a sample on the left to run Dr. Aria's forensic auditing scan.
               </p>
               <div className="text-xs font-semibold text-[#7C3AED] bg-[#7C3AED]/10 px-4 py-2 rounded-full">
                 10 Free Audits Available Per Device
@@ -447,7 +362,7 @@ export function DocumentAuditor() {
                 <div className="flex justify-between items-start gap-4 pb-4 border-b border-[#E2E8F0]">
                   <div>
                     <span className="text-xs font-bold uppercase tracking-wider text-[#64748B]">Document Audit Report</span>
-                    <h3 className="text-xl font-bold text-[#1E293B] mt-1">{docName || uploadedFileName || 'Audited Document'}</h3>
+                    <h3 className="text-xl font-bold text-[#1E293B] mt-1">{docName || 'Audited Document'}</h3>
                     <div className="text-xs text-[#64748B] mt-0.5">Type: {auditResult.documentType}</div>
                   </div>
 

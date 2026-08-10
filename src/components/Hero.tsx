@@ -33,7 +33,7 @@ export function Hero() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-base sm:text-lg text-[#64748B] leading-relaxed"
           >
-            Instantly upload or paste invoices, contracts, receipts, and financial statements. Dr. Aria inspects line items, verifies tax compliance, identifies suspicious wire requests, and generates comprehensive risk scores.
+            Instantly paste document text or choose sample invoices, contracts, receipts, and financial statements. Dr. Aria inspects line items, verifies tax compliance, identifies suspicious wire requests, and generates comprehensive risk scores.
           </motion.p>
 
           <motion.div
