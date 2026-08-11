@@ -8,10 +8,12 @@ export function Auth() {
   const [authSuccess, setAuthSuccess] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     if (localStorage.getItem('audit-this-doc-cms-auth') === 'true') {
       setIsAuthenticated(true);
+      setUserEmail(localStorage.getItem('audit-this-doc-user-email') || 'Member');
     }
   }, []);
 
@@ -19,38 +21,36 @@ export function Auth() {
     e.preventDefault();
     setAuthError('');
     setAuthSuccess('');
-    
-    const isAdmin = email.toLowerCase() === 'brigittalombard09@gmail.com' && password === '123';
 
-    if (isSignUp) {
-      if (isAdmin) {
-        setIsAuthenticated(true);
-        localStorage.setItem('audit-this-doc-cms-auth', 'true');
-        window.dispatchEvent(new Event('admin-auth-changed'));
-      } else {
-        setAuthSuccess('Sign up successful! Your account is pending admin approval.');
-        setEmail('');
-        setPassword('');
-      }
-    } else {
-      if (isAdmin) {
-        setIsAuthenticated(true);
-        localStorage.setItem('audit-this-doc-cms-auth', 'true');
-        window.dispatchEvent(new Event('admin-auth-changed'));
-      } else {
-        setAuthError('Access denied. Invalid credentials.');
-      }
+    if (!email.trim() || !password.trim()) {
+      setAuthError('Please fill in all fields.');
+      return;
     }
+
+    if (password.length < 3) {
+      setAuthError('Password must be at least 3 characters.');
+      return;
+    }
+
+    // Authenticate user directly into site with no pending approval delays
+    localStorage.setItem('audit-this-doc-cms-auth', 'true');
+    localStorage.setItem('audit-this-doc-user-email', email);
+    setUserEmail(email);
+    setIsAuthenticated(true);
+    window.dispatchEvent(new Event('admin-auth-changed'));
+    
+    // Navigate directly into site dashboard
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
   };
 
   if (isAuthenticated) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 min-h-[80vh] flex flex-col items-center justify-center">
-        <h2 className="text-3xl font-bold text-center text-[#1E293B] mb-8">
-          Welcome, Admin!
+        <h2 className="text-3xl font-bold text-center text-[#1E293B] mb-2">
+          Welcome, {userEmail || 'Member'}!
         </h2>
         <p className="text-[#64748B] text-center mb-12 max-w-lg">
-          Please select which portal you would like to access.
+          Your account is active with full access. Select a portal to get started.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">

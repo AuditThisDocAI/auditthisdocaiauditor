@@ -73,16 +73,25 @@ export function DocumentAuditor() {
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditResult, setAuditResult] = useState<any>(null);
   const [auditCount, setAuditCount] = useState<number>(0);
+  const [isPro, setIsPro] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'aria' | 'user'; text: string }>>([]);
   const [inputQuestion, setInputQuestion] = useState('');
   const [isAskingAria, setIsAskingAria] = useState(false);
+
+  const checkProStatus = () => {
+    setIsPro(localStorage.getItem('audit_this_doc_is_pro') === 'true');
+  };
 
   useEffect(() => {
     const savedCount = localStorage.getItem('audit_this_doc_free_count');
     if (savedCount) {
       setAuditCount(parseInt(savedCount, 10));
     }
+    checkProStatus();
+
+    window.addEventListener('pro-status-changed', checkProStatus);
+    return () => window.removeEventListener('pro-status-changed', checkProStatus);
   }, []);
 
   const handleRunAudit = async () => {
@@ -91,8 +100,8 @@ export function DocumentAuditor() {
       return;
     }
 
-    // Check limit
-    if (auditCount >= 10) {
+    // Check limit if not pro
+    if (!isPro && auditCount >= 10) {
       setShowPaywall(true);
       return;
     }
@@ -123,10 +132,15 @@ export function DocumentAuditor() {
         return;
       }
       
-      // Increment audit count
-      const newCount = auditCount + 1;
-      setAuditCount(newCount);
-      localStorage.setItem('audit_this_doc_free_count', newCount.toString());
+      // Increment audit count if not pro
+      if (!isPro) {
+        const newCount = auditCount + 1;
+        setAuditCount(newCount);
+        localStorage.setItem('audit_this_doc_free_count', newCount.toString());
+        if (newCount >= 10) {
+          setTimeout(() => setShowPaywall(true), 1500);
+        }
+      }
 
       setAuditResult(data);
       setChatMessages([
@@ -135,10 +149,6 @@ export function DocumentAuditor() {
           text: `Hello, I'm Dr. Aria (PhD in Forensic Auditing). I've completed the audit for "${docName || 'Submitted Document'}". Our calculated Risk Score is ${data.riskScore}/100 (${data.riskLevel} Risk). Feel free to ask me any questions about our findings!`
         }
       ]);
-
-      if (newCount >= 10) {
-        setTimeout(() => setShowPaywall(true), 1500);
-      }
     } catch (e) {
       console.error(e);
       alert('Error connecting to Dr. Aria audit engine.');
@@ -202,20 +212,36 @@ export function DocumentAuditor() {
           </div>
         </div>
 
-        {/* Free Tier Usage Badge */}
+        {/* Usage Badge */}
         <div className="bg-[#F8F9FC] border border-[#E2E8F0] p-4 rounded-2xl w-full md:w-auto min-w-[240px]">
-          <div className="flex justify-between items-center text-xs font-bold mb-1.5">
-            <span className="text-[#64748B] uppercase tracking-wider">Free Plan Usage</span>
-            <span className={auditCount >= 10 ? "text-red-500 font-extrabold" : "text-[#7C3AED]"}>
-              {auditCount} / 10 Audits
-            </span>
-          </div>
-          <div className="w-full bg-[#E2E8F0] rounded-full h-2.5 overflow-hidden">
-            <div 
-              className={`h-full transition-all duration-500 ${auditCount >= 10 ? 'bg-red-500' : 'bg-[#7C3AED]'}`}
-              style={{ width: `${Math.min((auditCount / 10) * 100, 100)}%` }}
-            />
-          </div>
+          {isPro ? (
+            <div>
+              <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                <span className="text-[#10B981] uppercase tracking-wider flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Pro Plan Active
+                </span>
+                <span className="text-[#10B981]">1,000 / Mo</span>
+              </div>
+              <div className="w-full bg-[#10B981]/20 rounded-full h-2.5 overflow-hidden">
+                <div className="h-full bg-[#10B981] w-full" />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                <span className="text-[#64748B] uppercase tracking-wider">Free Tier Usage</span>
+                <span className={auditCount >= 10 ? "text-red-500 font-extrabold" : "text-[#7C3AED]"}>
+                  {auditCount} / 10 Audits
+                </span>
+              </div>
+              <div className="w-full bg-[#E2E8F0] rounded-full h-2.5 overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-500 ${auditCount >= 10 ? 'bg-red-500' : 'bg-[#7C3AED]'}`}
+                  style={{ width: `${Math.min((auditCount / 10) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
           <div className="flex justify-between items-center mt-2 text-[11px]">
             {auditCount >= 10 ? (
               <span className="text-red-600 font-bold flex items-center gap-1">

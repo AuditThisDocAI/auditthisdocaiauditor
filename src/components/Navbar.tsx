@@ -26,7 +26,7 @@ export function Navbar() {
   }, []);
 
   const linksToShow = isAdminLoggedIn 
-    ? [...navLinks.slice(0, 3), { name: 'CMS', href: '#cms' }, ...navLinks.slice(3)]
+    ? [...navLinks.slice(0, 3), { name: 'Dashboard', href: '#dashboard' }, { name: 'CMS', href: '#cms' }, ...navLinks.slice(3)]
     : navLinks;
 
   return (
@@ -57,6 +57,9 @@ export function Navbar() {
                       if (link.name === 'CMS') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'cms' } }));
+                      } else if (link.name === 'Dashboard') {
+                        e.preventDefault();
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
                       } else {
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
                       }
@@ -114,6 +117,9 @@ export function Navbar() {
                     if (link.name === 'CMS') {
                       e.preventDefault();
                       window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'cms' } }));
+                    } else if (link.name === 'Dashboard') {
+                      e.preventDefault();
+                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
                     } else {
                       window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
                     }

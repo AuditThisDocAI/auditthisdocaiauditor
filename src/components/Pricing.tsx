@@ -55,9 +55,33 @@ const tiers = [
 export function Pricing() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
-  const handleAction = () => {
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+  const handleAction = async () => {
+    try {
+      setIsCheckingOut(true);
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ interval: billingPeriod, plan: billingPeriod === 'yearly' ? 'pro_yearly' : 'pro_monthly' })
+      });
+      const text = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(text);
+      } catch (e) {}
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   return (
@@ -139,6 +163,7 @@ export function Pricing() {
               </div>
 
               <button
+                disabled={tier.id !== 'tier-free' && isCheckingOut}
                 onClick={() => {
                   if (tier.id === 'tier-free') {
                     const el = document.getElementById('document-auditor');
@@ -153,7 +178,7 @@ export function Pricing() {
                     : 'bg-white text-[#1E293B] border-2 border-[#E2E8F0] hover:border-[#7C3AED] hover:bg-[#F8F9FC]'
                 }`}
               >
-                {tier.buttonText}
+                {tier.id !== 'tier-free' && isCheckingOut ? 'Redirecting to Checkout...' : tier.buttonText}
               </button>
 
               <div className="flex-1">
