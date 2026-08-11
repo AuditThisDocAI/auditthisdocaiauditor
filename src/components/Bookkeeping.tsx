@@ -4,30 +4,27 @@ import {
   Building2, 
   DollarSign, 
   TrendingUp, 
-  TrendingDown, 
   PieChart as PieIcon, 
   FileSpreadsheet, 
   Plus, 
   CheckCircle2, 
   AlertTriangle, 
   Search, 
-  Filter, 
   Download, 
   Lock, 
   Crown, 
-  Zap, 
   Sparkles, 
   ArrowUpRight, 
   ArrowDownRight, 
   X, 
-  FileText, 
   Calculator, 
-  RefreshCw,
-  Scale
+  Scale, 
+  Loader2, 
+  CreditCard 
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
-interface JournalEntry {
+export interface JournalEntry {
   id: string;
   date: string;
   type: 'Income' | 'Expense';
@@ -40,80 +37,16 @@ interface JournalEntry {
   notes?: string;
 }
 
-const INITIAL_ENTRIES: JournalEntry[] = [
-  {
-    id: 'JE-2026-081',
-    date: '2026-08-10',
-    type: 'Income',
-    vendorOrClient: 'Acme Enterprises Inc.',
-    category: 'Consulting',
-    amount: 24500.00,
-    taxAmount: 2082.50,
-    status: 'Reconciled',
-    auditDocId: 'audit_init_101',
-    notes: 'Q3 Enterprise Document Audit Advisory Retainer'
-  },
-  {
-    id: 'JE-2026-082',
-    date: '2026-08-08',
-    type: 'Expense',
-    vendorOrClient: 'Apex Heavy Machinery Inc.',
-    category: 'Hardware & Equipment',
-    amount: 14250.00,
-    taxAmount: 1211.25,
-    status: 'Reconciled',
-    auditDocId: 'audit_init_101',
-    notes: 'Server rack lease & equipment maintenance'
-  },
-  {
-    id: 'JE-2026-083',
-    date: '2026-08-05',
-    type: 'Expense',
-    vendorOrClient: 'Global Strategic Advisors LLC',
-    category: 'Legal & Advisory',
-    amount: 18500.00,
-    taxAmount: 0.00,
-    status: 'Flagged',
-    auditDocId: 'audit_init_102',
-    notes: 'Flagged by Dr. Aria AI: Wire transfer to offshore account requested'
-  },
-  {
-    id: 'JE-2026-084',
-    date: '2026-08-02',
-    type: 'Expense',
-    vendorOrClient: 'CloudScale Infrastructure',
-    category: 'Software & Subscriptions',
-    amount: 3420.00,
-    taxAmount: 290.70,
-    status: 'Reconciled',
-    notes: 'Monthly enterprise AI server hosting cluster'
-  },
-  {
-    id: 'JE-2026-079',
-    date: '2026-07-28',
-    type: 'Income',
-    vendorOrClient: 'Vanguard Capital Group',
-    category: 'Consulting',
-    amount: 32000.00,
-    taxAmount: 2720.00,
-    status: 'Reconciled',
-    notes: 'Annual forensic compliance audit contract'
-  },
-  {
-    id: 'JE-2026-078',
-    date: '2026-07-22',
-    type: 'Expense',
-    vendorOrClient: 'Hilton Hotels & Resorts',
-    category: 'Travel & Meals',
-    amount: 583.20,
-    taxAmount: 43.20,
-    status: 'Reconciled',
-    notes: 'Auditor travel & site visit'
-  }
-];
-
 export function Bookkeeping() {
-  const [entries, setEntries] = useState<JournalEntry[]>(INITIAL_ENTRIES);
+  const [entries, setEntries] = useState<JournalEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem('audit_this_doc_journal_entries');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
   const [isPro, setIsPro] = useState(false);
   const [activeTab, setActiveTab] = useState<'ledger' | 'statements' | 'tax'>('ledger');
   const [searchTerm, setSearchTerm] = useState('');
@@ -133,25 +66,78 @@ export function Bookkeeping() {
   });
 
   const [reconciling, setReconciling] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const checkPlanStatus = () => {
-    setIsPro(localStorage.getItem('audit_this_doc_is_pro') === 'true');
+    const userEmail = (localStorage.getItem('audit-this-doc-user-email') || '').toLowerCase().trim();
+    const isAdmin = userEmail === 'brigittalombard09@gmail.com';
+    const isPaidPro = localStorage.getItem('audit_this_doc_is_pro') === 'true';
+    setIsPro(isPaidPro || isAdmin);
+  };
+
+  const syncEntriesFromStorage = () => {
+    try {
+      const saved = localStorage.getItem('audit_this_doc_journal_entries');
+      if (saved) {
+        setEntries(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   useEffect(() => {
     checkPlanStatus();
+    syncEntriesFromStorage();
+
     window.addEventListener('pro-status-changed', checkPlanStatus);
-    window.addEventListener('storage', checkPlanStatus);
+    window.addEventListener('admin-auth-changed', checkPlanStatus);
+    window.addEventListener('bookkeeping-entries-updated', syncEntriesFromStorage);
+    window.addEventListener('storage', syncEntriesFromStorage);
     return () => {
       window.removeEventListener('pro-status-changed', checkPlanStatus);
-      window.removeEventListener('storage', checkPlanStatus);
+      window.removeEventListener('admin-auth-changed', checkPlanStatus);
+      window.removeEventListener('bookkeeping-entries-updated', syncEntriesFromStorage);
+      window.removeEventListener('storage', syncEntriesFromStorage);
     };
   }, []);
 
-  const handleActivatePro = () => {
-    localStorage.setItem('audit_this_doc_is_pro', 'true');
-    window.dispatchEvent(new Event('pro-status-changed'));
-    setIsPro(true);
+  const persistEntries = (newEntries: JournalEntry[]) => {
+    setEntries(newEntries);
+    localStorage.setItem('audit_this_doc_journal_entries', JSON.stringify(newEntries));
+    window.dispatchEvent(new Event('bookkeeping-entries-updated'));
+  };
+
+  const handlePurchasePro = async () => {
+    try {
+      setIsCheckingOut(true);
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ interval: 'monthly', plan: 'pro_monthly' })
+      });
+      const text = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(text);
+      } catch (e) {}
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert('Unable to initialize payment session. Redirecting to pricing...');
+        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+        setTimeout(() => {
+          const pricingEl = document.getElementById('pricing');
+          if (pricingEl) pricingEl.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      alert('Unable to connect to payment gateway. Please try again.');
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   const handleAddEntry = (e: React.FormEvent) => {
@@ -170,7 +156,7 @@ export function Bookkeeping() {
       notes: newEntry.notes || 'Posted manually via Bookkeeping portal'
     };
 
-    setEntries(prev => [entry, ...prev]);
+    persistEntries([entry, ...entries]);
     setShowAddModal(false);
     setNewEntry({
       type: 'Expense',
@@ -185,18 +171,18 @@ export function Bookkeeping() {
   const handleRunAiReconciliation = () => {
     setReconciling(true);
     setTimeout(() => {
-      setEntries(prev => prev.map(e => {
-        if (e.status === 'Pending') {
-          return { ...e, status: 'Reconciled' };
-        }
-        return e;
-      }));
+      const updated = entries.map(e => e.status === 'Pending' ? { ...e, status: 'Reconciled' as const } : e);
+      persistEntries(updated);
       setReconciling(false);
       alert('🎉 Dr. Aria AI Reconciliation Complete! 100% of vendor transactions cross-referenced against audit logs.');
     }, 1200);
   };
 
   const handleExportCSV = () => {
+    if (entries.length === 0) {
+      alert('No journal entries available to export.');
+      return;
+    }
     const headers = ['Journal ID', 'Date', 'Type', 'Vendor/Client', 'Category', 'Amount ($)', 'Tax ($)', 'Status', 'Notes'];
     const rows = entries.map(e => [
       e.id,
@@ -221,12 +207,11 @@ export function Bookkeeping() {
     document.body.removeChild(link);
   };
 
-  // Calculations
+  // Authentic Calculations
   const totalRevenue = entries.filter(e => e.type === 'Income').reduce((sum, e) => sum + e.amount, 0);
   const totalExpenses = entries.filter(e => e.type === 'Expense').reduce((sum, e) => sum + e.amount, 0);
   const netIncome = totalRevenue - totalExpenses;
   const estimatedTax = Math.max(0, netIncome * 0.21); // 21% tax rate
-  const reconciledCount = entries.filter(e => e.status === 'Reconciled').length;
 
   // Filtered Entries
   const filteredEntries = entries.filter(entry => {
@@ -241,20 +226,40 @@ export function Bookkeeping() {
     return matchesSearch && matchesType && matchesCategory && matchesStatus;
   });
 
-  // Chart Data
-  const monthlyData = [
-    { month: 'May', Revenue: 18000, Expenses: 12000 },
-    { month: 'Jun', Revenue: 22000, Expenses: 14500 },
-    { month: 'Jul', Revenue: 32583, Expenses: 16200 },
-    { month: 'Aug', Revenue: 24500, Expenses: 36170 },
-  ];
+  // Dynamic Chart Data from Authentic Entries
+  const monthlyData = (() => {
+    if (entries.length === 0) {
+      return [{ month: 'Current', Revenue: 0, Expenses: 0 }];
+    }
+    const monthMap: Record<string, { month: string; Revenue: number; Expenses: number }> = {};
+    entries.forEach(e => {
+      const d = new Date(e.date);
+      const mName = isNaN(d.getTime()) ? 'Recent' : d.toLocaleString('default', { month: 'short' });
+      if (!monthMap[mName]) {
+        monthMap[mName] = { month: mName, Revenue: 0, Expenses: 0 };
+      }
+      if (e.type === 'Income') {
+        monthMap[mName].Revenue += e.amount;
+      } else {
+        monthMap[mName].Expenses += e.amount;
+      }
+    });
+    return Object.values(monthMap);
+  })();
 
-  const categoryExpenses = [
-    { name: 'Legal & Advisory', value: 18500, color: '#EF4444' },
-    { name: 'Hardware', value: 14250, color: '#F59E0B' },
-    { name: 'Software & Hosting', value: 3420, color: '#7C3AED' },
-    { name: 'Travel & Meals', value: 583, color: '#10B981' },
-  ];
+  const categoryExpenses = (() => {
+    const catMap: Record<string, number> = {};
+    const colors = ['#EF4444', '#F59E0B', '#7C3AED', '#10B981', '#3B82F6', '#EC4899'];
+    entries.filter(e => e.type === 'Expense').forEach(e => {
+      catMap[e.category] = (catMap[e.category] || 0) + e.amount;
+    });
+    const keys = Object.keys(catMap);
+    return keys.map((cat, i) => ({
+      name: cat,
+      value: catMap[cat],
+      color: colors[i % colors.length]
+    }));
+  })();
 
   return (
     <div id="bookkeeping" className="max-w-7xl mx-auto px-4 py-8 lg:py-12 space-y-8">
@@ -273,7 +278,7 @@ export function Bookkeeping() {
             Enterprise & Pro AI Bookkeeping Suite
           </h2>
           <p className="text-[#64748B] text-sm mt-1">
-            General Ledger, automated invoice reconciliation, Profit & Loss statements, and tax compliance auditing.
+            Authentic General Ledger, automated invoice reconciliation, Profit & Loss statements, and tax compliance auditing.
           </p>
         </div>
 
@@ -290,8 +295,8 @@ export function Bookkeeping() {
 
               <button
                 onClick={handleRunAiReconciliation}
-                disabled={reconciling}
-                className="bg-[#10B981] hover:bg-[#059669] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+                disabled={reconciling || entries.length === 0}
+                className="bg-[#10B981] hover:bg-[#059669] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 <Sparkles className={`w-4 h-4 ${reconciling ? 'animate-spin' : ''}`} />
                 {reconciling ? 'Reconciling...' : 'Auto-Reconcile Audits'}
@@ -299,7 +304,8 @@ export function Bookkeeping() {
 
               <button
                 onClick={handleExportCSV}
-                className="bg-[#1E293B] hover:bg-[#0F172A] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+                disabled={entries.length === 0}
+                className="bg-[#1E293B] hover:bg-[#0F172A] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 <Download className="w-4 h-4" />
                 Export Ledger
@@ -307,11 +313,21 @@ export function Bookkeeping() {
             </>
           ) : (
             <button
-              onClick={handleActivatePro}
-              className="bg-gradient-to-r from-amber-500 to-[#7C3AED] text-white px-5 py-2.5 rounded-xl text-xs font-extrabold shadow-lg transition-all flex items-center gap-2 hover:scale-[1.02]"
+              onClick={handlePurchasePro}
+              disabled={isCheckingOut}
+              className="bg-gradient-to-r from-amber-500 to-[#7C3AED] hover:from-amber-600 hover:to-[#6D28D9] text-white px-5 py-2.5 rounded-xl text-xs font-extrabold shadow-lg transition-all flex items-center gap-2 hover:scale-[1.02] disabled:opacity-60 disabled:pointer-events-none"
             >
-              <Crown className="w-4 h-4 text-amber-200" />
-              Activate Pro / Enterprise Trial
+              {isCheckingOut ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Connecting to Checkout...
+                </>
+              ) : (
+                <>
+                  <Crown className="w-4 h-4 text-amber-200" />
+                  Subscribe to Unlock Bookkeeping
+                </>
+              )}
             </button>
           )}
         </div>
@@ -331,7 +347,7 @@ export function Bookkeeping() {
               Unlock AI Bookkeeping & General Ledger
             </h3>
             <p className="text-slate-300 text-sm leading-relaxed">
-              Automate accounting reconciliations, generate live Profit & Loss statements, track tax deductions, and auto-sync document audits into your general ledger.
+              Automate accounting reconciliations, generate live Profit & Loss statements, track tax deductions, and auto-sync document audits into your general ledger upon payment activation.
             </p>
           </div>
 
@@ -356,14 +372,24 @@ export function Bookkeeping() {
             </div>
           </div>
 
-          <div className="pt-4">
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              onClick={handleActivatePro}
-              className="bg-amber-400 hover:bg-amber-300 text-slate-900 px-8 py-3.5 rounded-2xl text-sm font-extrabold transition-all shadow-xl shadow-amber-400/20 inline-flex items-center gap-2 hover:scale-[1.02]"
+              onClick={handlePurchasePro}
+              disabled={isCheckingOut}
+              className="bg-amber-400 hover:bg-amber-300 text-slate-900 px-8 py-3.5 rounded-2xl text-sm font-extrabold transition-all shadow-xl shadow-amber-400/20 inline-flex items-center gap-2 hover:scale-[1.02] disabled:opacity-60 disabled:pointer-events-none"
             >
-              <Crown className="w-5 h-5 text-slate-900" />
-              Upgrade / Activate Pro Plan Access
-              <ArrowUpRight className="w-4 h-4" />
+              {isCheckingOut ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-900" />
+                  Redirecting to Stripe Gateway...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-5 h-5 text-slate-900" />
+                  Upgrade Plan to Activate Bookkeeping
+                  <ArrowUpRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -381,7 +407,7 @@ export function Bookkeeping() {
               </div>
             </div>
             <p className="text-2xl sm:text-3xl font-black text-[#10B981]">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-            <p className="text-xs text-[#64748B] mt-1 font-medium">Income received to date</p>
+            <p className="text-xs text-[#64748B] mt-1 font-medium">Income recorded</p>
           </div>
 
           <div className="bg-white p-6 rounded-3xl border border-[#E2E8F0] shadow-sm">
@@ -457,24 +483,30 @@ export function Bookkeeping() {
             </div>
 
             <div className="space-y-3 pt-2">
-              {categoryExpenses.map((cat, i) => {
-                const total = totalExpenses || 1;
-                const percentage = Math.round((cat.value / total) * 100);
-                return (
-                  <div key={i} className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-[#1E293B]">
-                      <span>{cat.name}</span>
-                      <span>${cat.value.toLocaleString()} ({percentage}%)</span>
+              {categoryExpenses.length === 0 ? (
+                <div className="py-12 text-center text-xs text-[#64748B]">
+                  No expense records categorized yet.
+                </div>
+              ) : (
+                categoryExpenses.map((cat, i) => {
+                  const total = totalExpenses || 1;
+                  const percentage = Math.round((cat.value / total) * 100);
+                  return (
+                    <div key={i} className="space-y-1">
+                      <div className="flex justify-between text-xs font-bold text-[#1E293B]">
+                        <span>{cat.name}</span>
+                        <span>${cat.value.toLocaleString()} ({percentage}%)</span>
+                      </div>
+                      <div className="w-full bg-[#F1F5F9] h-2.5 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full rounded-full transition-all duration-500" 
+                          style={{ width: `${percentage}%`, backgroundColor: cat.color }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full bg-[#F1F5F9] h-2.5 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full rounded-full transition-all duration-500" 
-                        style={{ width: `${percentage}%`, backgroundColor: cat.color }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -540,6 +572,21 @@ export function Bookkeeping() {
                   <option value="Expense">Expense Only</option>
                 </select>
 
+                {/* Category Filter */}
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="px-3 py-2 bg-white border border-[#E2E8F0] rounded-xl text-xs font-bold text-[#1E293B] focus:outline-none focus:border-[#7C3AED]"
+                >
+                  <option value="All">All Categories</option>
+                  <option value="Consulting">Consulting</option>
+                  <option value="Software & Subscriptions">Software & Subscriptions</option>
+                  <option value="Legal & Advisory">Legal & Advisory</option>
+                  <option value="Hardware & Equipment">Hardware & Equipment</option>
+                  <option value="Travel & Meals">Travel & Meals</option>
+                  <option value="Office & Admin">Office & Admin</option>
+                </select>
+
                 {/* Status Filter */}
                 <select
                   value={statusFilter}
@@ -569,42 +616,54 @@ export function Bookkeeping() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E2E8F0] text-[#1E293B]">
-                  {filteredEntries.map((e) => (
-                    <tr key={e.id} className="hover:bg-[#F8F9FC] transition-colors">
-                      <td className="p-4 font-mono font-bold text-[#7C3AED]">{e.id}</td>
-                      <td className="p-4 font-mono text-[#64748B]">{e.date}</td>
-                      <td className="p-4 font-bold text-[#1E293B]">
-                        {e.vendorOrClient}
-                        <span className={`block text-[10px] font-semibold ${e.type === 'Income' ? 'text-[#10B981]' : 'text-red-500'}`}>
-                          {e.type}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white border border-[#E2E8F0] text-[#475569]">
-                          {e.category}
-                        </span>
-                      </td>
-                      <td className={`p-4 text-right font-black ${e.type === 'Income' ? 'text-[#10B981]' : 'text-[#1E293B]'}`}>
-                        {e.type === 'Income' ? '+' : '-'}${e.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="p-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          e.status === 'Reconciled' 
-                            ? 'bg-emerald-100 text-emerald-800' 
-                            : e.status === 'Flagged' 
-                            ? 'bg-red-100 text-red-800' 
-                            : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          {e.status === 'Reconciled' && <CheckCircle2 className="w-3 h-3" />}
-                          {e.status === 'Flagged' && <AlertTriangle className="w-3 h-3" />}
-                          {e.status}
-                        </span>
-                      </td>
-                      <td className="p-4 text-[#64748B] max-w-xs truncate">
-                        {e.notes}
+                  {filteredEntries.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-8 text-center text-[#64748B]">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <FileSpreadsheet className="w-8 h-8 text-[#94A3B8]" />
+                          <p className="font-bold text-sm text-[#1E293B]">No authentic general ledger entries found</p>
+                          <p className="text-xs">Scan a document with Dr. Aria Auditor above or click "Post Journal Entry" to add real records.</p>
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredEntries.map((e) => (
+                      <tr key={e.id} className="hover:bg-[#F8F9FC] transition-colors">
+                        <td className="p-4 font-mono font-bold text-[#7C3AED]">{e.id}</td>
+                        <td className="p-4 font-mono text-[#64748B]">{e.date}</td>
+                        <td className="p-4 font-bold text-[#1E293B]">
+                          {e.vendorOrClient}
+                          <span className={`block text-[10px] font-semibold ${e.type === 'Income' ? 'text-[#10B981]' : 'text-red-500'}`}>
+                            {e.type}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white border border-[#E2E8F0] text-[#475569]">
+                            {e.category}
+                          </span>
+                        </td>
+                        <td className={`p-4 text-right font-black ${e.type === 'Income' ? 'text-[#10B981]' : 'text-[#1E293B]'}`}>
+                          {e.type === 'Income' ? '+' : '-'}${e.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="p-4">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                            e.status === 'Reconciled' 
+                              ? 'bg-emerald-100 text-emerald-800' 
+                              : e.status === 'Flagged' 
+                              ? 'bg-red-100 text-red-800' 
+                              : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {e.status === 'Reconciled' && <CheckCircle2 className="w-3 h-3" />}
+                            {e.status === 'Flagged' && <AlertTriangle className="w-3 h-3" />}
+                            {e.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-[#64748B] max-w-xs truncate">
+                          {e.notes}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -616,7 +675,7 @@ export function Bookkeeping() {
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E2E8F0] shadow-sm space-y-6 max-w-3xl mx-auto">
             <div className="text-center pb-6 border-b border-[#E2E8F0]">
               <h3 className="text-2xl font-black text-[#1E293B]">Profit & Loss Statement (P&L)</h3>
-              <p className="text-xs text-[#64748B] mt-1 font-mono">For the period ended August 2026 • Accrual Accounting</p>
+              <p className="text-xs text-[#64748B] mt-1 font-mono">Authentic Financial Record • Accrual Accounting</p>
             </div>
 
             <div className="space-y-4 text-sm text-[#1E293B]">
@@ -626,23 +685,17 @@ export function Bookkeeping() {
               </div>
 
               <div className="space-y-2 pt-2">
-                <div className="text-xs font-bold uppercase tracking-wider text-[#64748B]">Operating Expenditures:</div>
-                <div className="flex justify-between text-xs py-1">
-                  <span>Legal & Compliance Advisory</span>
-                  <span className="font-mono">$18,500.00</span>
-                </div>
-                <div className="flex justify-between text-xs py-1">
-                  <span>Hardware & Equipment Leases</span>
-                  <span className="font-mono">$14,250.00</span>
-                </div>
-                <div className="flex justify-between text-xs py-1">
-                  <span>Software & Cloud Infrastructure</span>
-                  <span className="font-mono">$3,420.00</span>
-                </div>
-                <div className="flex justify-between text-xs py-1">
-                  <span>Travel & Meals</span>
-                  <span className="font-mono">$583.20</span>
-                </div>
+                <div className="text-xs font-bold uppercase tracking-wider text-[#64748B]">Operating Expenditures by Category:</div>
+                {categoryExpenses.length === 0 ? (
+                  <p className="text-xs text-[#64748B] italic py-2">No expense entries recorded yet.</p>
+                ) : (
+                  categoryExpenses.map((cat, i) => (
+                    <div key={i} className="flex justify-between text-xs py-1 border-b border-gray-100 last:border-0">
+                      <span>{cat.name}</span>
+                      <span className="font-mono font-bold">${cat.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  ))
+                )}
               </div>
 
               <div className="flex justify-between font-bold pt-3 border-t border-[#E2E8F0] text-red-600">
@@ -667,34 +720,32 @@ export function Bookkeeping() {
                 Tax Compliance & Deduction Audit Schedule
               </h3>
               <p className="text-xs text-[#64748B] mt-1">
-                Forensic breakdown of tax-deductible expenditures verified by Dr. Aria AI.
+                Authentic forensic breakdown of tax-deductible expenditures verified by Dr. Aria AI.
               </p>
             </div>
 
             <div className="space-y-3">
-              <div className="p-4 rounded-2xl bg-[#F8F9FC] border border-[#E2E8F0] flex justify-between items-center text-xs">
-                <div>
-                  <div className="font-bold text-[#1E293B]">Qualified Software & Hosting Expenses (IRC Sec 179)</div>
-                  <div className="text-[11px] text-[#64748B]">100% Tax Deductible</div>
+              {entries.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#64748B] bg-[#F8F9FC] rounded-2xl border border-[#E2E8F0]">
+                  No tax compliance entries yet. Scanned invoice records and journal entries will appear here automatically.
                 </div>
-                <span className="font-mono font-bold text-[#10B981]">$3,420.00</span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-[#F8F9FC] border border-[#E2E8F0] flex justify-between items-center text-xs">
-                <div>
-                  <div className="font-bold text-[#1E293B]">Equipment & Server Rack Leases</div>
-                  <div className="text-[11px] text-[#64748B]">100% Tax Deductible</div>
-                </div>
-                <span className="font-mono font-bold text-[#10B981]">$14,250.00</span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex justify-between items-center text-xs">
-                <div>
-                  <div className="font-bold text-amber-900">Unverified Offshore Payment (Global Strategic LLC)</div>
-                  <div className="text-[11px] text-amber-700">Flagged by Dr. Aria - Hold deduction pending Tax ID verification</div>
-                </div>
-                <span className="font-mono font-bold text-red-600">$18,500.00</span>
-              </div>
+              ) : (
+                entries.map((entry) => (
+                  <div key={entry.id} className={`p-4 rounded-2xl border flex justify-between items-center text-xs ${
+                    entry.status === 'Flagged' ? 'bg-amber-50 border-amber-200' : 'bg-[#F8F9FC] border-[#E2E8F0]'
+                  }`}>
+                    <div>
+                      <div className="font-bold text-[#1E293B]">{entry.vendorOrClient} ({entry.category})</div>
+                      <div className={`text-[11px] ${entry.status === 'Flagged' ? 'text-amber-700 font-semibold' : 'text-[#64748B]'}`}>
+                        {entry.status === 'Flagged' ? 'Flagged by Dr. Aria AI - Verification Required' : `Tax Deductible (${entry.type}) • ${entry.status}`}
+                      </div>
+                    </div>
+                    <span className={`font-mono font-bold ${entry.status === 'Flagged' ? 'text-red-600' : 'text-[#10B981]'}`}>
+                      ${entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -756,6 +807,7 @@ export function Bookkeeping() {
                     <option value="Legal & Advisory">Legal & Advisory</option>
                     <option value="Hardware & Equipment">Hardware & Equipment</option>
                     <option value="Travel & Meals">Travel & Meals</option>
+                    <option value="Office & Admin">Office & Admin</option>
                   </select>
                 </div>
 

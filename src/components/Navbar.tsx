@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Bot, ShieldCheck } from 'lucide-react';
+import { Menu, X, Bot, LogOut, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const navLinks = [
@@ -13,21 +13,39 @@ const navLinks = [
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+
+  const checkAuthStatus = () => {
+    const authed = localStorage.getItem('audit-this-doc-cms-auth') === 'true';
+    setIsLoggedIn(authed);
+    setUserEmail(localStorage.getItem('audit-this-doc-user-email') || '');
+  };
 
   useEffect(() => {
-    setIsAdminLoggedIn(localStorage.getItem('audit-this-doc-cms-auth') === 'true');
+    checkAuthStatus();
 
-    const handleAuthChange = () => {
-      setIsAdminLoggedIn(localStorage.getItem('audit-this-doc-cms-auth') === 'true');
+    window.addEventListener('admin-auth-changed', checkAuthStatus);
+    window.addEventListener('storage', checkAuthStatus);
+    return () => {
+      window.removeEventListener('admin-auth-changed', checkAuthStatus);
+      window.removeEventListener('storage', checkAuthStatus);
     };
-
-    window.addEventListener('admin-auth-changed', handleAuthChange);
-    return () => window.removeEventListener('admin-auth-changed', handleAuthChange);
   }, []);
 
-  const linksToShow = isAdminLoggedIn 
-    ? [...navLinks.slice(0, 3), { name: 'Dashboard', href: '#dashboard' }, { name: 'CMS', href: '#cms' }, ...navLinks.slice(3)]
+  const handleLogout = () => {
+    localStorage.removeItem('audit-this-doc-cms-auth');
+    localStorage.removeItem('audit-this-doc-user-email');
+    localStorage.removeItem('audit_this_doc_is_pro');
+    setIsLoggedIn(false);
+    setUserEmail('');
+    window.dispatchEvent(new Event('admin-auth-changed'));
+    window.dispatchEvent(new Event('pro-status-changed'));
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+  };
+
+  const linksToShow = isLoggedIn 
+    ? [...navLinks.slice(0, 2), { name: 'Dashboard', href: '#dashboard' }, ...navLinks.slice(2)]
     : navLinks;
 
   return (
@@ -55,10 +73,7 @@ export function Navbar() {
                   <a
                     href={link.href}
                     onClick={(e) => {
-                      if (link.name === 'CMS') {
-                        e.preventDefault();
-                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'cms' } }));
-                      } else if (link.name === 'Dashboard') {
+                      if (link.name === 'Dashboard') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
                       } else if (link.name === 'Bookkeeping') {
@@ -78,18 +93,41 @@ export function Navbar() {
           </div>
 
           <div className="hidden lg:flex items-center gap-4">
-            <button 
-              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }))}
-              className="text-sm font-bold text-[#1E293B] hover:text-[#7C3AED] transition-colors px-3 py-2"
-            >
-              Sign In / Portal
-            </button>
-            <button 
-              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }))}
-              className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 transition-all"
-            >
-              Get Started
-            </button>
+            {isLoggedIn ? (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }))}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-200 transition-colors"
+                  title="Account Portal"
+                >
+                  <User className="w-3.5 h-3.5 text-[#7C3AED]" />
+                  <span className="max-w-[140px] truncate">{userEmail || 'Account'}</span>
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-[1.02]"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Log Out
+                </button>
+              </div>
+            ) : (
+              <>
+                <button 
+                  onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }))}
+                  className="text-sm font-bold text-[#1E293B] hover:text-[#7C3AED] transition-colors px-3 py-2"
+                >
+                  Sign In / Portal
+                </button>
+                <button 
+                  onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }))}
+                  className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 transition-all"
+                >
+                  Get Started
+                </button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -118,10 +156,7 @@ export function Navbar() {
                   href={link.href}
                   className="text-[#1E293B] font-semibold px-4 py-2 hover:bg-[#F8F9FC] rounded-lg"
                   onClick={(e) => {
-                    if (link.name === 'CMS') {
-                      e.preventDefault();
-                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'cms' } }));
-                    } else if (link.name === 'Dashboard') {
+                    if (link.name === 'Dashboard') {
                       e.preventDefault();
                       window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
                     } else if (link.name === 'Bookkeeping') {
@@ -137,15 +172,28 @@ export function Navbar() {
                 </a>
               ))}
               <div className="h-px bg-[#E2E8F0] my-1" />
-              <button 
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full text-center font-bold text-white bg-[#7C3AED] px-4 py-3 rounded-xl shadow-md"
-              >
-                Get Started / Sign In
-              </button>
+              {isLoggedIn ? (
+                <button 
+                  onClick={() => {
+                    handleLogout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full text-center font-bold text-rose-600 bg-rose-50 border border-rose-200 px-4 py-3 rounded-xl shadow-xs flex items-center justify-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Log Out ({userEmail || 'Account'})
+                </button>
+              ) : (
+                <button 
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full text-center font-bold text-white bg-[#7C3AED] px-4 py-3 rounded-xl shadow-md"
+                >
+                  Get Started / Sign In
+                </button>
+              )}
             </div>
           </motion.div>
         )}

@@ -21,7 +21,8 @@ import {
   Crown,
   ArrowUpRight,
   ShieldCheck,
-  Building2
+  Building2,
+  LogOut
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 
@@ -78,7 +79,9 @@ export function Dashboard() {
   const [usedCount, setUsedCount] = useState(0);
 
   const syncQuotaState = () => {
-    const proStatus = localStorage.getItem('audit_this_doc_is_pro') === 'true';
+    const userEmail = (localStorage.getItem('audit-this-doc-user-email') || '').toLowerCase().trim();
+    const isAdmin = userEmail === 'brigittalombard09@gmail.com';
+    const proStatus = localStorage.getItem('audit_this_doc_is_pro') === 'true' || isAdmin;
     setIsPro(proStatus);
     const count = parseInt(localStorage.getItem('audit_this_doc_free_count') || '0', 10);
     setUsedCount(count);
@@ -87,9 +90,11 @@ export function Dashboard() {
   useEffect(() => {
     syncQuotaState();
     window.addEventListener('pro-status-changed', syncQuotaState);
+    window.addEventListener('admin-auth-changed', syncQuotaState);
     window.addEventListener('storage', syncQuotaState);
     return () => {
       window.removeEventListener('pro-status-changed', syncQuotaState);
+      window.removeEventListener('admin-auth-changed', syncQuotaState);
       window.removeEventListener('storage', syncQuotaState);
     };
   }, []);
@@ -295,7 +300,22 @@ export function Dashboard() {
             onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }))}
             className="bg-[#1E293B] hover:bg-[#0F172A] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
           >
-            Back to Portal
+            Portal
+          </button>
+
+          <button
+            onClick={() => {
+              localStorage.removeItem('audit-this-doc-cms-auth');
+              localStorage.removeItem('audit-this-doc-user-email');
+              localStorage.removeItem('audit_this_doc_is_pro');
+              window.dispatchEvent(new Event('admin-auth-changed'));
+              window.dispatchEvent(new Event('pro-status-changed'));
+              window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+            }}
+            className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+          >
+            <LogOut className="w-4 h-4" />
+            Log Out
           </button>
         </div>
       </div>
@@ -377,9 +397,9 @@ export function Dashboard() {
                     ? 'bg-gradient-to-r from-amber-500 to-amber-400'
                     : 'bg-gradient-to-r from-[#7C3AED] to-[#10B981]'
                 }`}
-                style={{ width: `${Math.max(3, usagePercent)}%` }}
+                style={{ width: `${usagePercent}%` }}
               >
-                <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full" />
+                {usagePercent > 0 && <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full" />}
               </div>
             </div>
 
