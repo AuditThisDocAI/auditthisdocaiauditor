@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 const navLinks = [
   { name: 'Dr. Aria Auditor', href: '#document-auditor' },
+  { name: 'Bookkeeping', href: '#bookkeeping' },
   { name: 'Features', href: '#features' },
   { name: 'Pricing', href: '#pricing' },
   { name: 'FAQ', href: '#faq' },
@@ -60,6 +61,9 @@ export function Navbar() {
                       } else if (link.name === 'Dashboard') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+                      } else if (link.name === 'Bookkeeping') {
+                        e.preventDefault();
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'bookkeeping' } }));
                       } else {
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
                       }
@@ -120,6 +124,9 @@ export function Navbar() {
                     } else if (link.name === 'Dashboard') {
                       e.preventDefault();
                       window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+                    } else if (link.name === 'Bookkeeping') {
+                      e.preventDefault();
+                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'bookkeeping' } }));
                     } else {
                       window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
                     }

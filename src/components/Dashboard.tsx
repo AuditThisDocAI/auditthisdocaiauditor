@@ -20,7 +20,8 @@ import {
   Zap,
   Crown,
   ArrowUpRight,
-  ShieldCheck
+  ShieldCheck,
+  Building2
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 
@@ -272,6 +273,14 @@ export function Dashboard() {
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-[#7C3AED]' : ''}`} />
             Sync Now
+          </button>
+
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'bookkeeping' } }))}
+            className="bg-[#1E293B] hover:bg-[#0F172A] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+          >
+            <Building2 className="w-4 h-4 text-amber-400" />
+            Bookkeeping Suite
           </button>
 
           <button

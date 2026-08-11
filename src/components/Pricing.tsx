@@ -37,18 +37,42 @@ const tiers = [
       monthly: 'month',
       yearly: 'year'
     },
-    description: 'For accountants, auditors, and teams needing regular document scans.',
+    description: 'For accountants, auditors, and growing businesses needing regular scans & bookkeeping.',
     featuresHeader: 'Pro Plan Includes:',
     features: [
       '1,000 Document Audits / Month',
-      'Full Dr. Aria PhD Forensic Engine',
-      'Advanced Fraud & Wire Red Flag Detection',
-      'Export PDF Audit Certificates',
-      'Priority Scanning & OCR Parsing',
-      'Email & Consultation Summaries',
+      'Full AI Bookkeeping & General Ledger',
+      'Dr. Aria Auto-Reconciliation Engine',
+      'Profit & Loss (P&L) Statements',
+      'Tax Deduction & VAT Audit Schedule',
+      'Export PDF Audit Certificates & CSV',
     ],
     mostPopular: true,
-    buttonText: 'Upgrade to 1,000 Audits Plan'
+    buttonText: 'Upgrade to Pro Plan'
+  },
+  {
+    name: 'Enterprise Plan',
+    id: 'tier-enterprise',
+    price: {
+      monthly: '$199',
+      yearly: '$1,990'
+    },
+    period: {
+      monthly: 'month',
+      yearly: 'year'
+    },
+    description: 'For enterprises, CPA firms, and financial teams requiring custom workflows & multi-user access.',
+    featuresHeader: 'Enterprise Plan Includes:',
+    features: [
+      'Unlimited Document Audits',
+      'Full AI Bookkeeping & Multi-Ledger',
+      'Custom ERP & QuickBooks / Xero Sync',
+      'Multi-User Team Permissions',
+      'Dedicated Forensic Auditor SLA',
+      'Priority OCR & Custom AI Rules',
+    ],
+    mostPopular: false,
+    buttonText: 'Get Enterprise Plan'
   }
 ];
 

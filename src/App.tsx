@@ -10,9 +10,10 @@ import { Contact } from './components/Contact';
 import { CMS } from './components/CMS';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
+import { Bookkeeping } from './components/Bookkeeping';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'cms' | 'auth' | 'dashboard'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'cms' | 'auth' | 'dashboard' | 'bookkeeping'>('landing');
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export default function App() {
     }
 
     const handleNavigate = (e: Event) => {
-      const customEvent = e as CustomEvent<{ view: 'landing' | 'cms' | 'auth' | 'dashboard' }>;
+      const customEvent = e as CustomEvent<{ view: 'landing' | 'cms' | 'auth' | 'dashboard' | 'bookkeeping' }>;
       if (customEvent.detail && customEvent.detail.view) {
         setCurrentView(customEvent.detail.view);
         window.scrollTo(0, 0);
@@ -58,6 +59,7 @@ export default function App() {
             <Hero />
             <TrustedBy />
             <DocumentAuditor />
+            <Bookkeeping />
             <Features />
             <Pricing />
             <FAQ />
@@ -67,6 +69,7 @@ export default function App() {
         {currentView === 'auth' && <Auth />}
         {currentView === 'cms' && <CMS />}
         {currentView === 'dashboard' && <Dashboard />}
+        {currentView === 'bookkeeping' && <Bookkeeping />}
       </main>
       
       {/* Footer */}

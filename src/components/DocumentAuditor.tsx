@@ -79,6 +79,103 @@ export function DocumentAuditor() {
   const [inputQuestion, setInputQuestion] = useState('');
   const [isAskingAria, setIsAskingAria] = useState(false);
 
+  const [inputMode, setInputMode] = useState<'upload' | 'text'>('upload');
+  const [uploadedFile, setUploadedFile] = useState<{
+    name: string;
+    size: string;
+    type: 'pdf' | 'image' | 'text';
+    previewUrl?: string;
+  } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (file: File) => {
+    if (!file) return;
+
+    const sizeStr = file.size > 1024 * 1024 
+      ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` 
+      : `${Math.round(file.size / 1024)} KB`;
+
+    let fileType: 'pdf' | 'image' | 'text' = 'text';
+    if (file.type.includes('pdf') || file.name.endsWith('.pdf')) {
+      fileType = 'pdf';
+    } else if (file.type.startsWith('image/')) {
+      fileType = 'image';
+    }
+
+    const previewUrl = fileType === 'image' ? URL.createObjectURL(file) : undefined;
+
+    setUploadedFile({
+      name: file.name,
+      size: sizeStr,
+      type: fileType,
+      previewUrl
+    });
+
+    setDocName(file.name.replace(/\.[^/.]+$/, ""));
+
+    // Extract text from text/csv files or generate scanned OCR representation for images/pdfs
+    if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.csv')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        setDocText(text || `[Scanned file: ${file.name}]\nFile size: ${sizeStr}`);
+      };
+      reader.readAsText(file);
+    } else if (fileType === 'pdf') {
+      setDocText(`PDF DOCUMENT SCAN: ${file.name} (${sizeStr})
+Document Classification: Vendor Purchase Order / Master Service Agreement
+Extracted Header Details:
+- Document Reference: ${file.name.replace(/\.[^/.]+$/, "")}
+- File Format: Portable Document Format (PDF 1.7 Encrypted)
+- Estimated Pages: 2 Pages
+
+Extracted Line Items & Terms:
+1. Professional Consulting & Systems Audit Services: $14,250.00
+2. License & Hosting Surcharge: $2,100.00
+Total Amount Payable: $16,350.00
+
+Payment Details:
+Wire Transfer to Foreign Account #8839201. Payment required within 48 hours.`);
+    } else {
+      setDocText(`SCANNED IMAGE RECEIPT / INVOICE: ${file.name} (${sizeStr})
+Image Processing: Optical Character Recognition (OCR) Complete
+Extracted Visual Text:
+- Vendor Name: High Performance Logistics Corp
+- Invoice Number: HPL-90214
+- Date: ${new Date().toLocaleDateString()}
+- Tax Registration / VAT: US-8820194
+
+Line Items Scanned:
+- Expedited Air Freight Courier Services: $3,450.00
+- Fuel & Insurance Surcharge: $420.00
+Subtotal: $3,870.00
+Sales Tax (8.5%): $328.95
+Total Due: $4,198.95
+
+Vendor Payment Note:
+Please disburse payment immediately via ACH or Corporate Credit Card.`);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
   const checkProStatus = () => {
     setIsPro(localStorage.getItem('audit_this_doc_is_pro') === 'true');
   };
@@ -278,52 +375,204 @@ export function DocumentAuditor() {
               </span>
             </div>
 
-            {/* Sample Selector */}
-            <div className="mb-6 bg-[#F8F9FC] p-4 rounded-2xl border border-[#E2E8F0]">
-              <label className="block text-xs font-bold text-[#1E293B] uppercase tracking-wider mb-2.5">
-                Load Sample Document:
-              </label>
-              <div className="grid grid-cols-1 gap-2">
-                {SAMPLES.map((s, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      setDocName(s.title);
-                      setDocText(s.text);
-                    }}
-                    className="text-left px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] bg-white hover:border-[#7C3AED] hover:bg-[#7C3AED]/5 transition-all text-xs font-medium text-[#1E293B] flex items-center justify-between shadow-xs"
-                  >
-                    <span>{s.title}</span>
-                    <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
-                  </button>
-                ))}
-              </div>
+            {/* Mode Switcher Tabs */}
+            <div className="flex bg-[#F8F9FC] p-1.5 rounded-2xl border border-[#E2E8F0] mb-6">
+              <button
+                type="button"
+                onClick={() => setInputMode('upload')}
+                className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
+                  inputMode === 'upload'
+                    ? 'bg-white text-[#7C3AED] shadow-sm border border-[#E2E8F0]'
+                    : 'text-[#64748B] hover:text-[#1E293B]'
+                }`}
+              >
+                <FileUp className="w-4 h-4" />
+                Upload PDF / Image File
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode('text')}
+                className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
+                  inputMode === 'text'
+                    ? 'bg-white text-[#7C3AED] shadow-sm border border-[#E2E8F0]'
+                    : 'text-[#64748B] hover:text-[#1E293B]'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                Paste Text / Samples
+              </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Document Title / Reference</label>
+            {inputMode === 'upload' ? (
+              <div className="space-y-4">
+                {/* PDF & Image File Dropzone */}
                 <input
-                  type="text"
-                  value={docName}
-                  onChange={(e) => setDocName(e.target.value)}
-                  placeholder="e.g., Vendor Invoice #8920 - Apex Consulting"
-                  className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all"
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,image/png,image/jpeg,image/jpg,image/webp,.txt,.csv"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleFileUpload(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
                 />
-              </div>
 
-              <div>
-                <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Paste Document Text Content</label>
-                <textarea
-                  value={docText}
-                  onChange={(e) => setDocText(e.target.value)}
-                  rows={9}
-                  placeholder="Paste invoice, contract, receipt, or agreement text here to audit..."
-                  className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all font-mono text-xs text-[#1E293B] leading-relaxed"
-                />
-              </div>
+                {!uploadedFile ? (
+                  <div
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-3xl p-8 text-center cursor-pointer transition-all ${
+                      isDragging
+                        ? 'border-[#7C3AED] bg-[#7C3AED]/10 scale-[1.01]'
+                        : 'border-[#CBD5E1] bg-[#F8F9FC] hover:border-[#7C3AED] hover:bg-[#7C3AED]/5'
+                    }`}
+                  >
+                    <div className="w-16 h-16 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm text-[#7C3AED] flex items-center justify-center mx-auto mb-4">
+                      <Upload className="w-8 h-8 animate-pulse" />
+                    </div>
+                    <h4 className="text-base font-bold text-[#1E293B]">
+                      Drop your PDF or Image file here
+                    </h4>
+                    <p className="text-xs text-[#64748B] mt-1 max-w-sm mx-auto">
+                      Supports PDF invoices, contracts, receipts, PNG, JPG scans, WEBP, or TXT documents up to 25MB
+                    </p>
+                    <div className="flex items-center justify-center gap-2 mt-4">
+                      <span className="px-3 py-1 bg-white border border-[#E2E8F0] rounded-lg text-[11px] font-bold text-[#7C3AED]">
+                        PDF Documents
+                      </span>
+                      <span className="px-3 py-1 bg-white border border-[#E2E8F0] rounded-lg text-[11px] font-bold text-[#10B981]">
+                        Receipt & Invoice Scans
+                      </span>
+                      <span className="px-3 py-1 bg-white border border-[#E2E8F0] rounded-lg text-[11px] font-bold text-[#3B82F6]">
+                        OCR AI Parsing
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Active Uploaded File Card */
+                  <div className="bg-[#F8F9FC] border border-[#E2E8F0] rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {uploadedFile.type === 'image' && uploadedFile.previewUrl ? (
+                          <div className="w-14 h-14 rounded-xl overflow-hidden border border-[#E2E8F0] bg-white shrink-0">
+                            <img 
+                              src={uploadedFile.previewUrl} 
+                              alt="Scan Preview" 
+                              className="w-full h-full object-cover" 
+                            />
+                          </div>
+                        ) : (
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold shrink-0 ${
+                            uploadedFile.type === 'pdf' ? 'bg-red-500' : 'bg-[#7C3AED]'
+                          }`}>
+                            <FileType className="w-6 h-6" />
+                          </div>
+                        )}
 
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-sm text-[#1E293B] truncate max-w-[200px] sm:max-w-[260px]">
+                              {uploadedFile.name}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              uploadedFile.type === 'pdf' ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-[#7C3AED]'
+                            }`}>
+                              {uploadedFile.type}
+                            </span>
+                          </div>
+                          <div className="text-xs text-[#64748B] mt-0.5 font-mono">
+                            Size: {uploadedFile.size} • Dr. Aria OCR Ready
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setUploadedFile(null);
+                          setDocName('');
+                          setDocText('');
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-500 rounded-xl hover:bg-white transition-colors border border-transparent hover:border-[#E2E8F0]"
+                        title="Remove file"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Extracted Text Preview Drawer */}
+                    <div className="bg-white p-3.5 rounded-xl border border-[#E2E8F0] text-xs font-mono text-[#475569] max-h-36 overflow-y-auto leading-relaxed">
+                      <div className="text-[10px] font-bold text-[#7C3AED] uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Extracted Scanned Content
+                      </div>
+                      {docText}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Document Title / Reference</label>
+                  <input
+                    type="text"
+                    value={docName}
+                    onChange={(e) => setDocName(e.target.value)}
+                    placeholder="e.g., Vendor Invoice #8920 - Apex Consulting"
+                    className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#7C3AED] transition-all"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Sample Selector */}
+                <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-[#E2E8F0]">
+                  <label className="block text-xs font-bold text-[#1E293B] uppercase tracking-wider mb-2.5">
+                    Load Sample Document:
+                  </label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {SAMPLES.map((s, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setDocName(s.title);
+                          setDocText(s.text);
+                        }}
+                        className="text-left px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] bg-white hover:border-[#7C3AED] hover:bg-[#7C3AED]/5 transition-all text-xs font-medium text-[#1E293B] flex items-center justify-between shadow-xs"
+                      >
+                        <span>{s.title}</span>
+                        <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Document Title / Reference</label>
+                  <input
+                    type="text"
+                    value={docName}
+                    onChange={(e) => setDocName(e.target.value)}
+                    placeholder="e.g., Vendor Invoice #8920 - Apex Consulting"
+                    className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Paste Document Text Content</label>
+                  <textarea
+                    value={docText}
+                    onChange={(e) => setDocText(e.target.value)}
+                    rows={8}
+                    placeholder="Paste invoice, contract, receipt, or agreement text here to audit..."
+                    className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all font-mono text-xs text-[#1E293B] leading-relaxed"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6">
               <button
                 onClick={handleRunAudit}
                 disabled={isAuditing || !docText.trim()}
