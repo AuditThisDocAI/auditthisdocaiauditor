@@ -1,4 +1,4 @@
-import express from "express";
+﻿import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
@@ -322,7 +322,18 @@ You are professional, authoritative yet friendly, and help users understand thei
   });
 }
 
-startServer().then((app) => {
-  module.exports = app;
+return app;
+}
 
-});
+const PORT = Number(process.env.PORT) || 8080;
+
+startServer()
+  .then((app) => {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  });
