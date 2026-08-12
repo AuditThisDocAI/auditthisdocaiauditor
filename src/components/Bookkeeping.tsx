@@ -23,6 +23,7 @@ import {
   CreditCard 
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useCurrency } from '../lib/currency';
 
 export interface JournalEntry {
   id: string;
@@ -48,6 +49,7 @@ export function Bookkeeping() {
   });
 
   const [isPro, setIsPro] = useState(false);
+  const { format, convert, currencyConfig } = useCurrency();
   const [activeTab, setActiveTab] = useState<'ledger' | 'statements' | 'tax'>('ledger');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'All' | 'Income' | 'Expense'>('All');
@@ -406,8 +408,8 @@ export function Bookkeeping() {
                 <ArrowUpRight className="w-5 h-5" />
               </div>
             </div>
-            <p className="text-2xl sm:text-3xl font-black text-[#10B981]">${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-            <p className="text-xs text-[#64748B] mt-1 font-medium">Income recorded</p>
+            <p className="text-2xl sm:text-3xl font-black text-[#10B981]">{format(totalRevenue)}</p>
+            <p className="text-xs text-[#64748B] mt-1 font-medium">Income recorded ({currencyConfig.code})</p>
           </div>
 
           <div className="bg-white p-6 rounded-3xl border border-[#E2E8F0] shadow-sm">
@@ -417,7 +419,7 @@ export function Bookkeeping() {
                 <ArrowDownRight className="w-5 h-5" />
               </div>
             </div>
-            <p className="text-2xl sm:text-3xl font-black text-red-600">${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+            <p className="text-2xl sm:text-3xl font-black text-red-600">{format(totalExpenses)}</p>
             <p className="text-xs text-[#64748B] mt-1 font-medium">Disbursements & vendor invoices</p>
           </div>
 
@@ -429,7 +431,7 @@ export function Bookkeeping() {
               </div>
             </div>
             <p className={`text-2xl sm:text-3xl font-black ${netIncome >= 0 ? 'text-[#1E293B]' : 'text-red-600'}`}>
-              ${netIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              {format(netIncome)}
             </p>
             <p className="text-xs text-[#64748B] mt-1 font-medium">Before corporate tax reserve</p>
           </div>
@@ -441,7 +443,7 @@ export function Bookkeeping() {
                 <Scale className="w-5 h-5" />
               </div>
             </div>
-            <p className="text-2xl sm:text-3xl font-black text-amber-700">${estimatedTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+            <p className="text-2xl sm:text-3xl font-black text-amber-700">{format(estimatedTax)}</p>
             <p className="text-xs text-[#64748B] mt-1 font-medium">Corporate tax liability estimate</p>
           </div>
         </div>
@@ -643,7 +645,7 @@ export function Bookkeeping() {
                           </span>
                         </td>
                         <td className={`p-4 text-right font-black ${e.type === 'Income' ? 'text-[#10B981]' : 'text-[#1E293B]'}`}>
-                          {e.type === 'Income' ? '+' : '-'}${e.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          {e.type === 'Income' ? '+' : '-'}{format(e.amount)}
                         </td>
                         <td className="p-4">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${

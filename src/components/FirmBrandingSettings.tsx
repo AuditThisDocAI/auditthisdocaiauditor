@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { getActiveFirm, saveActiveFirm, exportAllFirmDataAsJson, FirmProfile } from '../lib/multiTenantDb';
 import { generateBrandedReportWindow } from '../lib/pdfReportGenerator';
+import { PaywallModal } from './PaywallModal';
 
 export function FirmBrandingSettings() {
   const [firm, setFirm] = useState<FirmProfile>(getActiveFirm());
@@ -39,22 +40,32 @@ export function FirmBrandingSettings() {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [testEmailSent, setTestEmailSent] = useState(false);
 
-  // Simulation controls state for live White Label preview
-  const [simDevice, setSimDevice] = useState<'desktop' | 'mobile'>('desktop');
-  const [simSampleDoc, setSimSampleDoc] = useState<'ledger' | 'invoices' | 'payroll'>('ledger');
-  const [simScanState, setSimScanState] = useState<'idle' | 'scanning' | 'complete'>('complete');
+  // Access control state - White Label settings are strictly for paid subscribers after sign up
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [showPaywallModal, setShowPaywallModal] = useState(false);
 
-  // Real File Upload & Dropzone state for White Label Auditor simulation
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [customUploadedFile, setCustomUploadedFile] = useState<{
-    name: string;
-    size: string;
-    type: string;
-  } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const checkAccess = () => {
+    const authed = localStorage.getItem('audit-this-doc-cms-auth') === 'true';
+    const email = (localStorage.getItem('audit-this-doc-user-email') || '').toLowerCase().trim();
+    const isAdmin = email === 'brigittalombard09@gmail.com';
+    const pro = localStorage.getItem('audit_this_doc_is_pro') === 'true' || isAdmin;
+
+    setIsLoggedIn(authed);
+    setIsPro(pro);
+  };
 
   useEffect(() => {
     setFirm(getActiveFirm());
+    checkAccess();
+    window.addEventListener('admin-auth-changed', checkAccess);
+    window.addEventListener('pro-status-changed', checkAccess);
+    window.addEventListener('storage', checkAccess);
+    return () => {
+      window.removeEventListener('admin-auth-changed', checkAccess);
+      window.removeEventListener('pro-status-changed', checkAccess);
+      window.removeEventListener('storage', checkAccess);
+    };
   }, []);
 
   const handleSave = (e: React.FormEvent) => {
@@ -148,6 +159,20 @@ export function FirmBrandingSettings() {
     });
   };
 
+  // Simulation controls state for live White Label preview
+  const [simDevice, setSimDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const [simSampleDoc, setSimSampleDoc] = useState<'ledger' | 'invoices' | 'payroll'>('ledger');
+  const [simScanState, setSimScanState] = useState<'idle' | 'scanning' | 'complete'>('complete');
+
+  // Real File Upload & Dropzone state for White Label Auditor simulation
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [customUploadedFile, setCustomUploadedFile] = useState<{
+    name: string;
+    size: string;
+    type: string;
+  } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
   const PRESET_PALETTES = [
     { name: 'Corporate Midnight', primary: '#0F172A', secondary: '#2563EB', bg: '#F8FAFC' },
     { name: 'Emerald Accounting', primary: '#064E3B', secondary: '#059669', bg: '#F0FDF4' },
@@ -155,6 +180,81 @@ export function FirmBrandingSettings() {
     { name: 'Deep Navy Gold', primary: '#1E3A8A', secondary: '#D97706', bg: '#F8FAFC' },
     { name: 'Crimson Risk Advisory', primary: '#7F1D1D', secondary: '#DC2626', bg: '#FEF2F2' },
   ];
+
+  if (!isLoggedIn || !isPro) {
+    return (
+      <div className="max-w-4xl mx-auto py-12 px-4">
+        <div className="bg-white rounded-3xl border-2 border-amber-200 p-8 sm:p-12 shadow-xl text-center relative overflow-hidden">
+          <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-6 shadow-md">
+            <Crown className="w-8 h-8" />
+          </div>
+
+          <span className="text-xs font-extrabold uppercase tracking-widest text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+            Paid Business Plan Required
+          </span>
+
+          <h2 className="text-3xl font-black text-slate-900 mt-4 tracking-tight">
+            White Label Settings Unavailable on Free Tier
+          </h2>
+
+          <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto mt-3 leading-relaxed">
+            Custom white label portal branding, custom domain configuration, firm logo watermarks, and white-labeled client PDF reports are available exclusively to paid subscribers who have signed up.
+          </p>
+
+          <div className="my-8 max-w-md mx-auto bg-slate-50 p-5 rounded-2xl border border-slate-200 text-left space-y-2.5">
+            <div className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Included in Paid Pro / Business:</div>
+            <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Custom Logo, Brand Colors, and Custom Domain</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Firm Branded PDF Audit Certificates & Dispatches</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>White-Labeled Email Dispatches & Custom SMTP</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>1,000 Monthly Document Forensic Audits</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            {!isLoggedIn ? (
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }))}
+                className="w-full sm:w-auto px-8 py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold rounded-2xl text-sm shadow-lg shadow-purple-500/20 transition-all cursor-pointer"
+              >
+                Sign Up / Sign In
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowPaywallModal(true)}
+                className="w-full sm:w-auto px-8 py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-2xl text-sm shadow-lg shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Crown className="w-4 h-4" />
+                Upgrade to Paid Pro
+              </button>
+            )}
+
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }))}
+              className="w-full sm:w-auto px-6 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-sm transition-colors cursor-pointer"
+            >
+              Back to Home
+            </button>
+          </div>
+
+          <PaywallModal
+            isOpen={showPaywallModal}
+            onClose={() => setShowPaywallModal(false)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">

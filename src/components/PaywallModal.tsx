@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lock, ShieldAlert, Check, Sparkles, X, ArrowRight, CreditCard, LogIn, UserPlus, Loader2 } from 'lucide-react';
+import { useCurrency } from '../lib/currency';
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface PaywallModalProps {
 
 export function PaywallModal({ isOpen, onClose, auditCount = 10 }: PaywallModalProps) {
   const [loadingPlan, setLoadingPlan] = useState<'monthly' | 'yearly' | null>(null);
+  const { format } = useCurrency();
 
   if (!isOpen) return null;
 
@@ -130,7 +132,7 @@ export function PaywallModal({ isOpen, onClose, auditCount = 10 }: PaywallModalP
                     Monthly Option
                   </span>
                   <div className="text-2xl font-black text-[#1E293B] mt-2">
-                    $45 <span className="text-xs font-normal text-[#64748B]">/ month</span>
+                    {format(59, { hideDecimals: true })} <span className="text-xs font-normal text-[#64748B]">/ month</span>
                   </div>
                   <div className="text-xs font-bold text-[#1E293B] mt-0.5">1,000 Audits / Mo</div>
                 </div>
@@ -138,14 +140,14 @@ export function PaywallModal({ isOpen, onClose, auditCount = 10 }: PaywallModalP
                 <button
                   onClick={() => handleStripeCheckout('monthly')}
                   disabled={loadingPlan === 'monthly'}
-                  className="mt-4 w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all"
+                  className="mt-4 w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
                   {loadingPlan === 'monthly' ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
                       <CreditCard className="w-4 h-4" />
-                      <span>Pay $45 / Month</span>
+                      <span>Pay {format(59, { hideDecimals: true })} / Month</span>
                     </>
                   )}
                 </button>
@@ -155,25 +157,25 @@ export function PaywallModal({ isOpen, onClose, auditCount = 10 }: PaywallModalP
               <div className="p-4 rounded-2xl border-2 border-[#10B981] bg-white relative flex flex-col justify-between shadow-sm">
                 <div>
                   <span className="text-[10px] font-bold text-[#10B981] uppercase tracking-wider bg-[#10B981]/10 px-2 py-0.5 rounded-full border border-[#10B981]/20">
-                    Best Value (Save $90)
+                    Best Value (Save 20%)
                   </span>
                   <div className="text-2xl font-black text-[#1E293B] mt-2">
-                    $450 <span className="text-xs font-normal text-[#64748B]">/ year</span>
+                    {format(590, { hideDecimals: true })} <span className="text-xs font-normal text-[#64748B]">/ year</span>
                   </div>
-                  <div className="text-xs font-bold text-[#1E293B] mt-0.5">12,000 Audits / Yr ($37.5/mo)</div>
+                  <div className="text-xs font-bold text-[#1E293B] mt-0.5">12,000 Audits / Yr ({format(49, { hideDecimals: true })}/mo)</div>
                 </div>
 
                 <button
                   onClick={() => handleStripeCheckout('yearly')}
                   disabled={loadingPlan === 'yearly'}
-                  className="mt-4 w-full bg-[#10B981] hover:bg-[#059669] text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all"
+                  className="mt-4 w-full bg-[#10B981] hover:bg-[#059669] text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
                   {loadingPlan === 'yearly' ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
                       <CreditCard className="w-4 h-4" />
-                      <span>Pay $450 / Year</span>
+                      <span>Pay {format(590, { hideDecimals: true })} / Year</span>
                     </>
                   )}
                 </button>

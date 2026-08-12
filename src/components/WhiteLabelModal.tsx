@@ -37,6 +37,12 @@ export function WhiteLabelModal({ isOpen, onClose }: WhiteLabelModalProps) {
   const [activeTab, setActiveTab] = useState<'branding' | 'domain' | 'reports'>('branding');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  const authed = localStorage.getItem('audit-this-doc-cms-auth') === 'true';
+  const email = (localStorage.getItem('audit-this-doc-user-email') || '').toLowerCase().trim();
+  const isAdmin = email === 'brigittalombard09@gmail.com';
+  const isPro = localStorage.getItem('audit_this_doc_is_pro') === 'true' || isAdmin;
+  const isPaidAndSignedUp = authed && isPro;
+
   useEffect(() => {
     if (isOpen) {
       setConfig(getWhiteLabelConfig());
@@ -73,6 +79,39 @@ export function WhiteLabelModal({ isOpen, onClose }: WhiteLabelModalProps) {
           >
             <X className="w-5 h-5" />
           </button>
+
+          {!isPaidAndSignedUp ? (
+            <div className="text-center py-6">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-4">
+                <Crown className="w-6 h-6" />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                Paid Business Feature
+              </span>
+              <h3 className="text-2xl font-black text-slate-900 mt-3">White Label Settings Locked</h3>
+              <p className="text-slate-500 text-xs sm:text-sm max-w-md mx-auto mt-2 leading-relaxed">
+                White Label settings are not available on the free tier. Custom branding, domain mapping, and branded dispatches are reserved for paid business subscribers after signing up.
+              </p>
+              <div className="mt-6 flex justify-center gap-3">
+                <button
+                  onClick={() => {
+                    onClose();
+                    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                  }}
+                  className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-md transition-all cursor-pointer"
+                >
+                  Sign Up / Upgrade Now
+                </button>
+                <button
+                  onClick={onClose}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
 
           {/* Header */}
           <div className="flex items-center gap-3 mb-2">
@@ -353,6 +392,8 @@ export function WhiteLabelModal({ isOpen, onClose }: WhiteLabelModalProps) {
               </div>
             </div>
           </form>
+          </>
+          )}
         </motion.div>
       </div>
     </AnimatePresence>

@@ -3,6 +3,7 @@ import { Menu, X, Bot, LogOut, User, Crown, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getWhiteLabelConfig, WhiteLabelConfig } from '../lib/whitelabel';
 import { WhiteLabelModal } from './WhiteLabelModal';
+import { CurrencySelector } from './CurrencySelector';
 
 const navLinks = [
   { name: 'Dr. Aria Auditor', href: '#document-auditor' },
@@ -16,14 +17,20 @@ const navLinks = [
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isPro, setIsPro] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [whiteLabelConfig, setWhiteLabelConfig] = useState<WhiteLabelConfig>(getWhiteLabelConfig());
   const [showWhiteLabelModal, setShowWhiteLabelModal] = useState(false);
 
   const checkAuthStatus = () => {
     const authed = localStorage.getItem('audit-this-doc-cms-auth') === 'true';
+    const email = (localStorage.getItem('audit-this-doc-user-email') || '').toLowerCase().trim();
+    const isAdmin = email === 'brigittalombard09@gmail.com';
+    const pro = localStorage.getItem('audit_this_doc_is_pro') === 'true' || isAdmin;
+
     setIsLoggedIn(authed);
-    setUserEmail(localStorage.getItem('audit-this-doc-user-email') || '');
+    setIsPro(pro);
+    setUserEmail(email);
     setWhiteLabelConfig(getWhiteLabelConfig());
   };
 
@@ -31,10 +38,12 @@ export function Navbar() {
     checkAuthStatus();
 
     window.addEventListener('admin-auth-changed', checkAuthStatus);
+    window.addEventListener('pro-status-changed', checkAuthStatus);
     window.addEventListener('whitelabel-updated', checkAuthStatus);
     window.addEventListener('storage', checkAuthStatus);
     return () => {
       window.removeEventListener('admin-auth-changed', checkAuthStatus);
+      window.removeEventListener('pro-status-changed', checkAuthStatus);
       window.removeEventListener('whitelabel-updated', checkAuthStatus);
       window.removeEventListener('storage', checkAuthStatus);
     };
@@ -45,19 +54,22 @@ export function Navbar() {
     localStorage.removeItem('audit-this-doc-user-email');
     localStorage.removeItem('audit_this_doc_is_pro');
     setIsLoggedIn(false);
+    setIsPro(false);
     setUserEmail('');
     window.dispatchEvent(new Event('admin-auth-changed'));
     window.dispatchEvent(new Event('pro-status-changed'));
     window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
   };
 
+  // White label settings are strictly reserved for paid subscribers who have signed up
+  const isPaidAndSignedUp = isLoggedIn && isPro;
+
   const linksToShow = [
     navLinks[0], // Dr. Aria Auditor
     navLinks[1], // Bookkeeping
     ...(isLoggedIn ? [{ name: 'Dashboard', href: '#dashboard' }] : []),
-    { name: 'Branding', href: '#whitelabel' },
-    { name: 'Staff Team', href: '#staff' },
-    { name: 'Firm Clients', href: '#clients' },
+    ...(isPaidAndSignedUp ? [{ name: 'Branding', href: '#whitelabel' }] : []),
+    ...(isLoggedIn ? [{ name: 'Staff Team', href: '#staff' }, { name: 'Firm Clients', href: '#clients' }] : []),
     ...navLinks.slice(2) // Features, Pricing, FAQ, Contact
   ];
 
@@ -132,15 +144,20 @@ export function Navbar() {
             </div>
 
             <div className="hidden lg:flex items-center gap-3">
-              {/* White Label Button */}
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }))}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold transition-all hover:scale-[1.02]"
-                title="Business White Label Branding"
-              >
-                <Crown className="w-3.5 h-3.5 text-amber-600" />
-                <span>White Label Settings</span>
-              </button>
+              {/* Currency Converter Toggle */}
+              <CurrencySelector />
+
+              {/* White Label Button - ONLY shown after user paid and signed up */}
+              {isPaidAndSignedUp && (
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }))}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer"
+                  title="Business White Label Branding"
+                >
+                  <Crown className="w-3.5 h-3.5 text-amber-600" />
+                  <span>White Label Settings</span>
+                </button>
+              )}
 
               {isLoggedIn ? (
                 <div className="flex items-center gap-3">
@@ -199,6 +216,10 @@ export function Navbar() {
               className="absolute top-full left-0 right-0 bg-white border-t border-[#E2E8F0] p-4 lg:hidden shadow-2xl"
             >
               <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 px-2">
+                  <span className="text-xs font-bold text-slate-500">Currency Preference:</span>
+                  <CurrencySelector compact />
+                </div>
                 {linksToShow.map((link) => (
                   <a
                     key={link.name}
@@ -230,16 +251,18 @@ export function Navbar() {
                   </a>
                 ))}
                 
-                <button
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left font-bold text-amber-800 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2"
-                >
-                  <Crown className="w-4 h-4 text-amber-600" />
-                  Configure Business White Label
-                </button>
+                {isPaidAndSignedUp && (
+                  <button
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full text-left font-bold text-amber-800 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer"
+                  >
+                    <Crown className="w-4 h-4 text-amber-600" />
+                    Configure Business White Label
+                  </button>
+                )}
 
                 <div className="h-px bg-[#E2E8F0] my-2" />
 

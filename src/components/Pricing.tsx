@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, ShieldAlert, Bot, ChevronDown } from 'lucide-react';
+import { useCurrency } from '../lib/currency';
 
 const tiers = [
   {
     name: 'Free Trial Plan',
     id: 'tier-free',
-    price: {
-      monthly: '$0',
-      yearly: '$0'
-    },
+    usdMonthly: 0,
+    usdYearly: 0,
     period: {
       monthly: 'forever',
       yearly: 'forever'
@@ -29,10 +28,8 @@ const tiers = [
   {
     name: 'Business White Label Plan',
     id: 'tier-business-whitelabel',
-    price: {
-      monthly: '$59',
-      yearly: '$590'
-    },
+    usdMonthly: 59,
+    usdYearly: 590,
     period: {
       monthly: 'month',
       yearly: 'year'
@@ -51,7 +48,7 @@ const tiers = [
       '100% Data Ownership & Complete JSON Backup'
     ],
     mostPopular: true,
-    buttonText: 'Get Started - $59/month'
+    buttonText: 'Get Started'
   }
 ];
 
@@ -59,6 +56,7 @@ export function Pricing() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const { format, currencyConfig } = useCurrency();
 
   const handleAction = async () => {
     try {
@@ -157,7 +155,9 @@ export function Pricing() {
               <div className="mb-6">
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-extrabold text-[#1E293B]">
-                    {tier.price[billingPeriod]}
+                    {tier.usdMonthly === 0 
+                      ? `${currencyConfig.symbol}0` 
+                      : format(billingPeriod === 'yearly' ? tier.usdYearly : tier.usdMonthly, { hideDecimals: true })}
                   </span>
                   <span className="text-[#64748B] text-xs font-medium">
                     /{tier.period[billingPeriod]}
@@ -181,7 +181,11 @@ export function Pricing() {
                     : 'bg-white text-[#1E293B] border-2 border-[#E2E8F0] hover:border-[#7C3AED] hover:bg-[#F8F9FC]'
                 }`}
               >
-                {tier.id !== 'tier-free' && isCheckingOut ? 'Redirecting to Checkout...' : tier.buttonText}
+                {tier.id !== 'tier-free' && isCheckingOut 
+                  ? 'Redirecting to Checkout...' 
+                  : tier.id === 'tier-free' 
+                  ? 'Start 10 Free Audits' 
+                  : `Get Started - ${format(billingPeriod === 'yearly' ? tier.usdYearly : tier.usdMonthly, { hideDecimals: true })}/${billingPeriod === 'yearly' ? 'year' : 'month'}`}
               </button>
 
               <div className="flex-1">

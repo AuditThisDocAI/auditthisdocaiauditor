@@ -280,14 +280,16 @@ export function Dashboard() {
             Auto-Sync: {autoRefresh ? 'ON (4s)' : 'OFF'}
           </button>
 
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }))}
-            className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
-            title="Configure Business White Label Branding"
-          >
-            <Crown className="w-4 h-4 text-amber-600" />
-            Branding Settings
-          </button>
+          {isPro && (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }))}
+              className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+              title="Configure Business White Label Branding"
+            >
+              <Crown className="w-4 h-4 text-amber-600" />
+              Branding Settings
+            </button>
+          )}
 
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'staff' } }))}
