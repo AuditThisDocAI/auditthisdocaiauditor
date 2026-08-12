@@ -8,12 +8,10 @@ export function Auth() {
   const [authSuccess, setAuthSuccess] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     if (localStorage.getItem('audit-this-doc-cms-auth') === 'true') {
       setIsAuthenticated(true);
-      setUserEmail(localStorage.getItem('audit-this-doc-user-email') || 'Member');
     }
   }, []);
 
@@ -21,53 +19,38 @@ export function Auth() {
     e.preventDefault();
     setAuthError('');
     setAuthSuccess('');
-
-    if (!email.trim() || !password.trim()) {
-      setAuthError('Please fill in all fields.');
-      return;
-    }
-
-    if (password.length < 3) {
-      setAuthError('Password must be at least 3 characters.');
-      return;
-    }
-
-    // Authenticate user directly into site with no pending approval delays
-    const isSuperAdmin = email.trim().toLowerCase() === 'brigittalombard09@gmail.com';
-    localStorage.setItem('audit-this-doc-cms-auth', 'true');
-    localStorage.setItem('audit-this-doc-user-email', email.trim());
-    if (isSuperAdmin) {
-      localStorage.setItem('audit_this_doc_is_pro', 'true');
-    }
-    setUserEmail(email.trim());
-    setIsAuthenticated(true);
-    window.dispatchEvent(new Event('admin-auth-changed'));
-    window.dispatchEvent(new Event('pro-status-changed'));
     
-    // Navigate directly into site dashboard
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
-  };
+    const isAdmin = email.toLowerCase() === 'brigittalombard09@gmail.com' && password === '123';
 
-  const handleQuickAdminLogin = () => {
-    const adminEmail = 'brigittalombard09@gmail.com';
-    localStorage.setItem('audit-this-doc-cms-auth', 'true');
-    localStorage.setItem('audit-this-doc-user-email', adminEmail);
-    localStorage.setItem('audit_this_doc_is_pro', 'true');
-    setUserEmail(adminEmail);
-    setIsAuthenticated(true);
-    window.dispatchEvent(new Event('admin-auth-changed'));
-    window.dispatchEvent(new Event('pro-status-changed'));
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+    if (isSignUp) {
+      if (isAdmin) {
+        setIsAuthenticated(true);
+        localStorage.setItem('audit-this-doc-cms-auth', 'true');
+        window.dispatchEvent(new Event('admin-auth-changed'));
+      } else {
+        setAuthSuccess('Sign up successful! Your account is pending admin approval.');
+        setEmail('');
+        setPassword('');
+      }
+    } else {
+      if (isAdmin) {
+        setIsAuthenticated(true);
+        localStorage.setItem('audit-this-doc-cms-auth', 'true');
+        window.dispatchEvent(new Event('admin-auth-changed'));
+      } else {
+        setAuthError('Access denied. Invalid credentials.');
+      }
+    }
   };
 
   if (isAuthenticated) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 min-h-[80vh] flex flex-col items-center justify-center">
-        <h2 className="text-3xl font-bold text-center text-[#1E293B] mb-2">
-          Welcome, {userEmail || 'Member'}!
+        <h2 className="text-3xl font-bold text-center text-[#1E293B] mb-8">
+          Welcome, Admin!
         </h2>
         <p className="text-[#64748B] text-center mb-12 max-w-lg">
-          Your account is active with full access. Select a portal to get started.
+          Please select which portal you would like to access.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
@@ -83,14 +66,14 @@ export function Auth() {
           </button>
 
           <button
-            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'bookkeeping' } }))}
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'cms' } }))}
             className="flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-[#7C3AED] transition-all group"
           >
             <div className="w-16 h-16 bg-[#F8F9FC] group-hover:bg-[#7C3AED]/10 text-[#64748B] group-hover:text-[#7C3AED] rounded-2xl flex items-center justify-center mb-6 transition-colors">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><path d="M2 15h10"/><path d="m9 18 3-3-3-3"/></svg>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
             </div>
-            <h3 className="text-xl font-bold text-[#1E293B] mb-2">Bookkeeping Suite</h3>
-            <p className="text-sm text-[#64748B] text-center">Manage general ledger entries, P&L statements, and tax audits.</p>
+            <h3 className="text-xl font-bold text-[#1E293B] mb-2">CMS System</h3>
+            <p className="text-sm text-[#64748B] text-center">Manage articles, resources, and public content.</p>
           </button>
         </div>
 
@@ -98,16 +81,11 @@ export function Auth() {
           onClick={() => {
             setIsAuthenticated(false);
             localStorage.removeItem('audit-this-doc-cms-auth');
-            localStorage.removeItem('audit-this-doc-user-email');
-            localStorage.removeItem('audit_this_doc_is_pro');
             window.dispatchEvent(new Event('admin-auth-changed'));
-            window.dispatchEvent(new Event('pro-status-changed'));
-            window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
           }}
-          className="mt-10 inline-flex items-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-6 py-3 rounded-2xl font-bold text-sm transition-all hover:scale-105"
+          className="mt-12 text-[#64748B] hover:text-[#1E293B] font-medium transition-colors"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-          Log Out of Account
+          Logout
         </button>
       </div>
     );

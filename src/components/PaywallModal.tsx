@@ -127,10 +127,10 @@ export function PaywallModal({ isOpen, onClose, auditCount = 10 }: PaywallModalP
               <div className="p-4 rounded-2xl border-2 border-[#7C3AED] bg-[#7C3AED]/5 relative flex flex-col justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-[#7C3AED] uppercase tracking-wider bg-white px-2 py-0.5 rounded-full border border-[#7C3AED]/30">
-                    Monthly Option
+                    Most Popular
                   </span>
                   <div className="text-2xl font-black text-[#1E293B] mt-2">
-                    $45 <span className="text-xs font-normal text-[#64748B]">/ month</span>
+                    $40 <span className="text-xs font-normal text-[#64748B]">/ month</span>
                   </div>
                   <div className="text-xs font-bold text-[#1E293B] mt-0.5">1,000 Audits / Mo</div>
                 </div>
@@ -145,28 +145,28 @@ export function PaywallModal({ isOpen, onClose, auditCount = 10 }: PaywallModalP
                   ) : (
                     <>
                       <CreditCard className="w-4 h-4" />
-                      <span>Pay $45 / Month</span>
+                      <span>Pay $40 / Month</span>
                     </>
                   )}
                 </button>
               </div>
 
               {/* Yearly Plan */}
-              <div className="p-4 rounded-2xl border-2 border-[#10B981] bg-white relative flex flex-col justify-between shadow-sm">
+              <div className="p-4 rounded-2xl border-2 border-[#E2E8F0] hover:border-[#10B981] bg-white relative flex flex-col justify-between transition-colors">
                 <div>
                   <span className="text-[10px] font-bold text-[#10B981] uppercase tracking-wider bg-[#10B981]/10 px-2 py-0.5 rounded-full border border-[#10B981]/20">
-                    Best Value (Save $90)
+                    Best Value (Save $30)
                   </span>
                   <div className="text-2xl font-black text-[#1E293B] mt-2">
                     $450 <span className="text-xs font-normal text-[#64748B]">/ year</span>
                   </div>
-                  <div className="text-xs font-bold text-[#1E293B] mt-0.5">12,000 Audits / Yr ($37.5/mo)</div>
+                  <div className="text-xs font-bold text-[#1E293B] mt-0.5">12,000 Audits / Yr</div>
                 </div>
 
                 <button
                   onClick={() => handleStripeCheckout('yearly')}
                   disabled={loadingPlan === 'yearly'}
-                  className="mt-4 w-full bg-[#10B981] hover:bg-[#059669] text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all"
+                  className="mt-4 w-full bg-[#1E293B] hover:bg-[#0F172A] text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all"
                 >
                   {loadingPlan === 'yearly' ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

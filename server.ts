@@ -1,11 +1,11 @@
-import express from "express";
+﻿import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 8080;
 
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -467,3 +467,4 @@ app.post("/api/admin/clear-audits", (req, res) => {
 }
 
 startServer();
+
