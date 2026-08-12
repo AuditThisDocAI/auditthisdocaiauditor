@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { TrustedBy } from './components/TrustedBy';
@@ -7,16 +7,15 @@ import { Features } from './components/Features';
 import { Pricing } from './components/Pricing';
 import { FAQ } from './components/FAQ';
 import { Contact } from './components/Contact';
-import { CMS } from './components/CMS';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'cms' | 'auth' | 'dashboard'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'auth' | 'dashboard'>('landing');
 
   useEffect(() => {
     const handleNavigate = (e: Event) => {
-      const customEvent = e as CustomEvent<{ view: 'landing' | 'cms' | 'auth' | 'dashboard' }>;
+      const customEvent = e as CustomEvent<{ view: 'landing' | 'auth' | 'dashboard' }>;
       if (customEvent.detail && customEvent.detail.view) {
         setCurrentView(customEvent.detail.view);
         window.scrollTo(0, 0);
@@ -42,7 +41,6 @@ export default function App() {
           </>
         )}
         {currentView === 'auth' && <Auth />}
-        {currentView === 'cms' && <CMS />}
         {currentView === 'dashboard' && <Dashboard />}
       </main>
       
@@ -67,4 +65,5 @@ export default function App() {
     </div>
   );
 }
+
 
