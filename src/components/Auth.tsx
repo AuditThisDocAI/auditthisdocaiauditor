@@ -29,8 +29,8 @@ export function Auth() {
       return;
     }
 
-    if (password.length < 3) {
-      setAuthError('Password must be at least 3 characters.');
+    if (password.length < 8 || password.length > 16) {
+      setAuthError('Password must be between 8 and 16 characters.');
       return;
     }
 
@@ -127,11 +127,18 @@ export function Auth() {
           <Lock className="w-6 h-6" />
         </div>
         <h2 className="text-2xl font-bold text-center text-[#1E293B] mb-2">
-          {isSignUp ? 'Create Account' : 'Welcome Back'}
+          {isSignUp ? 'Create Instant Account' : 'Welcome Back'}
         </h2>
-        <p className="text-center text-[#64748B] text-sm mb-8">
-          {isSignUp ? 'Sign up to get started' : 'Sign in to access your portal'}
+        <p className="text-center text-[#64748B] text-sm mb-4">
+          {isSignUp ? 'Sign up for immediate access — no admin approval required' : 'Sign in to access your portal'}
         </p>
+
+        {isSignUp && (
+          <div className="mb-6 flex items-center justify-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-full text-xs font-bold w-fit mx-auto">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Instant Sign Up • No Admin Approval Needed
+          </div>
+        )}
 
         <form onSubmit={handleAuth} className="space-y-4">
           <div>
@@ -146,15 +153,21 @@ export function Auth() {
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-[#1E293B] mb-2">Password</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-bold text-[#1E293B]">Password</label>
+              <span className="text-[11px] font-semibold text-[#64748B]">8–16 characters</span>
+            </div>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              minLength={8}
+              maxLength={16}
               className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] transition-all"
               placeholder="••••••••"
               required
             />
+            <p className="text-[11px] text-[#64748B] mt-1">Must be between 8 and 16 characters long.</p>
           </div>
 
           {isSignUp && (

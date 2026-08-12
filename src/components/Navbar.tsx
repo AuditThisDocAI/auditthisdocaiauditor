@@ -267,24 +267,36 @@ export function Navbar() {
                 <div className="h-px bg-[#E2E8F0] my-2" />
 
                 {!isLoggedIn ? (
-                  <button 
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full text-center font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] px-4 py-3 rounded-xl shadow-md transition-colors"
-                  >
-                    Get Started / Sign In
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full text-center font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] px-4 py-3 rounded-xl shadow-md transition-colors cursor-pointer"
+                    >
+                      Get Started / Sign In
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full text-center font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-xs cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4 text-red-600 shrink-0" />
+                      <span>Log Out / Reset Session</span>
+                    </button>
+                  </div>
                 ) : (
                   <button 
                     onClick={() => {
                       handleLogout();
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full text-center font-extrabold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 px-4 py-3 rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all mt-1"
+                    className="w-full text-center font-extrabold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-4 py-3 rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4 text-red-600" />
+                    <LogOut className="w-4 h-4 text-red-600 shrink-0" />
                     <span>Log Out {userEmail ? `(${userEmail})` : ''}</span>
                   </button>
                 )}
