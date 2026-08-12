@@ -18,6 +18,7 @@ export interface FirmProfile {
   plan: 'starter_firm' | 'growth_firm' | 'enterprise_firm';
   monthlyAuditLimit: number;
   customDomain?: string;
+  domainRegion?: string;
   createdAt: string;
 }
 
@@ -87,6 +88,7 @@ export const DEFAULT_FIRM: FirmProfile = {
   plan: 'growth_firm',
   monthlyAuditLimit: 500,
   customDomain: 'audit.apexadvisory.com',
+  domainRegion: 'europe-west1',
   createdAt: '2026-01-15T08:00:00.000Z',
 };
 

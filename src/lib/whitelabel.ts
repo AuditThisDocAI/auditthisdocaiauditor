@@ -4,6 +4,7 @@ export interface WhiteLabelConfig {
   logoUrl: string;
   primaryColor: string; // e.g. '#7C3AED' or custom hex
   customDomain: string;
+  domainRegion: string; // 'europe-west1' | 'europe-west2' | 'us-central1' | 'asia-east1'
   portalTitle: string;
   watermarkText: string;
   hidePoweredBy: boolean;
@@ -15,6 +16,7 @@ export const DEFAULT_WHITELABEL_CONFIG: WhiteLabelConfig = {
   logoUrl: '',
   primaryColor: '#7C3AED',
   customDomain: 'audit.yourbusiness.com',
+  domainRegion: 'europe-west1',
   portalTitle: 'FORENSICDOCAUDIT Portal',
   watermarkText: 'Audited & Verified by Forensic Doc Audit Engine',
   hidePoweredBy: false,

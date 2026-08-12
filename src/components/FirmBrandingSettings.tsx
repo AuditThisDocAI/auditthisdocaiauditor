@@ -958,7 +958,7 @@ export function FirmBrandingSettings() {
                 <div className="space-y-5">
                   <h3 className="text-lg font-extrabold text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
                     <Globe className="w-5 h-5 text-purple-600" />
-                    4. Custom Domain & Client Portal URL
+                    4. Custom Domain & Regional Ingress Node
                   </h3>
 
                   <div>
@@ -973,16 +973,30 @@ export function FirmBrandingSettings() {
                         className="w-full px-2 py-2.5 bg-transparent font-mono text-xs text-slate-900 focus:outline-none"
                       />
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Point your CNAME record to <code className="bg-slate-100 px-1 py-0.5 rounded text-purple-600">ingress.forensicdocaudit.com</code>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-900 mb-1">Domain & Hosting Region</label>
+                    <select
+                      value={firm.domainRegion || 'europe-west1'}
+                      onChange={(e) => setFirm({ ...firm, domainRegion: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 text-xs focus:outline-none focus:border-purple-600"
+                    >
+                      <option value="europe-west1">🇪🇺 Europe West 1 (europe-west1 - Belgium / EU GDPR Hub)</option>
+                      <option value="europe-west2">🇬🇧 Europe West 2 (europe-west2 - London / UK Hub)</option>
+                      <option value="us-central1">🇺🇸 US Central 1 (us-central1 - Iowa / US Hub)</option>
+                      <option value="asia-east1">🇯🇵 Asia East 1 (asia-east1 - Tokyo / APAC Hub)</option>
+                    </select>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Target CNAME record: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-purple-700 font-mono font-bold">{(firm.domainRegion || 'europe-west1')}.ingress.forensicdocaudit.com</code>
                     </p>
                   </div>
 
                   <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-3">
                     <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                     <div className="text-xs text-emerald-900">
-                      <strong className="block mb-0.5">Automated SSL Certificate & Data Isolation Active</strong>
-                      Custom domains automatically provision wildcard SSL/TLS certificates and isolate all client session states to your firm ID (<code className="font-mono bg-emerald-100/80 px-1 rounded">{firm.id}</code>).
+                      <strong className="block mb-0.5 font-bold">EU GDPR & Regional Isolation Active (europe-west1)</strong>
+                      Custom domains routed through <strong>europe-west1 (Europe West 1)</strong> provision regional SSL certificates, ultra-low latency document scanning, and strict EU data privacy compliance for firm ID (<code className="font-mono bg-emerald-100/80 px-1 rounded">{firm.id}</code>).
                     </div>
                   </div>
                 </div>

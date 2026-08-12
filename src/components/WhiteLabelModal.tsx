@@ -304,18 +304,32 @@ export function WhiteLabelModal({ isOpen, onClose }: WhiteLabelModalProps) {
                       className="w-full px-2 py-2.5 bg-transparent font-mono text-xs text-slate-900 focus:outline-none"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-900 mb-1">Domain Ingress Region</label>
+                  <select
+                    value={config.domainRegion || 'europe-west1'}
+                    onChange={(e) => setConfig({ ...config, domainRegion: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-900 text-xs focus:outline-none focus:border-purple-600"
+                  >
+                    <option value="europe-west1">🇪🇺 Europe West 1 (europe-west1 - Belgium / EU Hub)</option>
+                    <option value="europe-west2">🇬🇧 Europe West 2 (europe-west2 - London / UK Hub)</option>
+                    <option value="us-central1">🇺🇸 US Central 1 (us-central1 - Iowa / US Hub)</option>
+                    <option value="asia-east1">🇯🇵 Asia East 1 (asia-east1 - Tokyo / APAC Hub)</option>
+                  </select>
                   <p className="text-[11px] text-slate-400 mt-1">
-                    CNAME records point to <code className="bg-slate-100 px-1 py-0.5 rounded text-purple-600">ingress.forensicdocaudit.com</code>
+                    CNAME records point to <code className="bg-slate-100 px-1 py-0.5 rounded text-purple-600 font-mono">{(config.domainRegion || 'europe-west1')}.ingress.forensicdocaudit.com</code>
                   </p>
                 </div>
 
                 <div className="p-4 bg-purple-50/50 rounded-2xl border border-purple-100 space-y-2">
                   <span className="font-bold text-purple-900 flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-purple-600" />
-                    White Label Security & SSL Status
+                    White Label Security & Regional SSL Status (europe-west1)
                   </span>
                   <p className="text-slate-600 text-xs">
-                    Custom domains automatically receive an enterprise wild-card SSL certificate and dedicated client isolation.
+                    Custom domains routed through <strong>europe-west1 (Europe West 1)</strong> receive an enterprise wildcard SSL certificate, GDPR-compliant processing, and dedicated client isolation.
                   </p>
                 </div>
               </div>
