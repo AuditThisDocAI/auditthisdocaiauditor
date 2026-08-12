@@ -62,7 +62,7 @@ export function Navbar() {
                 <Bot className="w-5 h-5" />
               </div>
               <span className="font-extrabold text-lg tracking-tight text-[#1E293B]">
-                Audit This Doc <span className="text-[#7C3AED]">AI</span>
+                FORENSICDOC<span className="text-[#7C3AED]">AUDIT</span>
               </span>
             </div>
 

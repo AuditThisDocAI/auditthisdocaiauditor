@@ -76,14 +76,14 @@ export default function App() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-[#7C3AED] flex items-center justify-center text-white font-bold">
-                A
+                F
               </div>
               <span className="font-extrabold text-xl tracking-tight text-[#1E293B]">
-                Audit This Doc <span className="text-[#7C3AED]">AI</span>
+                FORENSICDOC<span className="text-[#7C3AED]">AUDIT</span>
               </span>
             </div>
             <div className="text-[#64748B] text-sm font-medium">
-              &copy; {new Date().getFullYear()} Audit This Doc AI. Forensic Document Auditor. All rights reserved.
+              &copy; {new Date().getFullYear()} FORENSICDOCAUDIT. Forensic Document Auditor. All rights reserved.
             </div>
           </div>
         </div>

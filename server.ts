@@ -18,11 +18,11 @@ async function startServer() {
   // Contact Form Endpoint
   app.post("/api/contact", (req, res) => {
     const { name, email, phone, message } = req.body;
-    console.log("Contact form submission received for auditthisdocai@zohomail.com:", { name, email, phone, message });
+    console.log("Contact form submission received for forensicdocaudit@zohomail.com:", { name, email, phone, message });
     res.json({ 
       success: true, 
-      recipient: "auditthisdocai@zohomail.com",
-      message: "Message received successfully. Target email set to auditthisdocai@zohomail.com" 
+      recipient: "forensicdocaudit@zohomail.com",
+      message: "Message received successfully. Target email set to forensicdocaudit@zohomail.com" 
     });
   });
 
@@ -38,7 +38,7 @@ async function startServer() {
 
         const isYearly = interval === 'yearly' || plan === 'pro_yearly';
         const priceAmount = isYearly ? 45000 : 4500; // $450/yr or $45/mo
-        const priceName = isYearly ? 'Audit This Doc AI - Pro Plan (Yearly)' : 'Audit This Doc AI - Pro Plan (Monthly)';
+        const priceName = isYearly ? 'FORENSICDOCAUDIT - Pro Plan (Yearly)' : 'FORENSICDOCAUDIT - Pro Plan (Monthly)';
 
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ['card'],
@@ -292,9 +292,9 @@ Return ONLY a valid JSON object matching this schema without markdown code block
             }
           });
           
-          const systemInstruction = `You are Dr. Aria, PhD in Forensic Auditing, lead AI auditor at 'Audit This Doc AI'. 
+          const systemInstruction = `You are Dr. Aria, PhD in Forensic Auditing, lead AI auditor at 'FORENSICDOCAUDIT'. 
 You provide expert advice on document auditing, invoice fraud detection, compliance, risk scoring, and platform features.
-You are professional, authoritative yet friendly, and help users understand their 10 free audits limit and upgrade options at auditthisdocai.com.`;
+You are professional, authoritative yet friendly, and help users understand their 10 free audits limit and upgrade options.`;
 
           const contents = (history || []).map((msg: any) => ({
             role: msg.sender === 'user' ? 'user' : 'model',

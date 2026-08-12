@@ -181,7 +181,7 @@ export function Dashboard() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `AuditThisDoc_Live_Audit_Log_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute('download', `ForensicDocAudit_Live_Audit_Log_${new Date().toISOString().slice(0,10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

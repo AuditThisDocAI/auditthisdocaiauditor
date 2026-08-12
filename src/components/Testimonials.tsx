@@ -6,7 +6,7 @@ const testimonials = [
   {
     name: "Ilse Wright",
     role: "CEO, SEO LAB",
-    content: "Audit This Doc AI has completely transformed our workflow. What used to take our team days is now automated in seconds with 100% accuracy.",
+    content: "FORENSICDOCAUDIT has completely transformed our workflow. What used to take our team days is now automated in seconds with 100% accuracy.",
     image: "https://i.pravatar.cc/150?u=ilsewright"
   },
   {
@@ -81,7 +81,7 @@ export function Testimonials() {
             Trusted by modern businesses
           </h3>
           <p className="text-[#64748B] text-lg leading-relaxed">
-            See how Audit This Doc AI is helping companies save time, reduce errors, and grow faster.
+            See how FORENSICDOCAUDIT is helping companies save time, reduce errors, and grow faster.
           </p>
         </div>
 

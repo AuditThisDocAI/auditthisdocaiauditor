@@ -29,10 +29,10 @@ export function Contact() {
       setIsSubmitting(false);
       setSubmitted(true);
 
-      // 2. Open mailto trigger for direct client sending to auditthisdocai@zohomail.com
-      const subject = encodeURIComponent(`Audit This Doc AI Inquiry from ${formData.name || formData.email}`);
+      // 2. Open mailto trigger for direct client sending to forensicdocaudit@zohomail.com
+      const subject = encodeURIComponent(`FORENSICDOCAUDIT Inquiry from ${formData.name || formData.email}`);
       const body = encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\n\nMessage:\n${formData.message}`);
-      window.location.href = `mailto:auditthisdocai@zohomail.com?subject=${subject}&body=${body}`;
+      window.location.href = `mailto:forensicdocaudit@zohomail.com?subject=${subject}&body=${body}`;
     }
   };
 
@@ -46,7 +46,7 @@ export function Contact() {
             <div className="text-center mb-8">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#7C3AED] bg-[#7C3AED]/10 px-3.5 py-1 rounded-full mb-3">
                 <Mail className="w-3.5 h-3.5" />
-                auditthisdocai@zohomail.com
+                forensicdocaudit@zohomail.com
               </span>
               <h3 className="text-3xl font-extrabold text-[#1E293B] mb-2">Get in Touch with Our Forensic Team</h3>
               <p className="text-[#64748B] text-sm">Have questions about Dr. Aria AI or custom enterprise auditing plans? Send your message below.</p>
@@ -57,7 +57,7 @@ export function Contact() {
                 <CheckCircle2 className="w-12 h-12 text-[#10B981] mx-auto" />
                 <h4 className="text-xl font-bold text-[#1E293B]">Message Sent!</h4>
                 <p className="text-sm text-[#64748B] max-w-md mx-auto">
-                  Thank you for reaching out. Your message has been dispatched to <strong className="text-[#1E293B]">auditthisdocai@zohomail.com</strong>. Our team will review your inquiry and get back to you shortly.
+                  Thank you for reaching out. Your message has been dispatched to <strong className="text-[#1E293B]">forensicdocaudit@zohomail.com</strong>. Our team will review your inquiry and get back to you shortly.
                 </p>
                 <button
                   onClick={() => { setSubmitted(false); setFormData({ name: '', email: '', phone: '', message: '' }); }}
