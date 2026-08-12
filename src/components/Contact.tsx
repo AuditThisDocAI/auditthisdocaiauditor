@@ -44,10 +44,6 @@ export function Contact() {
           {/* Contact Form */}
           <div className="p-8 lg:p-10">
             <div className="text-center mb-8">
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#7C3AED] bg-[#7C3AED]/10 px-3.5 py-1 rounded-full mb-3">
-                <Mail className="w-3.5 h-3.5" />
-                forensicdocaudit@zohomail.com
-              </span>
               <h3 className="text-3xl font-extrabold text-[#1E293B] mb-2">Get in Touch with Our Forensic Team</h3>
               <p className="text-[#64748B] text-sm">Have questions about Dr. Aria AI or custom enterprise auditing plans? Send your message below.</p>
             </div>

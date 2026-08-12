@@ -4,7 +4,7 @@ import { Check, ShieldAlert, Bot, ChevronDown } from 'lucide-react';
 
 const tiers = [
   {
-    name: 'Free Trial',
+    name: 'Free Trial Plan',
     id: 'tier-free',
     price: {
       monthly: '$0',
@@ -14,74 +14,77 @@ const tiers = [
       monthly: 'forever',
       yearly: 'forever'
     },
-    description: 'Perfect for trying Dr. Aria on sample or individual documents.',
-    featuresHeader: 'Includes:',
+    description: 'Try Dr. Aria directly with 10 free document audits on your device.',
+    featuresHeader: 'Free Tier Includes:',
     features: [
       '10 Document Audits Free',
       'Dr. Aria PhD Forensic Engine',
-      'Fraud Risk Score (0-100)',
+      'Fraud & Compliance Risk Score (0-100)',
       'Line-Item & Tax ID Verification',
       'Interactive Consultation with Dr. Aria',
     ],
     mostPopular: false,
-    buttonText: 'Try 10 Free Audits'
+    buttonText: 'Start 10 Free Audits'
   },
   {
-    name: 'Pro Plan',
-    id: 'tier-pro',
+    name: 'Business White Label Plan',
+    id: 'tier-business-whitelabel',
     price: {
-      monthly: '$40',
-      yearly: '$450'
+      monthly: '$59',
+      yearly: '$590'
     },
     period: {
       monthly: 'month',
       yearly: 'year'
     },
-    description: 'Best for accountants, managers, and business owners.',
-    featuresHeader: 'Core Pro additions:',
+    description: 'The all-in-one plan for businesses, CPAs, and accounting firms to use all AI audit features and white label branding.',
+    featuresHeader: 'Business White Label Plan Includes:',
     features: [
-      '1,000 Document Scans / Month',
-      'Dr. Aria PhD Forensic Engine',
-      'Advanced Fraud & Wire Red Flag Detection',
-      'Export PDF Audit Certificates',
-      'Priority OCR & Document Parsing',
-      'Email & WhatsApp Audit Summaries',
+      'Full White Label Portal & Custom Logo',
+      '1,000 Document & Invoice Audits / Month',
+      'Custom Brand Colors & Subdomain Setup',
+      'Firm Client Portals & Directory',
+      'Staff Team Roster & Permission Management',
+      'Branded PDF Reports with Firm Header',
+      'Full AI Bookkeeping & General Ledger',
+      'Custom Outbound Email SMTP Setup',
+      '100% Data Ownership & Complete JSON Backup'
     ],
     mostPopular: true,
-    buttonText: 'Upgrade to Pro'
-  },
-  {
-    name: 'Enterprise / Firm',
-    id: 'tier-enterprise',
-    price: {
-      monthly: '$120',
-      yearly: '$1,200'
-    },
-    period: {
-      monthly: 'month',
-      yearly: 'year'
-    },
-    description: 'For accounting firms and enterprise audit teams.',
-    featuresHeader: 'Enterprise additions:',
-    features: [
-      'Unlimited Document Audits',
-      'Multi-User Team Accounts (10 seats)',
-      'Custom Compliance Rules',
-      'API Access for Bulk Scanning',
-      'Dedicated Account Auditor',
-      '24/7 Priority Support',
-    ],
-    mostPopular: false,
-    buttonText: 'Get Enterprise'
+    buttonText: 'Get Started - $59/month'
   }
 ];
 
 export function Pricing() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
-  const handleAction = () => {
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+  const handleAction = async () => {
+    try {
+      setIsCheckingOut(true);
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ interval: billingPeriod, plan: billingPeriod === 'yearly' ? 'pro_yearly' : 'pro_monthly' })
+      });
+      const text = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(text);
+      } catch (e) {}
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+    } finally {
+      setIsCheckingOut(false);
+    }
   };
 
   return (
@@ -124,7 +127,7 @@ export function Pricing() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-20">
           {tiers.map((tier, index) => (
             <motion.div
               key={tier.id}
@@ -163,6 +166,7 @@ export function Pricing() {
               </div>
 
               <button
+                disabled={tier.id !== 'tier-free' && isCheckingOut}
                 onClick={() => {
                   if (tier.id === 'tier-free') {
                     const el = document.getElementById('document-auditor');
@@ -177,7 +181,7 @@ export function Pricing() {
                     : 'bg-white text-[#1E293B] border-2 border-[#E2E8F0] hover:border-[#7C3AED] hover:bg-[#F8F9FC]'
                 }`}
               >
-                {tier.buttonText}
+                {tier.id !== 'tier-free' && isCheckingOut ? 'Redirecting to Checkout...' : tier.buttonText}
               </button>
 
               <div className="flex-1">
@@ -204,10 +208,10 @@ export function Pricing() {
           </div>
           <div className="space-y-3">
             {[
-              { q: 'How does the 10 free audit limit work?', a: 'Every device gets 10 free document audits automatically. You can paste or upload up to 10 invoices, receipts, or contracts before needing an account upgrade.' },
+              { q: 'How does the 10 free audit limit work?', a: 'Every device gets 10 free document audits automatically. You can paste text or test sample invoices, receipts, or contracts before needing an upgrade.' },
               { q: 'Who is Dr. Aria?', a: 'Dr. Aria is our specialized AI system fine-tuned on forensic accounting principles, tax rules, invoice fraud indicators, and contract verification.' },
-              { q: 'What document formats are supported?', a: 'You can upload PDF, TXT, CSV, JSON, PNG, JPG files or copy/paste raw text directly.' },
-              { q: 'Is my uploaded financial data secure?', a: 'Yes. All text and documents are processed securely in memory for the duration of the audit and are never stored or shared with external third parties.' }
+              { q: 'What is included in the Pro plan?', a: 'The Pro plan includes 1,000 document audits per month for $45/month or $450/year, full forensic risk scoring, PDF audit certificates, and priority support.' },
+              { q: 'Is my financial text data secure?', a: 'Yes. All text and documents are processed securely in memory for the duration of the audit and are never stored or shared with external third parties.' }
             ].map((faq, i) => (
               <div key={i} className="bg-[#F8F9FC] border border-[#E2E8F0] rounded-2xl overflow-hidden transition-colors hover:border-[#7C3AED]/30">
                 <button

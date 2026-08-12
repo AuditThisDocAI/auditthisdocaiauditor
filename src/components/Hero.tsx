@@ -1,8 +1,20 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ShieldCheck, CreditCard, Lock, Sparkles, Bot } from 'lucide-react';
+import { ShieldCheck, CreditCard, Lock, Bot } from 'lucide-react';
 import { DashboardPreview } from './DashboardPreview';
 
 export function Hero() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      setIsLoggedIn(localStorage.getItem('audit-this-doc-cms-auth') === 'true');
+    };
+    checkAuth();
+    window.addEventListener('admin-auth-changed', checkAuth);
+    return () => window.removeEventListener('admin-auth-changed', checkAuth);
+  }, []);
+
   return (
     <section className="relative pt-10 lg:pt-16 pb-20 lg:pb-28 overflow-hidden bg-[#F8F9FC]">
       <div className="max-w-[1400px] mx-auto px-4 lg:px-12 flex flex-col lg:flex-row items-center gap-10 relative">
@@ -33,7 +45,7 @@ export function Hero() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-base sm:text-lg text-[#64748B] leading-relaxed"
           >
-            Instantly upload or paste invoices, contracts, receipts, and financial statements. Dr. Aria inspects line items, verifies tax compliance, identifies suspicious wire requests, and generates comprehensive risk scores.
+            Instantly paste document text or choose sample invoices, contracts, receipts, and financial statements. Dr. Aria inspects line items, verifies tax compliance, identifies suspicious wire requests, and generates comprehensive risk scores.
           </motion.p>
 
           <motion.div
@@ -44,10 +56,10 @@ export function Hero() {
           >
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <button
-                onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }))}
+                onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: isLoggedIn ? 'dashboard' : 'auth' } }))}
                 className="w-full sm:w-auto bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-8 py-4 rounded-xl font-bold shadow-xl shadow-purple-600/30 hover:-translate-y-0.5 transition-all text-center"
               >
-                Get Started / Sign In
+                {isLoggedIn ? 'Open Audit Dashboard' : 'Get Started / Sign In'}
               </button>
               <button 
                 onClick={() => {

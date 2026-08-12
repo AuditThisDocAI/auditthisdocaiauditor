@@ -1,11 +1,11 @@
-﻿import express from "express";
+import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT) || 8080;
+  const PORT = 3000;
 
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -32,13 +32,17 @@ async function startServer() {
       const { plan, interval } = req.body; // plan: 'pro_monthly' | 'pro_yearly'
       const apiKey = process.env.STRIPE_SECRET_KEY;
 
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+      const host = req.headers['x-forwarded-host'] || req.get('host');
+      const origin = req.headers.origin || (host ? `${protocol}://${host}` : 'http://localhost:3000');
+
       if (apiKey) {
         const StripeModule = await import('stripe');
         const stripe = new StripeModule.default(apiKey);
 
-        const isYearly = interval === 'yearly' || plan === 'pro_yearly';
-        const priceAmount = isYearly ? 45000 : 4500; // $450/yr or $45/mo
-        const priceName = isYearly ? 'FORENSICDOCAUDIT - Pro Plan (Yearly)' : 'FORENSICDOCAUDIT - Pro Plan (Monthly)';
+        const isYearly = interval === 'yearly' || plan === 'pro_yearly' || plan === 'yearly';
+        const priceAmount = isYearly ? 59000 : 5900; // $590/yr or $59/mo
+        const priceName = isYearly ? 'FORENSICDOCAUDIT - Business White Label Plan (Yearly)' : 'FORENSICDOCAUDIT - Business White Label Plan (Monthly)';
 
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ['card'],
@@ -59,15 +63,14 @@ async function startServer() {
             },
           ],
           mode: 'subscription',
-          success_url: `${req.headers.origin || 'http://localhost:3000'}/?payment=success`,
-          cancel_url: `${req.headers.origin || 'http://localhost:3000'}/?payment=cancelled`,
+          success_url: `${origin}/?payment=success`,
+          cancel_url: `${origin}/?payment=cancelled`,
         });
 
         return res.json({ url: session.url });
       }
 
-      // If no STRIPE_SECRET_KEY configured in environment, redirect directly to success callback
-      const origin = req.headers.origin || 'http://localhost:3000';
+      // If no STRIPE_SECRET_KEY configured in environment, redirect smoothly to payment success callback
       return res.json({ 
         url: `${origin}/?payment=success&demo=true`,
         isDemo: true,
@@ -467,4 +470,3 @@ app.post("/api/admin/clear-audits", (req, res) => {
 }
 
 startServer();
-
