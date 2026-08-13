@@ -110,36 +110,8 @@ export function Bookkeeping() {
     window.dispatchEvent(new Event('bookkeeping-entries-updated'));
   };
 
-  const handlePurchasePro = async () => {
-    try {
-      setIsCheckingOut(true);
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interval: 'monthly', plan: 'pro_monthly' })
-      });
-      const text = await res.text();
-      let data: any = {};
-      try {
-        data = JSON.parse(text);
-      } catch (e) {}
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        alert('Unable to initialize payment session. Redirecting to pricing...');
-        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
-        setTimeout(() => {
-          const pricingEl = document.getElementById('pricing');
-          if (pricingEl) pricingEl.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-      }
-    } catch (err) {
-      console.error('Checkout error:', err);
-      alert('Unable to connect to payment gateway. Please try again.');
-    } finally {
-      setIsCheckingOut(false);
-    }
+  const handlePurchasePro = () => {
+    window.dispatchEvent(new CustomEvent('open-stripe-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
   };
 
   const handleAddEntry = (e: React.FormEvent) => {

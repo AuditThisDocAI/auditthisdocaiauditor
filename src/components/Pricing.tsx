@@ -58,31 +58,10 @@ export function Pricing() {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { format, currencyConfig } = useCurrency();
 
-  const handleAction = async () => {
-    try {
-      setIsCheckingOut(true);
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interval: billingPeriod, plan: billingPeriod === 'yearly' ? 'pro_yearly' : 'pro_monthly' })
-      });
-      const text = await res.text();
-      let data: any = {};
-      try {
-        data = JSON.parse(text);
-      } catch (e) {}
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
-      }
-    } catch (err) {
-      console.error('Checkout error:', err);
-      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
-    } finally {
-      setIsCheckingOut(false);
-    }
+  const handleAction = (intervalOverride?: 'monthly' | 'yearly') => {
+    const selectedInterval = intervalOverride || billingPeriod;
+    const selectedPlan = selectedInterval === 'yearly' ? 'pro_yearly' : 'pro_monthly';
+    window.dispatchEvent(new CustomEvent('open-stripe-checkout', { detail: { plan: selectedPlan, interval: selectedInterval } }));
   };
 
   return (

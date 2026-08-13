@@ -108,20 +108,8 @@ export function Dashboard() {
     };
   }, []);
 
-  const handleUpgrade = async () => {
-    try {
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interval: 'monthly', plan: 'pro_monthly' })
-      });
-      const json = await res.json();
-      if (json.url) {
-        window.location.href = json.url;
-      }
-    } catch (err) {
-      console.error('Checkout error:', err);
-    }
+  const handleUpgrade = () => {
+    window.dispatchEvent(new CustomEvent('open-stripe-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
   };
 
   const fetchDashboardData = async (isManual = false) => {

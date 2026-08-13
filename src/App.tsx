@@ -13,10 +13,14 @@ import { Bookkeeping } from './components/Bookkeeping';
 import { FirmBrandingSettings } from './components/FirmBrandingSettings';
 import { StaffManagement } from './components/StaffManagement';
 import { ClientManagement } from './components/ClientManagement';
+import { StripeCheckoutModal } from './components/StripeCheckoutModal';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<'landing' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients'>('landing');
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [stripeCheckoutOpen, setStripeCheckoutOpen] = useState(false);
+  const [checkoutPlan, setCheckoutPlan] = useState<'pro_monthly' | 'pro_yearly'>('pro_monthly');
+  const [checkoutInterval, setCheckoutInterval] = useState<'monthly' | 'yearly'>('monthly');
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -26,29 +30,62 @@ export default function App() {
       setShowPaymentSuccess(true);
       window.dispatchEvent(new Event('pro-status-changed'));
       window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('stripe_checkout') === 'true') {
+      const plan = urlParams.get('plan') === 'pro_yearly' ? 'pro_yearly' : 'pro_monthly';
+      const interval = urlParams.get('interval') === 'yearly' ? 'yearly' : 'monthly';
+      setCheckoutPlan(plan);
+      setCheckoutInterval(interval);
+      setStripeCheckoutOpen(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
 
     const handleNavigate = (e: Event) => {
-      const customEvent = e as CustomEvent<{ view: any }>;
-      if (customEvent.detail && customEvent.detail.view) {
+      const customEvent = e as CustomEvent<{ view: any; plan?: any; interval?: any }>;
+      if (customEvent.detail && customEvent.detail.view === 'pricing') {
+        setCurrentView('landing');
+        setTimeout(() => {
+          const pricingEl = document.getElementById('pricing');
+          if (pricingEl) pricingEl.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else if (customEvent.detail && customEvent.detail.view) {
         setCurrentView(customEvent.detail.view);
         window.scrollTo(0, 0);
       }
     };
+    const handleOpenStripeCheckout = (e: Event) => {
+      const customEvent = e as CustomEvent<{ plan?: any; interval?: any }>;
+      if (customEvent.detail) {
+        setCheckoutPlan(customEvent.detail.plan === 'pro_yearly' ? 'pro_yearly' : 'pro_monthly');
+        setCheckoutInterval(customEvent.detail.interval === 'yearly' ? 'yearly' : 'monthly');
+      }
+      setStripeCheckoutOpen(true);
+    };
+
     window.addEventListener('navigate', handleNavigate);
-    return () => window.removeEventListener('navigate', handleNavigate);
+    window.addEventListener('open-stripe-checkout', handleOpenStripeCheckout);
+    return () => {
+      window.removeEventListener('navigate', handleNavigate);
+      window.removeEventListener('open-stripe-checkout', handleOpenStripeCheckout);
+    };
   }, []);
 
   return (
     <div className="min-h-screen bg-[#F8F9FC] font-sans text-[#1E293B]">
       <Navbar />
 
+      <StripeCheckoutModal
+        isOpen={stripeCheckoutOpen}
+        onClose={() => setStripeCheckoutOpen(false)}
+        plan={checkoutPlan}
+        interval={checkoutInterval}
+      />
+
       {showPaymentSuccess && (
         <div className="bg-[#10B981] text-white px-4 py-3 text-center font-bold text-sm flex items-center justify-center gap-3 shadow-md relative z-50">
           <span>🎉 Payment Successful! Pro Plan activated with 1,000 monthly document audits.</span>
           <button 
             onClick={() => setShowPaymentSuccess(false)}
-            className="ml-2 bg-white/20 hover:bg-white/30 text-white px-2.5 py-0.5 rounded-full text-xs font-bold transition-colors"
+            className="ml-2 bg-white/20 hover:bg-white/30 text-white px-2.5 py-0.5 rounded-full text-xs font-bold transition-colors cursor-pointer"
           >
             Dismiss
           </button>
@@ -84,9 +121,14 @@ export default function App() {
               <div className="w-8 h-8 rounded-xl bg-[#7C3AED] flex items-center justify-center text-white font-bold">
                 F
               </div>
-              <span className="font-extrabold text-xl tracking-tight text-[#1E293B]">
-                FORENSICDOC<span className="text-[#7C3AED]">AUDIT</span>
-              </span>
+              <div className="flex flex-col">
+                <span className="font-extrabold text-xl tracking-tight text-[#1E293B]">
+                  FORENSICDOC<span className="text-[#7C3AED]">AUDIT</span>
+                </span>
+                <span className="text-[10px] text-[#64748B] tracking-widest font-semibold uppercase">
+                  Accounting System
+                </span>
+              </div>
             </div>
             <div className="text-[#64748B] text-sm font-medium">
               &copy; {new Date().getFullYear()} FORENSICDOCAUDIT. Forensic Document Auditor. All rights reserved.

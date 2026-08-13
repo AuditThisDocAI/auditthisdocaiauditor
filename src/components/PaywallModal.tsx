@@ -15,31 +15,9 @@ export function PaywallModal({ isOpen, onClose, auditCount = 10 }: PaywallModalP
 
   if (!isOpen) return null;
 
-  const handleStripeCheckout = async (interval: 'monthly' | 'yearly') => {
-    try {
-      setLoadingPlan(interval);
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interval, plan: interval === 'yearly' ? 'pro_yearly' : 'pro_monthly' })
-      });
-      const text = await res.text();
-      let data: any = {};
-      try {
-        data = JSON.parse(text);
-      } catch (err) {}
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        alert(data.error || 'Unable to connect to payment gateway. Please try again.');
-      }
-    } catch (e) {
-      console.error('Checkout error:', e);
-      alert('Unable to connect to payment gateway. Please try again or Sign Up.');
-    } finally {
-      setLoadingPlan(null);
-    }
+  const handleStripeCheckout = (interval: 'monthly' | 'yearly') => {
+    onClose();
+    window.dispatchEvent(new CustomEvent('open-stripe-checkout', { detail: { plan: interval === 'yearly' ? 'pro_yearly' : 'pro_monthly', interval } }));
   };
 
   const handleNavigateAuth = () => {

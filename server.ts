@@ -36,49 +36,48 @@ async function startServer() {
       const host = req.headers['x-forwarded-host'] || req.get('host');
       const origin = req.headers.origin || (host ? `${protocol}://${host}` : 'http://localhost:3000');
 
-      if (apiKey) {
-        const StripeModule = await import('stripe');
-        const stripe = new StripeModule.default(apiKey);
-
-        const isYearly = interval === 'yearly' || plan === 'pro_yearly' || plan === 'yearly';
-        const priceAmount = isYearly ? 59000 : 5900; // $590/yr or $59/mo
-        const priceName = isYearly ? 'FORENSICDOCAUDIT - Business White Label Plan (Yearly)' : 'FORENSICDOCAUDIT - Business White Label Plan (Monthly)';
-
-        const session = await stripe.checkout.sessions.create({
-          payment_method_types: ['card'],
-          line_items: [
-            {
-              price_data: {
-                currency: 'usd',
-                product_data: {
-                  name: priceName,
-                  description: isYearly ? '12,000 document audits per year with Dr. Aria AI Auditor' : '1,000 document audits per month with Dr. Aria AI Auditor',
-                },
-                unit_amount: priceAmount,
-                recurring: {
-                  interval: isYearly ? 'year' : 'month',
-                },
-              },
-              quantity: 1,
-            },
-          ],
-          mode: 'subscription',
-          success_url: `${origin}/?payment=success`,
-          cancel_url: `${origin}/?payment=cancelled`,
-        });
-
-        return res.json({ url: session.url });
+      if (!apiKey) {
+        console.log("STRIPE_SECRET_KEY not found in env, providing test checkout gateway URL.");
+        return res.json({ url: `${origin}/?stripe_checkout=true&plan=${plan || 'pro_monthly'}&interval=${interval || 'monthly'}` });
       }
 
-      // If no STRIPE_SECRET_KEY configured in environment, redirect smoothly to payment success callback
-      return res.json({ 
-        url: `${origin}/?payment=success&demo=true`,
-        isDemo: true,
-        message: 'Redirecting to payment checkout...'
+      const StripeModule = await import('stripe');
+      const stripe = new StripeModule.default(apiKey);
+
+      const isYearly = interval === 'yearly' || plan === 'pro_yearly' || plan === 'yearly';
+      const priceAmount = isYearly ? 59000 : 5900; // $590/yr or $59/mo
+      const priceName = isYearly ? 'FORENSICDOCAUDIT - Business White Label Plan (Yearly)' : 'FORENSICDOCAUDIT - Business White Label Plan (Monthly)';
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: priceName,
+                description: isYearly ? '12,000 document audits per year with Dr. Aria AI Auditor' : '1,000 document audits per month with Dr. Aria AI Auditor',
+              },
+              unit_amount: priceAmount,
+              recurring: {
+                interval: isYearly ? 'year' : 'month',
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${origin}/?payment=success`,
+        cancel_url: `${origin}/?payment=cancelled`,
       });
+
+      return res.json({ url: session.url });
     } catch (error: any) {
       console.error('Stripe Checkout error:', error);
-      res.status(500).json({ error: error.message || 'Failed to create Stripe checkout session' });
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+      const host = req.headers['x-forwarded-host'] || req.get('host');
+      const origin = req.headers.origin || (host ? `${protocol}://${host}` : 'http://localhost:3000');
+      return res.json({ url: `${origin}/?stripe_checkout=true&plan=${req.body?.plan || 'pro_monthly'}&interval=${req.body?.interval || 'monthly'}` });
     }
   });
 

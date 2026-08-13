@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'JPY';
+export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'JPY' | 'ZAR';
 
 export interface CurrencyConfig {
   code: CurrencyCode;
@@ -17,6 +17,7 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
   CAD: { code: 'CAD', symbol: 'CA$', name: 'CAD - Canadian Dollar', rate: 1.36, flag: '🇨🇦' },
   AUD: { code: 'AUD', symbol: 'A$', name: 'AUD - Australian Dollar', rate: 1.52, flag: '🇦🇺' },
   JPY: { code: 'JPY', symbol: '¥', name: 'JPY - Japanese Yen', rate: 155.0, flag: '🇯🇵' },
+  ZAR: { code: 'ZAR', symbol: 'R', name: 'ZAR - South African Rand', rate: 18.50, flag: '🇿🇦' },
 };
 
 const CURRENCY_STORAGE_KEY = 'audit_app_active_currency';

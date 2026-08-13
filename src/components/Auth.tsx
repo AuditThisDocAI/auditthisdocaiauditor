@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Lock } from 'lucide-react';
+import { auth } from '../lib/firebase';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  GoogleAuthProvider, 
+  signInWithPopup 
+} from 'firebase/auth';
 
 export function Auth() {
   const [email, setEmail] = useState('');
@@ -19,7 +26,7 @@ export function Auth() {
 
   const [dataOwnershipAgreed, setDataOwnershipAgreed] = useState(true);
 
-  const handleAuth = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
     setAuthSuccess('');
@@ -39,20 +46,99 @@ export function Auth() {
       return;
     }
 
-    // Authenticate user directly into site with no pending approval delays
-    const isSuperAdmin = email.trim().toLowerCase() === 'brigittalombard09@gmail.com';
-    localStorage.setItem('audit-this-doc-cms-auth', 'true');
-    localStorage.setItem('audit-this-doc-user-email', email.trim());
-    if (isSuperAdmin) {
-      localStorage.setItem('audit_this_doc_is_pro', 'true');
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const savedPasswordsJson = localStorage.getItem('audit_user_passwords') || '{}';
+      let savedPasswords: Record<string, string> = {};
+      try {
+        savedPasswords = JSON.parse(savedPasswordsJson);
+      } catch (e) {}
+
+      if (isSignUp) {
+        // Record password locally upon sign up
+        savedPasswords[cleanEmail] = password;
+        localStorage.setItem('audit_user_passwords', JSON.stringify(savedPasswords));
+
+        await createUserWithEmailAndPassword(auth, email.trim(), password);
+      } else {
+        // Verify local sign up record if present
+        if (savedPasswords[cleanEmail] && savedPasswords[cleanEmail] !== password) {
+          setAuthError('Invalid password. The password entered does not match the password created upon sign up.');
+          return;
+        }
+
+        try {
+          await signInWithEmailAndPassword(auth, email.trim(), password);
+        } catch (fbErr: any) {
+          // If account exists locally, update local password record if Firebase succeeded in past
+          if (fbErr.code === 'auth/wrong-password' || fbErr.code === 'auth/invalid-credential') {
+            setAuthError('Invalid password. The password entered does not match the password created upon sign up.');
+            return;
+          } else if (fbErr.code === 'auth/user-not-found') {
+            setAuthError('No registered account found with this email. Please switch to Sign Up.');
+            return;
+          } else {
+            throw fbErr;
+          }
+        }
+      }
+
+      // Authenticate user directly into site with no pending approval delays
+      const isSuperAdmin = email.trim().toLowerCase() === 'brigittalombard09@gmail.com';
+      localStorage.setItem('audit-this-doc-cms-auth', 'true');
+      localStorage.setItem('audit-this-doc-user-email', email.trim());
+      if (isSuperAdmin) {
+        localStorage.setItem('audit_this_doc_is_pro', 'true');
+      }
+      setUserEmail(email.trim());
+      setIsAuthenticated(true);
+      window.dispatchEvent(new Event('admin-auth-changed'));
+      window.dispatchEvent(new Event('pro-status-changed'));
+      
+      // Navigate directly into site dashboard
+      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+    } catch (error: any) {
+      console.error("Auth error:", error);
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+         setAuthError('Invalid user credentials. Please check your password or go to sign up.');
+      } else if (error.code === 'auth/email-already-in-use') {
+         setAuthError('Email already in use. Please sign in instead.');
+      } else {
+         setAuthError(error.message || 'Authentication failed.');
+      }
     }
-    setUserEmail(email.trim());
-    setIsAuthenticated(true);
-    window.dispatchEvent(new Event('admin-auth-changed'));
-    window.dispatchEvent(new Event('pro-status-changed'));
-    
-    // Navigate directly into site dashboard
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+  };
+
+  const handleGoogleAuth = async () => {
+    setAuthError('');
+    setAuthSuccess('');
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const userEmailStr = user.email || 'Google User';
+
+      const isSuperAdmin = userEmailStr.trim().toLowerCase() === 'brigittalombard09@gmail.com';
+      localStorage.setItem('audit-this-doc-cms-auth', 'true');
+      localStorage.setItem('audit-this-doc-user-email', userEmailStr);
+      if (isSuperAdmin) {
+        localStorage.setItem('audit_this_doc_is_pro', 'true');
+      }
+      setUserEmail(userEmailStr);
+      setIsAuthenticated(true);
+      window.dispatchEvent(new Event('admin-auth-changed'));
+      window.dispatchEvent(new Event('pro-status-changed'));
+      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+    } catch (error: any) {
+      console.error("Google Auth error:", error);
+      if (error.code === 'auth/popup-closed-by-user') {
+        setAuthError('Google sign-in popup was closed before completing.');
+      } else if (error.code === 'auth/popup-blocked') {
+        setAuthError('Google sign-in popup was blocked by browser. Please allow popups.');
+      } else {
+        setAuthError(error.message || 'Google authentication failed.');
+      }
+    }
   };
 
   const handleQuickAdminLogin = () => {
@@ -127,18 +213,46 @@ export function Auth() {
           <Lock className="w-6 h-6" />
         </div>
         <h2 className="text-2xl font-bold text-center text-[#1E293B] mb-2">
-          {isSignUp ? 'Create Instant Account' : 'Welcome Back'}
+          {isSignUp ? 'Create Account' : 'Welcome Back'}
         </h2>
-        <p className="text-center text-[#64748B] text-sm mb-4">
-          {isSignUp ? 'Sign up for immediate access — no admin approval required' : 'Sign in to access your portal'}
+        <p className="text-center text-[#64748B] text-sm mb-6">
+          {isSignUp ? 'Sign up to get started' : 'Sign in to access your portal'}
         </p>
 
-        {isSignUp && (
-          <div className="mb-6 flex items-center justify-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-full text-xs font-bold w-fit mx-auto">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Instant Sign Up • No Admin Approval Needed
+        <button
+          type="button"
+          onClick={handleGoogleAuth}
+          className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-slate-700 font-bold py-3 px-4 rounded-xl border border-slate-200 shadow-xs transition-all hover:border-slate-300 hover:shadow-md cursor-pointer mb-5"
+        >
+          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+            <path
+              fill="#4285F4"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+            />
+          </svg>
+          <span>{isSignUp ? 'Instant Sign Up with Google' : 'Sign In with Google'}</span>
+        </button>
+
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200"></div>
           </div>
-        )}
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-3 text-slate-400 font-semibold">Or with email & password</span>
+          </div>
+        </div>
 
         <form onSubmit={handleAuth} className="space-y-4">
           <div>

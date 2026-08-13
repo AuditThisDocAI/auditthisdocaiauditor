@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { getWhiteLabelConfig, WhiteLabelConfig } from '../lib/whitelabel';
 import { WhiteLabelModal } from './WhiteLabelModal';
 import { CurrencySelector } from './CurrencySelector';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 const navLinks = [
   { name: 'Dr. Aria Auditor', href: '#document-auditor' },
@@ -23,8 +25,8 @@ export function Navbar() {
   const [showWhiteLabelModal, setShowWhiteLabelModal] = useState(false);
 
   const checkAuthStatus = () => {
-    const authed = localStorage.getItem('audit-this-doc-cms-auth') === 'true';
-    const email = (localStorage.getItem('audit-this-doc-user-email') || '').toLowerCase().trim();
+    const authed = localStorage.getItem('audit-this-doc-cms-auth') === 'true' || !!auth.currentUser;
+    const email = (localStorage.getItem('audit-this-doc-user-email') || auth.currentUser?.email || '').toLowerCase().trim();
     const isAdmin = email === 'brigittalombard09@gmail.com';
     const pro = localStorage.getItem('audit_this_doc_is_pro') === 'true' || isAdmin;
 
@@ -37,11 +39,30 @@ export function Navbar() {
   useEffect(() => {
     checkAuthStatus();
 
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        const email = (firebaseUser.email || '').toLowerCase().trim();
+        const isAdmin = email === 'brigittalombard09@gmail.com';
+        const pro = localStorage.getItem('audit_this_doc_is_pro') === 'true' || isAdmin;
+        localStorage.setItem('audit-this-doc-cms-auth', 'true');
+        localStorage.setItem('audit-this-doc-user-email', email);
+        if (isAdmin) {
+          localStorage.setItem('audit_this_doc_is_pro', 'true');
+        }
+        setIsLoggedIn(true);
+        setUserEmail(email);
+        setIsPro(pro);
+      } else {
+        checkAuthStatus();
+      }
+    });
+
     window.addEventListener('admin-auth-changed', checkAuthStatus);
     window.addEventListener('pro-status-changed', checkAuthStatus);
     window.addEventListener('whitelabel-updated', checkAuthStatus);
     window.addEventListener('storage', checkAuthStatus);
     return () => {
+      unsubscribe();
       window.removeEventListener('admin-auth-changed', checkAuthStatus);
       window.removeEventListener('pro-status-changed', checkAuthStatus);
       window.removeEventListener('whitelabel-updated', checkAuthStatus);
@@ -49,7 +70,12 @@ export function Navbar() {
     };
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error('Sign out error:', e);
+    }
     localStorage.removeItem('audit-this-doc-cms-auth');
     localStorage.removeItem('audit-this-doc-user-email');
     localStorage.removeItem('audit_this_doc_is_pro');
@@ -103,10 +129,14 @@ export function Navbar() {
                       <>FORENSICDOC<span className="text-[#7C3AED]">AUDIT</span></>
                     )}
                   </span>
-                  {whiteLabelConfig.enabled && (
+                  {whiteLabelConfig.enabled ? (
                     <span className="text-[10px] text-[#64748B] font-mono tracking-wide flex items-center gap-1">
                       <Building2 className="w-3 h-3 text-purple-600" />
                       White Label Verified Portal
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-[#64748B] tracking-widest font-semibold uppercase">
+                      Accounting System
                     </span>
                   )}
                 </div>
@@ -144,8 +174,8 @@ export function Navbar() {
             </div>
 
             <div className="hidden lg:flex items-center gap-3">
-              {/* Currency Converter Toggle */}
-              <CurrencySelector />
+              {/* Currency Converter Toggle - ONLY shown after user signed up */}
+              {isLoggedIn && <CurrencySelector />}
 
               {/* White Label Button - ONLY shown after user paid and signed up */}
               {isPaidAndSignedUp && (
@@ -215,16 +245,19 @@ export function Navbar() {
               exit={{ opacity: 0, y: -20 }}
               className="absolute top-full left-0 right-0 bg-white border-t border-[#E2E8F0] p-4 lg:hidden shadow-2xl"
             >
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100 px-2">
-                  <span className="text-xs font-bold text-slate-500">Currency Preference:</span>
-                  <CurrencySelector compact />
-                </div>
+              <div className="flex flex-col gap-2.5">
+                {isLoggedIn && (
+                  <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 px-2">
+                    <span className="text-xs font-bold text-slate-500">Currency Preference:</span>
+                    <CurrencySelector compact />
+                  </div>
+                )}
+
                 {linksToShow.map((link) => (
                   <a
                     key={link.name}
                     href={link.href}
-                    className="text-[#1E293B] font-semibold px-4 py-2 hover:bg-[#F8F9FC] rounded-lg"
+                    className="text-[#1E293B] font-bold px-4 py-2.5 hover:bg-purple-50 hover:text-[#7C3AED] rounded-xl transition-colors flex items-center justify-between"
                     onClick={(e) => {
                       if (link.name === 'Dashboard') {
                         e.preventDefault();
@@ -247,7 +280,7 @@ export function Navbar() {
                       setMobileMenuOpen(false);
                     }}
                   >
-                    {link.name}
+                    <span>{link.name}</span>
                   </a>
                 ))}
                 
@@ -257,17 +290,31 @@ export function Navbar() {
                       window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full text-left font-bold text-amber-800 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer"
+                    className="w-full text-left font-bold text-amber-800 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer my-1"
                   >
                     <Crown className="w-4 h-4 text-amber-600" />
                     Configure Business White Label
                   </button>
                 )}
 
-                <div className="h-px bg-[#E2E8F0] my-2" />
+                <div className="h-px bg-[#E2E8F0] my-1" />
 
-                {!isLoggedIn ? (
-                  <div className="flex flex-col gap-2">
+                {/* RED LOGOUT BUTTON FOR SIGNED IN USERS */}
+                {isLoggedIn ? (
+                  <div className="pt-1">
+                    <button 
+                      onClick={() => {
+                        handleLogout();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full text-center font-extrabold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer text-sm"
+                    >
+                      <LogOut className="w-5 h-5 text-white shrink-0" />
+                      <span>SIGN OUT / LOG OUT {userEmail ? `(${userEmail})` : ''}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2 pt-1">
                     <button 
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
@@ -288,17 +335,6 @@ export function Navbar() {
                       <span>Log Out / Reset Session</span>
                     </button>
                   </div>
-                ) : (
-                  <button 
-                    onClick={() => {
-                      handleLogout();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full text-center font-extrabold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-4 py-3 rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-                  >
-                    <LogOut className="w-4 h-4 text-red-600 shrink-0" />
-                    <span>Log Out {userEmail ? `(${userEmail})` : ''}</span>
-                  </button>
                 )}
               </div>
             </motion.div>

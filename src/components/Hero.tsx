@@ -35,7 +35,7 @@ export function Hero() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-4xl sm:text-5xl lg:text-[54px] font-extrabold leading-[1.1] tracking-tight text-[#1E293B]"
           >
-            AI Document Auditor & <br className="hidden md:block" />
+            Document Auditor & <br className="hidden md:block" />
             Forensic Scanner <span className="text-[#7C3AED]">Made Effortless</span>
           </motion.h1>
 
