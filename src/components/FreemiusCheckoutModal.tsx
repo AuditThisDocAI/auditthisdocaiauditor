@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShieldCheck, Lock, Check, ArrowLeft, Loader2, 
   Key, ExternalLink, RefreshCw, CheckCircle2, AlertCircle, ArrowRight,
-  CreditCard, Sparkles, Receipt, Building, Shield
+  CreditCard, Sparkles, Receipt, Building, Shield, Wallet, Smartphone,
+  CircleDot, Circle
 } from 'lucide-react';
 import { useCurrency } from '../lib/currency';
 
@@ -31,6 +32,7 @@ export function FreemiusCheckoutModal({
 
   const [activeTab, setActiveTab] = useState<'checkout' | 'license'>('checkout');
   const [userEmail, setUserEmail] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'apple_pay'>('card');
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState('');
   const [checkoutError, setCheckoutError] = useState('');
@@ -58,10 +60,12 @@ export function FreemiusCheckoutModal({
 
   if (!isOpen) return null;
 
-  const handleLaunchFreemiusCheckout = async (e?: React.FormEvent) => {
+  const handleLaunchFreemiusCheckout = async (e?: React.FormEvent, overrideMethod?: 'card' | 'paypal' | 'apple_pay') => {
     if (e) e.preventDefault();
     setCheckoutError('');
     setIsRedirecting(true);
+
+    const chosenMethod = overrideMethod || paymentMethod;
 
     try {
       const cleanEmail = userEmail.trim();
@@ -73,7 +77,8 @@ export function FreemiusCheckoutModal({
           plan: isYearly ? 'pro_yearly' : 'pro_monthly',
           interval: isYearly ? 'yearly' : 'monthly',
           userEmail: cleanEmail,
-          currency: currencyConfig.code
+          currency: currencyConfig.code,
+          paymentMethod: chosenMethod
         })
       });
 
@@ -321,16 +326,104 @@ export function FreemiusCheckoutModal({
                       </p>
                     </div>
 
-                    {/* Freemius Payment Methods Overview */}
-                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                      <div className="text-xs font-bold text-slate-700">Supported Payment Methods:</div>
-                      <div className="flex items-center gap-3 text-xs text-slate-600 font-semibold">
-                        <span className="bg-white px-2.5 py-1 rounded border border-slate-200 shadow-xs">Credit / Debit Card</span>
-                        <span className="bg-white px-2.5 py-1 rounded border border-slate-200 shadow-xs">PayPal</span>
-                        <span className="bg-white px-2.5 py-1 rounded border border-slate-200 shadow-xs">Apple Pay / Google Pay</span>
+                    {/* Interactive Freemius Payment Methods Selection */}
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-700">
+                          Select Payment Method:
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                          Freemius PCI-DSS Gateway
+                        </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 pt-1">
-                        Payments are processed directly on Freemius's PCI-DSS Level 1 compliant gateway.
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        {/* Credit / Debit Card */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('card')}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                            paymentMethod === 'card'
+                              ? 'bg-purple-50/90 border-[#7C3AED] ring-2 ring-[#7C3AED]/20 shadow-xs'
+                              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className={`p-1.5 rounded-lg ${paymentMethod === 'card' ? 'bg-[#7C3AED] text-white' : 'bg-slate-100 text-slate-600'}`}>
+                              <CreditCard className="w-4 h-4" />
+                            </div>
+                            {paymentMethod === 'card' ? (
+                              <CircleDot className="w-4 h-4 text-[#7C3AED]" />
+                            ) : (
+                              <Circle className="w-4 h-4 text-slate-300" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-xs font-extrabold text-slate-900 leading-tight">Credit / Debit</div>
+                            <div className="text-[10px] text-slate-500 font-medium">Visa, MC, Amex</div>
+                          </div>
+                        </button>
+
+                        {/* PayPal */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('paypal')}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                            paymentMethod === 'paypal'
+                              ? 'bg-purple-50/90 border-[#7C3AED] ring-2 ring-[#7C3AED]/20 shadow-xs'
+                              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className={`p-1.5 rounded-lg ${paymentMethod === 'paypal' ? 'bg-[#7C3AED] text-white' : 'bg-slate-100 text-slate-600'}`}>
+                              <Wallet className="w-4 h-4" />
+                            </div>
+                            {paymentMethod === 'paypal' ? (
+                              <CircleDot className="w-4 h-4 text-[#7C3AED]" />
+                            ) : (
+                              <Circle className="w-4 h-4 text-slate-300" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-xs font-extrabold text-slate-900 leading-tight">PayPal</div>
+                            <div className="text-[10px] text-slate-500 font-medium">Express & Balance</div>
+                          </div>
+                        </button>
+
+                        {/* Apple / Google Pay */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('apple_pay')}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                            paymentMethod === 'apple_pay'
+                              ? 'bg-purple-50/90 border-[#7C3AED] ring-2 ring-[#7C3AED]/20 shadow-xs'
+                              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className={`p-1.5 rounded-lg ${paymentMethod === 'apple_pay' ? 'bg-[#7C3AED] text-white' : 'bg-slate-100 text-slate-600'}`}>
+                              <Smartphone className="w-4 h-4" />
+                            </div>
+                            {paymentMethod === 'apple_pay' ? (
+                              <CircleDot className="w-4 h-4 text-[#7C3AED]" />
+                            ) : (
+                              <Circle className="w-4 h-4 text-slate-300" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-xs font-extrabold text-slate-900 leading-tight">Apple / Google Pay</div>
+                            <div className="text-[10px] text-slate-500 font-medium">1-Click Fast Pay</div>
+                          </div>
+                        </button>
+                      </div>
+
+                      <p className="text-[11px] text-slate-500 flex items-center gap-1.5 pt-0.5">
+                        <Lock className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span>
+                          {paymentMethod === 'card' && 'Directly encrypted via Freemius PCI-DSS Level 1 card vault.'}
+                          {paymentMethod === 'paypal' && 'One-click checkout connecting securely to your PayPal account.'}
+                          {paymentMethod === 'apple_pay' && 'Biometric 1-click authorization on compatible devices.'}
+                        </span>
                       </p>
                     </div>
 
@@ -370,7 +463,11 @@ export function FreemiusCheckoutModal({
                         ) : (
                           <>
                             <Lock className="w-4 h-4 text-white" />
-                            <span>Pay {formattedPrice} with Freemius</span>
+                            <span>
+                              {paymentMethod === 'card' && `Pay ${formattedPrice} with Card`}
+                              {paymentMethod === 'paypal' && `Pay ${formattedPrice} with PayPal`}
+                              {paymentMethod === 'apple_pay' && `Pay ${formattedPrice} with Apple / Google Pay`}
+                            </span>
                             <ArrowRight className="w-4 h-4 text-white" />
                           </>
                         )}

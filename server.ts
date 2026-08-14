@@ -50,7 +50,7 @@ async function startServer() {
 
   app.post("/api/freemius/create-checkout", async (req, res) => {
     try {
-      const { plan, interval, userEmail, currency } = req.body;
+      const { plan, interval, userEmail, currency, paymentMethod } = req.body;
       const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
       const host = req.headers['x-forwarded-host'] || req.get('host');
       const origin = req.headers.origin || (host ? `${protocol}://${host}` : 'http://localhost:3000');
@@ -73,6 +73,7 @@ async function startServer() {
           if (userEmail) checkoutUrlObj.searchParams.set('user_email', userEmail);
           if (currency) checkoutUrlObj.searchParams.set('currency', currency);
           checkoutUrlObj.searchParams.set('billing_cycle', billingCycle);
+          if (paymentMethod) checkoutUrlObj.searchParams.set('payment_method', paymentMethod);
           return res.json({ 
             success: true, 
             url: checkoutUrlObj.toString(),
@@ -105,6 +106,7 @@ async function startServer() {
       if (userEmail && userEmail.includes('@')) params.append('user_email', userEmail);
       if (currency) params.append('currency', currency);
       if (publicKey) params.append('public_key', publicKey);
+      if (paymentMethod) params.append('payment_method', paymentMethod);
       params.append('billing_cycle', billingCycle);
       params.append('success_url', `${origin}/?payment=success`);
       params.append('cancel_url', `${origin}/?payment=cancelled`);
