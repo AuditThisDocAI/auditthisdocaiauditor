@@ -4,6 +4,14 @@ import { ChevronDown } from 'lucide-react';
 
 const faqs = [
   {
+    question: "What is your Refund & Cancellation Policy?",
+    answer: "We offer an unconditional 14-Day Money-Back Guarantee on all subscription tiers. If you are not completely satisfied, email support@forensicdocaudit.com within 14 days of subscribing for a full refund back to your original payment method. You can also cancel your recurring subscription at any time directly through your account or Freemius receipt with zero cancellation fees."
+  },
+  {
+    question: "What are the Terms and Conditions for AI forensic audits?",
+    answer: "ForensicDocAudit is an advanced analytical co-pilot for accountants and auditors. In accordance with professional standards, the platform operates on a 'human-in-the-loop' principle where the AI flags discrepancies and anomalies, but certified practitioners maintain final review for legal and tax filings."
+  },
+  {
     question: "How accurate is the AI auditing?",
     answer: "Our AI models are trained on millions of financial documents and maintain a 99.9% accuracy rate. It cross-references data points across ledgers, invoices, and bank statements to flag discrepancies that human eyes often miss."
   },

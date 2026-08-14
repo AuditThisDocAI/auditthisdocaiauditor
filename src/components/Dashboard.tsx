@@ -109,7 +109,7 @@ export function Dashboard() {
   }, []);
 
   const handleUpgrade = () => {
-    window.dispatchEvent(new CustomEvent('open-stripe-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
+    window.dispatchEvent(new CustomEvent('open-freemius-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
   };
 
   const fetchDashboardData = async (isManual = false) => {

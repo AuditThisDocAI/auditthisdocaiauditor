@@ -61,7 +61,7 @@ export function Pricing() {
   const handleAction = (intervalOverride?: 'monthly' | 'yearly') => {
     const selectedInterval = intervalOverride || billingPeriod;
     const selectedPlan = selectedInterval === 'yearly' ? 'pro_yearly' : 'pro_monthly';
-    window.dispatchEvent(new CustomEvent('open-stripe-checkout', { detail: { plan: selectedPlan, interval: selectedInterval } }));
+    window.dispatchEvent(new CustomEvent('open-freemius-checkout', { detail: { plan: selectedPlan, interval: selectedInterval } }));
   };
 
   return (
@@ -184,6 +184,35 @@ export function Pricing() {
           ))}
         </div>
 
+        {/* Money-Back Guarantee Banner & Legal Links */}
+        <div className="max-w-3xl mx-auto mb-16 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200 rounded-3xl p-6 sm:p-8 text-center space-y-3 shadow-xs">
+          <div className="inline-flex items-center gap-2 bg-emerald-600 text-white text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow-xs">
+            <Check className="w-3.5 h-3.5" />
+            <span>14-Day Money-Back Guarantee</span>
+          </div>
+          <h4 className="text-xl sm:text-2xl font-black text-slate-900">
+            Audit Risk-Free for 14 Days
+          </h4>
+          <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
+            Try ForensicDocAudit's 1,000 monthly audit tier with complete peace of mind. If you are not completely satisfied, request a full refund within 14 days.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-xs font-bold text-slate-700">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'refund' } }))}
+              className="text-emerald-700 hover:text-emerald-900 underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>Read Refund & Cancellation Policy</span>
+            </button>
+            <span className="text-slate-300">&bull;</span>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'terms' } }))}
+              className="text-purple-700 hover:text-purple-900 underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>View Terms & Conditions (T&Cs)</span>
+            </button>
+          </div>
+        </div>
+
         {/* FAQ Quick Questions */}
         <div className="max-w-3xl mx-auto mb-16">
           <div className="text-center mb-8">
@@ -191,10 +220,10 @@ export function Pricing() {
           </div>
           <div className="space-y-3">
             {[
+              { q: 'What is your Refund and Cancellation policy?', a: 'All subscriptions come with a 14-Day Money-Back Guarantee. You can request a 100% refund within 14 days of subscribing by contacting support@forensicdocaudit.com or clicking Manage Subscription in your Freemius receipt. You can also cancel your plan at any time with zero cancellation fees.' },
               { q: 'How does the 10 free audit limit work?', a: 'Every device gets 10 free document audits automatically. You can paste text or test sample invoices, receipts, or contracts before needing an upgrade.' },
               { q: 'Who is Dr. Aria?', a: 'Dr. Aria is our specialized AI system fine-tuned on forensic accounting principles, tax rules, invoice fraud indicators, and contract verification.' },
-              { q: 'What is included in the Pro plan?', a: 'The Pro plan includes 1,000 document audits per month for $45/month or $450/year, full forensic risk scoring, PDF audit certificates, and priority support.' },
-              { q: 'Is my financial text data secure?', a: 'Yes. All text and documents are processed securely in memory for the duration of the audit and are never stored or shared with external third parties.' }
+              { q: 'Is my financial text data secure?', a: 'Yes. All text and documents are processed securely in memory for the duration of the audit and are never stored or shared with external third parties. We are fully compliant with GDPR and bank-grade AES-256 standards.' }
             ].map((faq, i) => (
               <div key={i} className="bg-[#F8F9FC] border border-[#E2E8F0] rounded-2xl overflow-hidden transition-colors hover:border-[#7C3AED]/30">
                 <button

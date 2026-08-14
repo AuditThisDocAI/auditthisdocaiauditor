@@ -111,7 +111,7 @@ export function Bookkeeping() {
   };
 
   const handlePurchasePro = () => {
-    window.dispatchEvent(new CustomEvent('open-stripe-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
+    window.dispatchEvent(new CustomEvent('open-freemius-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
   };
 
   const handleAddEntry = (e: React.FormEvent) => {
@@ -355,7 +355,7 @@ export function Bookkeeping() {
               {isCheckingOut ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin text-slate-900" />
-                  Redirecting to Stripe Gateway...
+                  Redirecting to Freemius Gateway...
                 </>
               ) : (
                 <>

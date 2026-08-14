@@ -15,9 +15,9 @@ export function PaywallModal({ isOpen, onClose, auditCount = 10 }: PaywallModalP
 
   if (!isOpen) return null;
 
-  const handleStripeCheckout = (interval: 'monthly' | 'yearly') => {
+  const handleFreemiusCheckout = (interval: 'monthly' | 'yearly') => {
     onClose();
-    window.dispatchEvent(new CustomEvent('open-stripe-checkout', { detail: { plan: interval === 'yearly' ? 'pro_yearly' : 'pro_monthly', interval } }));
+    window.dispatchEvent(new CustomEvent('open-freemius-checkout', { detail: { plan: interval === 'yearly' ? 'pro_yearly' : 'pro_monthly', interval } }));
   };
 
   const handleNavigateAuth = () => {
@@ -116,7 +116,7 @@ export function PaywallModal({ isOpen, onClose, auditCount = 10 }: PaywallModalP
                 </div>
 
                 <button
-                  onClick={() => handleStripeCheckout('monthly')}
+                  onClick={() => handleFreemiusCheckout('monthly')}
                   disabled={loadingPlan === 'monthly'}
                   className="mt-4 w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
@@ -144,7 +144,7 @@ export function PaywallModal({ isOpen, onClose, auditCount = 10 }: PaywallModalP
                 </div>
 
                 <button
-                  onClick={() => handleStripeCheckout('yearly')}
+                  onClick={() => handleFreemiusCheckout('yearly')}
                   disabled={loadingPlan === 'yearly'}
                   className="mt-4 w-full bg-[#10B981] hover:bg-[#059669] text-white py-2.5 px-3 rounded-xl font-bold text-xs shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >

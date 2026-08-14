@@ -36,8 +36,8 @@ export function Auth() {
       return;
     }
 
-    if (password.length < 8 || password.length > 16) {
-      setAuthError('Password must be between 8 and 16 characters.');
+    if (password.length < 6 || password.length > 32) {
+      setAuthError('Password must be between 6 and 32 characters.');
       return;
     }
 
@@ -48,6 +48,34 @@ export function Auth() {
 
     try {
       const cleanEmail = email.trim().toLowerCase();
+      const isSuperAdmin = cleanEmail === 'brigittalombard09@gmail.com';
+
+      // Admin verification for Brigittalombard09@gmail.com with password 123ABC
+      if (isSuperAdmin) {
+        if (password === '123ABC') {
+          const savedPasswordsJson = localStorage.getItem('audit_user_passwords') || '{}';
+          let savedPasswords: Record<string, string> = {};
+          try {
+            savedPasswords = JSON.parse(savedPasswordsJson);
+          } catch (e) {}
+          savedPasswords['brigittalombard09@gmail.com'] = '123ABC';
+          localStorage.setItem('audit_user_passwords', JSON.stringify(savedPasswords));
+
+          localStorage.setItem('audit-this-doc-cms-auth', 'true');
+          localStorage.setItem('audit-this-doc-user-email', 'brigittalombard09@gmail.com');
+          localStorage.setItem('audit_this_doc_is_pro', 'true');
+          setUserEmail('brigittalombard09@gmail.com');
+          setIsAuthenticated(true);
+          window.dispatchEvent(new Event('admin-auth-changed'));
+          window.dispatchEvent(new Event('pro-status-changed'));
+          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+          return;
+        } else {
+          setAuthError('Invalid admin password. The password for brigittalombard09@gmail.com is 123ABC.');
+          return;
+        }
+      }
+
       const savedPasswordsJson = localStorage.getItem('audit_user_passwords') || '{}';
       let savedPasswords: Record<string, string> = {};
       try {
@@ -84,7 +112,6 @@ export function Auth() {
       }
 
       // Authenticate user directly into site with no pending approval delays
-      const isSuperAdmin = email.trim().toLowerCase() === 'brigittalombard09@gmail.com';
       localStorage.setItem('audit-this-doc-cms-auth', 'true');
       localStorage.setItem('audit-this-doc-user-email', email.trim());
       if (isSuperAdmin) {
@@ -269,19 +296,19 @@ export function Auth() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-bold text-[#1E293B]">Password</label>
-              <span className="text-[11px] font-semibold text-[#64748B]">8–16 characters</span>
+              <span className="text-[11px] font-semibold text-[#64748B]">6+ characters</span>
             </div>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              minLength={8}
-              maxLength={16}
+              minLength={6}
+              maxLength={32}
               className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/20 focus:border-[#7C3AED] transition-all"
               placeholder="••••••••"
               required
             />
-            <p className="text-[11px] text-[#64748B] mt-1">Must be between 8 and 16 characters long.</p>
+            <p className="text-[11px] text-[#64748B] mt-1">Must be at least 6 characters long.</p>
           </div>
 
           {isSignUp && (
