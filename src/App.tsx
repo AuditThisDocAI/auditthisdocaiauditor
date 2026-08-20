@@ -13,11 +13,16 @@ import { Bookkeeping } from './components/Bookkeeping';
 import { FirmBrandingSettings } from './components/FirmBrandingSettings';
 import { StaffManagement } from './components/StaffManagement';
 import { ClientManagement } from './components/ClientManagement';
+import { GmailAuditor } from './components/GmailAuditor';
+import { GoogleFormsManager } from './components/GoogleFormsManager';
+import { GoogleContactsManager } from './components/GoogleContactsManager';
+import { GoogleTasksManager } from './components/GoogleTasksManager';
 import { FreemiusCheckoutModal } from './components/FreemiusCheckoutModal';
 import { LegalModal, LegalPolicyTab } from './components/LegalModal';
+import { SessionTimeoutModal } from './components/SessionTimeoutModal';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients' | 'gmail' | 'forms' | 'contacts' | 'tasks'>('landing');
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [freemiusCheckoutOpen, setFreemiusCheckoutOpen] = useState(false);
   const [checkoutPlan, setCheckoutPlan] = useState<'pro_monthly' | 'pro_yearly'>('pro_monthly');
@@ -108,6 +113,8 @@ export default function App() {
         initialTab={legalModalTab}
       />
 
+      <SessionTimeoutModal />
+
       {showPaymentSuccess && (
         <div className="bg-[#10B981] text-white px-4 py-3 text-center font-bold text-sm flex items-center justify-center gap-3 shadow-md relative z-50">
           <span>🎉 Payment Successful! Pro Plan activated with 1,000 monthly document audits.</span>
@@ -126,6 +133,18 @@ export default function App() {
             <Hero />
             <TrustedBy />
             <DocumentAuditor />
+            <div id="contacts" className="my-10">
+              <GoogleContactsManager />
+            </div>
+            <div id="tasks" className="my-10">
+              <GoogleTasksManager />
+            </div>
+            <div id="gmail" className="my-10">
+              <GmailAuditor />
+            </div>
+            <div id="forms" className="my-10">
+              <GoogleFormsManager />
+            </div>
             <Bookkeeping />
             <Features />
             <Pricing />
@@ -135,6 +154,26 @@ export default function App() {
         )}
         {currentView === 'auth' && <Auth />}
         {currentView === 'dashboard' && <Dashboard />}
+        {currentView === 'contacts' && (
+          <div className="py-4">
+            <GoogleContactsManager />
+          </div>
+        )}
+        {currentView === 'tasks' && (
+          <div className="py-4">
+            <GoogleTasksManager />
+          </div>
+        )}
+        {currentView === 'gmail' && (
+          <div className="py-4">
+            <GmailAuditor />
+          </div>
+        )}
+        {currentView === 'forms' && (
+          <div className="py-4">
+            <GoogleFormsManager />
+          </div>
+        )}
         {currentView === 'bookkeeping' && <Bookkeeping />}
         {currentView === 'whitelabel' && <FirmBrandingSettings />}
         {currentView === 'staff' && <StaffManagement />}

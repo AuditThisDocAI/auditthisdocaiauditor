@@ -2,6 +2,10 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
+import { requireAuth, AuthRequest } from "./src/middleware/auth.ts";
+import { getOrCreateUser, saveForensicAuditRecord, getUserAuditRecords } from "./src/db/users.ts";
+import { db } from "./src/db/index.ts";
+import { forensicAudits, tasksSync } from "./src/db/schema.ts";
 
 async function startServer() {
   const app = express();
@@ -13,6 +17,63 @@ async function startServer() {
   // API routes FIRST
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // Cloud SQL Database - User Sync & Relational Audits
+  app.post("/api/db/user/sync", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user?.uid;
+      const email = req.user?.email || req.body.email || 'user@example.com';
+      const displayName = req.user?.name || req.body.displayName || '';
+      
+      if (!uid) {
+        return res.status(401).json({ error: "Unauthorized: Missing user UID" });
+      }
+
+      const userRecord = await getOrCreateUser(uid, email, displayName);
+      res.json({ success: true, user: userRecord });
+    } catch (error: any) {
+      console.error("User sync error:", error);
+      res.status(500).json({ error: error.message || "Failed to sync user to Cloud SQL database" });
+    }
+  });
+
+  app.post("/api/db/audits", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user?.uid;
+      if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+      const auditRecord = await saveForensicAuditRecord({
+        userId: uid,
+        documentName: req.body.documentName || "Audited Document",
+        documentType: req.body.documentType || "Invoice",
+        riskScore: req.body.riskScore || 0,
+        riskLevel: req.body.riskLevel || "Low",
+        summary: req.body.summary || "",
+        discrepancies: req.body.discrepancies || [],
+        forensicSignals: req.body.forensicSignals || [],
+        recommendations: req.body.recommendations || [],
+        metadata: req.body.metadata || {},
+      });
+
+      res.json({ success: true, audit: auditRecord });
+    } catch (error: any) {
+      console.error("Save audit DB error:", error);
+      res.status(500).json({ error: error.message || "Failed to save audit to Cloud SQL" });
+    }
+  });
+
+  app.get("/api/db/audits", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const uid = req.user?.uid;
+      if (!uid) return res.status(401).json({ error: "Unauthorized" });
+
+      const audits = await getUserAuditRecords(uid);
+      res.json({ success: true, audits });
+    } catch (error: any) {
+      console.error("Fetch user audits error:", error);
+      res.status(500).json({ error: error.message || "Failed to retrieve audits from Cloud SQL" });
+    }
   });
 
   // Contact Form Endpoint
@@ -281,7 +342,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
           }
 
           const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.7-flash',
             contents: [{ role: 'user', parts }],
             config: {
               systemInstruction,
@@ -387,8 +448,8 @@ Return ONLY a valid JSON object matching this schema without markdown code block
           });
           
           const systemInstruction = `You are Dr. Aria, PhD in Forensic Auditing, lead AI auditor at 'FORENSICDOCAUDIT'. 
-You provide expert advice on document auditing, invoice fraud detection, compliance, risk scoring, and platform features.
-You are professional, authoritative yet friendly, and help users understand their 10 free audits limit and upgrade options.`;
+You provide expert advice on document auditing, invoice fraud detection, compliance, risk scoring, tax verification, and platform features.
+You are professional, authoritative yet friendly, and help users understand their 1 free document audit trial and Pro upgrade options (1,000 audits/mo).`;
 
           const contents = (history || []).map((msg: any) => ({
             role: msg.sender === 'user' ? 'user' : 'model',
@@ -398,7 +459,7 @@ You are professional, authoritative yet friendly, and help users understand thei
           contents.push({ role: 'user', parts: [{ text: message }] });
 
           const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.7-flash',
             contents,
             config: {
               systemInstruction,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, Clock, AlertCircle } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { 
   signInWithEmailAndPassword, 
@@ -7,17 +7,25 @@ import {
   GoogleAuthProvider, 
   signInWithPopup 
 } from 'firebase/auth';
+import { recordUserActivity, performLogout, consumeExpiredSessionReason } from '../lib/sessionManager';
 
 export function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [authSuccess, setAuthSuccess] = useState('');
+  const [sessionExpiredNotice, setSessionExpiredNotice] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
+    // Check if redirected here because session expired
+    const expiredMsg = consumeExpiredSessionReason();
+    if (expiredMsg) {
+      setSessionExpiredNotice(expiredMsg);
+    }
+
     if (localStorage.getItem('audit-this-doc-cms-auth') === 'true') {
       setIsAuthenticated(true);
       setUserEmail(localStorage.getItem('audit-this-doc-user-email') || 'Member');
@@ -50,30 +58,26 @@ export function Auth() {
       const cleanEmail = email.trim().toLowerCase();
       const isSuperAdmin = cleanEmail === 'brigittalombard09@gmail.com';
 
-      // Admin verification for Brigittalombard09@gmail.com with password 123ABC
+      // Admin verification for brigittalombard09@gmail.com: automatically grants full access to all audit features
       if (isSuperAdmin) {
-        if (password === '123ABC') {
-          const savedPasswordsJson = localStorage.getItem('audit_user_passwords') || '{}';
-          let savedPasswords: Record<string, string> = {};
-          try {
-            savedPasswords = JSON.parse(savedPasswordsJson);
-          } catch (e) {}
-          savedPasswords['brigittalombard09@gmail.com'] = '123ABC';
-          localStorage.setItem('audit_user_passwords', JSON.stringify(savedPasswords));
+        const savedPasswordsJson = localStorage.getItem('audit_user_passwords') || '{}';
+        let savedPasswords: Record<string, string> = {};
+        try {
+          savedPasswords = JSON.parse(savedPasswordsJson);
+        } catch (e) {}
+        savedPasswords['brigittalombard09@gmail.com'] = password;
+        localStorage.setItem('audit_user_passwords', JSON.stringify(savedPasswords));
 
-          localStorage.setItem('audit-this-doc-cms-auth', 'true');
-          localStorage.setItem('audit-this-doc-user-email', 'brigittalombard09@gmail.com');
-          localStorage.setItem('audit_this_doc_is_pro', 'true');
-          setUserEmail('brigittalombard09@gmail.com');
-          setIsAuthenticated(true);
-          window.dispatchEvent(new Event('admin-auth-changed'));
-          window.dispatchEvent(new Event('pro-status-changed'));
-          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
-          return;
-        } else {
-          setAuthError('Invalid admin password. The password for brigittalombard09@gmail.com is 123ABC.');
-          return;
-        }
+        localStorage.setItem('audit-this-doc-cms-auth', 'true');
+        localStorage.setItem('audit-this-doc-user-email', 'brigittalombard09@gmail.com');
+        localStorage.setItem('audit_this_doc_is_pro', 'true');
+        recordUserActivity();
+        setUserEmail('brigittalombard09@gmail.com');
+        setIsAuthenticated(true);
+        window.dispatchEvent(new Event('admin-auth-changed'));
+        window.dispatchEvent(new Event('pro-status-changed'));
+        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+        return;
       }
 
       const savedPasswordsJson = localStorage.getItem('audit_user_passwords') || '{}';
@@ -117,6 +121,7 @@ export function Auth() {
       if (isSuperAdmin) {
         localStorage.setItem('audit_this_doc_is_pro', 'true');
       }
+      recordUserActivity();
       setUserEmail(email.trim());
       setIsAuthenticated(true);
       window.dispatchEvent(new Event('admin-auth-changed'));
@@ -151,6 +156,7 @@ export function Auth() {
       if (isSuperAdmin) {
         localStorage.setItem('audit_this_doc_is_pro', 'true');
       }
+      recordUserActivity();
       setUserEmail(userEmailStr);
       setIsAuthenticated(true);
       window.dispatchEvent(new Event('admin-auth-changed'));
@@ -173,6 +179,7 @@ export function Auth() {
     localStorage.setItem('audit-this-doc-cms-auth', 'true');
     localStorage.setItem('audit-this-doc-user-email', adminEmail);
     localStorage.setItem('audit_this_doc_is_pro', 'true');
+    recordUserActivity();
     setUserEmail(adminEmail);
     setIsAuthenticated(true);
     window.dispatchEvent(new Event('admin-auth-changed'));
@@ -216,13 +223,8 @@ export function Auth() {
 
         <button
           onClick={() => {
+            performLogout('User logged out manually.');
             setIsAuthenticated(false);
-            localStorage.removeItem('audit-this-doc-cms-auth');
-            localStorage.removeItem('audit-this-doc-user-email');
-            localStorage.removeItem('audit_this_doc_is_pro');
-            window.dispatchEvent(new Event('admin-auth-changed'));
-            window.dispatchEvent(new Event('pro-status-changed'));
-            window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
           }}
           className="mt-10 inline-flex items-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-6 py-3 rounded-2xl font-bold text-sm transition-all hover:scale-105"
         >
@@ -236,6 +238,16 @@ export function Auth() {
   return (
     <div className="max-w-md mx-auto px-4 py-20 min-h-[80vh] flex items-center justify-center">
       <div className="bg-white p-8 rounded-3xl shadow-sm border border-[#E2E8F0] w-full">
+        {sessionExpiredNotice && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl flex items-start gap-3 text-xs leading-relaxed animate-in fade-in">
+            <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Session Notice</p>
+              <p className="text-amber-800">{sessionExpiredNotice}</p>
+            </div>
+          </div>
+        )}
+
         <div className="w-12 h-12 bg-[#7C3AED]/10 text-[#7C3AED] rounded-xl flex items-center justify-center mb-6 mx-auto">
           <Lock className="w-6 h-6" />
         </div>

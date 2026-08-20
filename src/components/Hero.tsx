@@ -76,7 +76,7 @@ export function Hero() {
                 className="w-full sm:w-auto bg-white border-2 border-[#E2E8F0] text-[#1E293B] hover:border-[#7C3AED] hover:text-[#7C3AED] px-6 py-4 rounded-xl font-bold transition-all text-center flex items-center justify-center gap-2"
               >
                 <span>Audit Document Free</span>
-                <span className="bg-[#7C3AED]/10 text-[#7C3AED] text-[10px] font-extrabold px-2 py-0.5 rounded-full">10 Free Audits</span>
+                <span className="bg-[#7C3AED]/10 text-[#7C3AED] text-[10px] font-extrabold px-2 py-0.5 rounded-full">1 Free Audit</span>
               </button>
             </div>
             
@@ -89,7 +89,7 @@ export function Hero() {
             >
               <span className="flex items-center gap-1.5">
                 <Lock className="w-4 h-4 text-[#7C3AED]" />
-                10 Free Audits / Device
+                1 Free Audit / Device
               </span>
               <span className="flex items-center gap-1.5">
                 <CreditCard className="w-4 h-4 text-[#94A3B8]" />

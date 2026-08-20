@@ -1,6 +1,6 @@
 {
   "name": "FORENSICDOCAUDIT",
-  "description": "AI-Powered Accounting, Auditing & Business Management platform.",
+  "description": "AI-Powered Accounting, Document, Gmail, Google Forms, Google Contacts & Tasks Forensic Auditing platform with Cloud SQL relational storage and real-time fraud risk detection.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

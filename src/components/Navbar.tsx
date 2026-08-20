@@ -5,10 +5,15 @@ import { getWhiteLabelConfig, WhiteLabelConfig } from '../lib/whitelabel';
 import { WhiteLabelModal } from './WhiteLabelModal';
 import { CurrencySelector } from './CurrencySelector';
 import { auth } from '../lib/firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
+import { performLogout } from '../lib/sessionManager';
 
 const navLinks = [
   { name: 'Dr. Aria Auditor', href: '#document-auditor' },
+  { name: 'Contacts & Vendors', href: '#contacts' },
+  { name: 'Tasks & Remediation', href: '#tasks' },
+  { name: 'Gmail Auditor', href: '#gmail' },
+  { name: 'Google Forms', href: '#forms' },
   { name: 'Bookkeeping', href: '#bookkeeping' },
   { name: 'Features', href: '#features' },
   { name: 'Pricing', href: '#pricing' },
@@ -71,20 +76,10 @@ export function Navbar() {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (e) {
-      console.error('Sign out error:', e);
-    }
-    localStorage.removeItem('audit-this-doc-cms-auth');
-    localStorage.removeItem('audit-this-doc-user-email');
-    localStorage.removeItem('audit_this_doc_is_pro');
+    await performLogout('User logged out from navigation.');
     setIsLoggedIn(false);
     setIsPro(false);
     setUserEmail('');
-    window.dispatchEvent(new Event('admin-auth-changed'));
-    window.dispatchEvent(new Event('pro-status-changed'));
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
   };
 
   // White label settings are strictly reserved for paid subscribers who have signed up
@@ -152,6 +147,14 @@ export function Navbar() {
                         e.preventDefault();
                         if (link.name === 'Dashboard') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+                        } else if (link.name === 'Contacts & Vendors') {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'contacts' } }));
+                        } else if (link.name === 'Tasks & Remediation') {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'tasks' } }));
+                        } else if (link.name === 'Gmail Auditor') {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'gmail' } }));
+                        } else if (link.name === 'Google Forms') {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'forms' } }));
                         } else if (link.name === 'Bookkeeping') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'bookkeeping' } }));
                         } else if (link.name === 'Branding') {
@@ -262,6 +265,18 @@ export function Navbar() {
                       if (link.name === 'Dashboard') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+                      } else if (link.name === 'Contacts & Vendors') {
+                        e.preventDefault();
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'contacts' } }));
+                      } else if (link.name === 'Tasks & Remediation') {
+                        e.preventDefault();
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'tasks' } }));
+                      } else if (link.name === 'Gmail Auditor') {
+                        e.preventDefault();
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'gmail' } }));
+                      } else if (link.name === 'Google Forms') {
+                        e.preventDefault();
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'forms' } }));
                       } else if (link.name === 'Bookkeeping') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'bookkeeping' } }));

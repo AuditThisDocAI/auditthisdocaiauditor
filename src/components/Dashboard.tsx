@@ -29,6 +29,9 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieCha
 import { WhiteLabelModal } from './WhiteLabelModal';
 import { getWhiteLabelConfig, WhiteLabelConfig } from '../lib/whitelabel';
 import { MonthlyUsageMeter } from './MonthlyUsageMeter';
+import { DiscrepancyTrendAnalytics } from './DiscrepancyTrendAnalytics';
+import { SessionSecurityWidget } from './SessionSecurityWidget';
+import { performLogout } from '../lib/sessionManager';
 
 interface AuditLog {
   id: string;
@@ -70,6 +73,8 @@ interface DashboardData {
   recentAudits: AuditLog[];
 }
 
+import { isCurrentAdmin, isUserPro, isSuperAdminEmail, ADMIN_EMAIL, FREE_AUDIT_LIMIT } from '../lib/authUtils';
+
 export function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,15 +85,16 @@ export function Dashboard() {
   const [typeFilter, setTypeFilter] = useState<string>('All');
   const [selectedAudit, setSelectedAudit] = useState<AuditLog | null>(null);
   const [isPro, setIsPro] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [usedCount, setUsedCount] = useState(0);
   const [showWhiteLabelModal, setShowWhiteLabelModal] = useState(false);
   const [whiteLabelConfig, setWhiteLabelConfig] = useState<WhiteLabelConfig>(getWhiteLabelConfig());
 
   const syncQuotaState = () => {
-    const userEmail = (localStorage.getItem('audit-this-doc-user-email') || '').toLowerCase().trim();
-    const isAdmin = userEmail === 'brigittalombard09@gmail.com';
-    const proStatus = localStorage.getItem('audit_this_doc_is_pro') === 'true' || isAdmin;
-    setIsPro(proStatus);
+    const adminActive = isCurrentAdmin();
+    const proActive = isUserPro();
+    setIsAdmin(adminActive);
+    setIsPro(proActive);
     const count = parseInt(localStorage.getItem('audit_this_doc_free_count') || '0', 10);
     setUsedCount(count);
     setWhiteLabelConfig(getWhiteLabelConfig());
@@ -230,7 +236,7 @@ export function Dashboard() {
     }
   };
 
-  const monthlyLimit = isPro ? 1000 : 10;
+  const monthlyLimit = isPro ? 1000 : FREE_AUDIT_LIMIT;
   const currentUsed = Math.min(monthlyLimit, usedCount);
   const remainingAudits = Math.max(0, monthlyLimit - currentUsed);
   const usagePercent = Math.min(100, Math.round((currentUsed / monthlyLimit) * 100));
@@ -278,6 +284,22 @@ export function Dashboard() {
               Branding Settings
             </button>
           )}
+
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'contacts' } }))}
+            className="bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <Users className="w-4 h-4 text-blue-600" />
+            Google Contacts
+          </button>
+
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'tasks' } }))}
+            className="bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            Google Tasks
+          </button>
 
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'staff' } }))}
@@ -328,21 +350,17 @@ export function Dashboard() {
           </button>
 
           <button
-            onClick={() => {
-              localStorage.removeItem('audit-this-doc-cms-auth');
-              localStorage.removeItem('audit-this-doc-user-email');
-              localStorage.removeItem('audit_this_doc_is_pro');
-              window.dispatchEvent(new Event('admin-auth-changed'));
-              window.dispatchEvent(new Event('pro-status-changed'));
-              window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
-            }}
-            className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+            onClick={() => performLogout('User logged out from dashboard.')}
+            className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             Log Out
           </button>
         </div>
       </div>
+
+      {/* Compliance Session Security Widget */}
+      <SessionSecurityWidget />
 
       {/* Monthly Audit Quota Progress Bar Component */}
       <div className="bg-gradient-to-r from-[#1E293B] to-[#0F172A] text-white p-6 sm:p-8 rounded-3xl border border-[#334155] shadow-xl relative overflow-hidden">
@@ -353,16 +371,24 @@ export function Dashboard() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className={`p-2.5 rounded-2xl flex items-center justify-center font-bold ${
-                isPro ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' : 'bg-purple-500/20 text-purple-300 border border-purple-400/30'
+                isAdmin 
+                  ? 'bg-purple-600/30 text-purple-200 border border-purple-400/40' 
+                  : isPro 
+                  ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' 
+                  : 'bg-purple-500/20 text-purple-300 border border-purple-400/30'
               }`}>
-                {isPro ? <Crown className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
+                {isAdmin ? <ShieldCheck className="w-5 h-5" /> : isPro ? <Crown className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider ${
-                    isPro ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' : 'bg-purple-500/20 text-purple-300 border border-purple-400/30'
+                    isAdmin 
+                      ? 'bg-purple-500/30 text-purple-200 border border-purple-400/40'
+                      : isPro 
+                      ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30' 
+                      : 'bg-purple-500/20 text-purple-300 border border-purple-400/30'
                   }`}>
-                    {isPro ? 'Pro Membership Plan' : 'Free Tier Plan'}
+                    {isAdmin ? 'Super Admin VIP Access' : isPro ? 'Pro Membership Plan' : 'Free Tier Plan'}
                   </span>
                   <span className="text-xs text-slate-400 font-mono">Monthly Quota Tracker</span>
                 </div>
@@ -373,7 +399,12 @@ export function Dashboard() {
             </div>
 
             <div className="flex items-center gap-3">
-              {isPro ? (
+              {isAdmin ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 text-purple-200 border border-purple-500/30 text-xs font-bold">
+                  <ShieldCheck className="w-4 h-4 text-purple-300" />
+                  Admin Unlimited Scans ({ADMIN_EMAIL})
+                </span>
+              ) : isPro ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
                   <ShieldCheck className="w-4 h-4" />
                   1,000 Audits / Month
@@ -573,6 +604,14 @@ export function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Flagged Discrepancies & Document Audit Trends Visualization */}
+      <DiscrepancyTrendAnalytics 
+        audits={data?.recentAudits || []}
+        totalAudits={data?.totalAudits || 0}
+        highRiskCount={data?.highRiskCount || 0}
+        avgRiskScore={data?.avgRiskScore || 0}
+      />
 
       {/* Main Realtime Audit Activity Table */}
       <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-sm overflow-hidden">

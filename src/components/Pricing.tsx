@@ -13,17 +13,17 @@ const tiers = [
       monthly: 'forever',
       yearly: 'forever'
     },
-    description: 'Try Dr. Aria directly with 10 free document audits on your device.',
+    description: 'Try Dr. Aria directly with 1 free document audit on your device.',
     featuresHeader: 'Free Tier Includes:',
     features: [
-      '10 Document Audits Free',
+      '1 Free Document Audit',
       'Dr. Aria PhD Forensic Engine',
       'Fraud & Compliance Risk Score (0-100)',
       'Line-Item & Tax ID Verification',
-      'Interactive Consultation with Dr. Aria',
+      'Detailed Discrepancy Observation Log',
     ],
     mostPopular: false,
-    buttonText: 'Start 10 Free Audits'
+    buttonText: 'Start 1 Free Audit'
   },
   {
     name: 'Business White Label Plan',
@@ -75,7 +75,7 @@ export function Pricing() {
             Plans & Pricing for Document Auditing
           </h2>
           <p className="text-[#64748B] text-base sm:text-lg leading-relaxed mb-6">
-            Get started with 10 free audits directly on your device. Upgrade for unlimited forensic scans and advanced risk detection with Dr. Aria.
+            Get started with 1 free document audit directly on your device. Upgrade to Pro for 1,000 monthly audits, firm white-label branding, and client portals.
           </p>
         </div>
 
@@ -163,7 +163,7 @@ export function Pricing() {
                 {tier.id !== 'tier-free' && isCheckingOut 
                   ? 'Redirecting to Checkout...' 
                   : tier.id === 'tier-free' 
-                  ? 'Start 10 Free Audits' 
+                  ? 'Start 1 Free Audit' 
                   : `Get Started - ${format(billingPeriod === 'yearly' ? tier.usdYearly : tier.usdMonthly, { hideDecimals: true })}/${billingPeriod === 'yearly' ? 'year' : 'month'}`}
               </button>
 
@@ -221,7 +221,7 @@ export function Pricing() {
           <div className="space-y-3">
             {[
               { q: 'What is your Refund and Cancellation policy?', a: 'All subscriptions come with a 14-Day Money-Back Guarantee. You can request a 100% refund within 14 days of subscribing by contacting support@forensicdocaudit.com or clicking Manage Subscription in your Freemius receipt. You can also cancel your plan at any time with zero cancellation fees.' },
-              { q: 'How does the 10 free audit limit work?', a: 'Every device gets 10 free document audits automatically. You can paste text or test sample invoices, receipts, or contracts before needing an upgrade.' },
+              { q: 'How does the 1 free audit trial work?', a: 'Every user and device receives 1 free document audit automatically. You can test any invoice, receipt, or agreement. Once your 1 free audit is used, subscribe to Pro for 1,000 audits/month and full white label features.' },
               { q: 'Who is Dr. Aria?', a: 'Dr. Aria is our specialized AI system fine-tuned on forensic accounting principles, tax rules, invoice fraud indicators, and contract verification.' },
               { q: 'Is my financial text data secure?', a: 'Yes. All text and documents are processed securely in memory for the duration of the audit and are never stored or shared with external third parties. We are fully compliant with GDPR and bank-grade AES-256 standards.' }
             ].map((faq, i) => (
