@@ -1,3 +1,8 @@
+export const ADMIN_EMAILS = [
+  'brigittalombard09@gmail.com',
+  'brigttalombard09@gmail.com'
+];
+
 export const ADMIN_EMAIL = 'brigittalombard09@gmail.com';
 
 /**
@@ -5,7 +10,8 @@ export const ADMIN_EMAIL = 'brigittalombard09@gmail.com';
  */
 export function isSuperAdminEmail(email?: string | null): boolean {
   if (!email) return false;
-  return email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const clean = email.trim().toLowerCase();
+  return ADMIN_EMAILS.some(admin => admin.toLowerCase() === clean);
 }
 
 /**
@@ -33,10 +39,21 @@ export function getCurrentUserEmail(): string {
 }
 
 /**
- * Free audit limit configuration
- * Simple policy: Exactly 1 free document audit per user
+ * Returns a secure display name that never reveals the admin's private email address to other users
  */
-export const FREE_AUDIT_LIMIT = 1;
+export function getSafeUserDisplayName(email?: string | null): string {
+  if (!email) return 'Member';
+  if (isSuperAdminEmail(email)) {
+    return 'Administrator';
+  }
+  return email;
+}
+
+/**
+ * Free audit limit configuration
+ * Simple policy: Exactly 5 free document audits per user
+ */
+export const FREE_AUDIT_LIMIT = 5;
 
 /**
  * Checks whether user has exceeded the free audit limit
@@ -45,3 +62,4 @@ export function hasExceededFreeLimit(currentCount: number): boolean {
   if (isUserPro()) return false;
   return currentCount >= FREE_AUDIT_LIMIT;
 }
+

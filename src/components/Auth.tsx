@@ -8,6 +8,8 @@ import {
   signInWithPopup 
 } from 'firebase/auth';
 import { recordUserActivity, performLogout, consumeExpiredSessionReason } from '../lib/sessionManager';
+import { isSuperAdminEmail, getSafeUserDisplayName } from '../lib/authUtils';
+import { logAuditTrailEvent } from '../lib/auditTrailService';
 
 export function Auth() {
   const [email, setEmail] = useState('');
@@ -56,24 +58,33 @@ export function Auth() {
 
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const isSuperAdmin = cleanEmail === 'brigittalombard09@gmail.com';
+      const isSuperAdmin = isSuperAdminEmail(cleanEmail);
 
-      // Admin verification for brigittalombard09@gmail.com: automatically grants full access to all audit features
+      // Admin verification: automatically grants full unrestricted access to all audit features
       if (isSuperAdmin) {
         const savedPasswordsJson = localStorage.getItem('audit_user_passwords') || '{}';
         let savedPasswords: Record<string, string> = {};
         try {
           savedPasswords = JSON.parse(savedPasswordsJson);
         } catch (e) {}
-        savedPasswords['brigittalombard09@gmail.com'] = password;
+        savedPasswords[cleanEmail] = password;
         localStorage.setItem('audit_user_passwords', JSON.stringify(savedPasswords));
 
         localStorage.setItem('audit-this-doc-cms-auth', 'true');
-        localStorage.setItem('audit-this-doc-user-email', 'brigittalombard09@gmail.com');
+        localStorage.setItem('audit-this-doc-user-email', cleanEmail);
         localStorage.setItem('audit_this_doc_is_pro', 'true');
         recordUserActivity();
-        setUserEmail('brigittalombard09@gmail.com');
+        setUserEmail(cleanEmail);
         setIsAuthenticated(true);
+        try {
+          logAuditTrailEvent({
+            category: 'SECURITY_AUTH',
+            action: 'Administrator Authentication',
+            severity: 'VERIFIED',
+            actor: 'Secure Admin Gateway',
+            details: 'Admin authenticated with unlimited VIP privileges across all modules.'
+          });
+        } catch (e) {}
         window.dispatchEvent(new Event('admin-auth-changed'));
         window.dispatchEvent(new Event('pro-status-changed'));
         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
@@ -150,7 +161,7 @@ export function Auth() {
       const user = result.user;
       const userEmailStr = user.email || 'Google User';
 
-      const isSuperAdmin = userEmailStr.trim().toLowerCase() === 'brigittalombard09@gmail.com';
+      const isSuperAdmin = isSuperAdminEmail(userEmailStr);
       localStorage.setItem('audit-this-doc-cms-auth', 'true');
       localStorage.setItem('audit-this-doc-user-email', userEmailStr);
       if (isSuperAdmin) {
@@ -174,24 +185,11 @@ export function Auth() {
     }
   };
 
-  const handleQuickAdminLogin = () => {
-    const adminEmail = 'brigittalombard09@gmail.com';
-    localStorage.setItem('audit-this-doc-cms-auth', 'true');
-    localStorage.setItem('audit-this-doc-user-email', adminEmail);
-    localStorage.setItem('audit_this_doc_is_pro', 'true');
-    recordUserActivity();
-    setUserEmail(adminEmail);
-    setIsAuthenticated(true);
-    window.dispatchEvent(new Event('admin-auth-changed'));
-    window.dispatchEvent(new Event('pro-status-changed'));
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
-  };
-
   if (isAuthenticated) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 min-h-[80vh] flex flex-col items-center justify-center">
         <h2 className="text-3xl font-bold text-center text-[#1E293B] mb-2">
-          Welcome, {userEmail || 'Member'}!
+          Welcome, {getSafeUserDisplayName(userEmail)}!
         </h2>
         <p className="text-[#64748B] text-center mb-12 max-w-lg">
           Your account is active with full access. Select a portal to get started.

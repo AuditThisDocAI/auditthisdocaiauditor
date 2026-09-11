@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Bot, LogOut, User, Crown, Building2 } from 'lucide-react';
+import { Menu, X, Bot, LogOut, User, Crown, Building2, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getWhiteLabelConfig, WhiteLabelConfig } from '../lib/whitelabel';
 import { WhiteLabelModal } from './WhiteLabelModal';
@@ -7,13 +7,13 @@ import { CurrencySelector } from './CurrencySelector';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { performLogout } from '../lib/sessionManager';
+import { isSuperAdminEmail, getSafeUserDisplayName } from '../lib/authUtils';
 
 const navLinks = [
   { name: 'Dr. Aria Auditor', href: '#document-auditor' },
+  { name: 'Audit Trail', href: '#audittrail' },
   { name: 'Contacts & Vendors', href: '#contacts' },
   { name: 'Tasks & Remediation', href: '#tasks' },
-  { name: 'Gmail Auditor', href: '#gmail' },
-  { name: 'Google Forms', href: '#forms' },
   { name: 'Bookkeeping', href: '#bookkeeping' },
   { name: 'Features', href: '#features' },
   { name: 'Pricing', href: '#pricing' },
@@ -32,7 +32,7 @@ export function Navbar() {
   const checkAuthStatus = () => {
     const authed = localStorage.getItem('audit-this-doc-cms-auth') === 'true' || !!auth.currentUser;
     const email = (localStorage.getItem('audit-this-doc-user-email') || auth.currentUser?.email || '').toLowerCase().trim();
-    const isAdmin = email === 'brigittalombard09@gmail.com';
+    const isAdmin = isSuperAdminEmail(email);
     const pro = localStorage.getItem('audit_this_doc_is_pro') === 'true' || isAdmin;
 
     setIsLoggedIn(authed);
@@ -47,7 +47,7 @@ export function Navbar() {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         const email = (firebaseUser.email || '').toLowerCase().trim();
-        const isAdmin = email === 'brigittalombard09@gmail.com';
+        const isAdmin = isSuperAdminEmail(email);
         const pro = localStorage.getItem('audit_this_doc_is_pro') === 'true' || isAdmin;
         localStorage.setItem('audit-this-doc-cms-auth', 'true');
         localStorage.setItem('audit-this-doc-user-email', email);
@@ -87,11 +87,14 @@ export function Navbar() {
 
   const linksToShow = [
     navLinks[0], // Dr. Aria Auditor
-    navLinks[1], // Bookkeeping
+    ...(isPro ? [navLinks[1]] : []), // Audit Trail - strictly visible to paying subscribers
+    navLinks[4], // Bookkeeping
     ...(isLoggedIn ? [{ name: 'Dashboard', href: '#dashboard' }] : []),
     ...(isPaidAndSignedUp ? [{ name: 'Branding', href: '#whitelabel' }] : []),
     ...(isLoggedIn ? [{ name: 'Staff Team', href: '#staff' }, { name: 'Firm Clients', href: '#clients' }] : []),
-    ...navLinks.slice(2) // Features, Pricing, FAQ, Contact
+    { name: 'Pricing', href: '#pricing' },
+    { name: 'FAQ', href: '#faq' },
+    { name: 'Contact', href: '#contact' },
   ];
 
   return (
@@ -147,12 +150,20 @@ export function Navbar() {
                         e.preventDefault();
                         if (link.name === 'Dashboard') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+                        } else if (link.name === 'Audit Trail') {
+                          const el = document.getElementById('audittrail');
+                          if (el) {
+                            el.scrollIntoView({ behavior: 'smooth' });
+                          } else {
+                            window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+                            setTimeout(() => {
+                              document.getElementById('audittrail')?.scrollIntoView({ behavior: 'smooth' });
+                            }, 100);
+                          }
                         } else if (link.name === 'Contacts & Vendors') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'contacts' } }));
                         } else if (link.name === 'Tasks & Remediation') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'tasks' } }));
-                        } else if (link.name === 'Gmail Auditor') {
-                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'gmail' } }));
                         } else if (link.name === 'Google Forms') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'forms' } }));
                         } else if (link.name === 'Bookkeeping') {
@@ -163,6 +174,9 @@ export function Navbar() {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'staff' } }));
                         } else if (link.name === 'Firm Clients') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'clients' } }));
+                        } else if (link.name === 'Pricing') {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'pricing' } }));
+                          window.dispatchEvent(new CustomEvent('open-freemius-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
                         } else {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
                         }
@@ -200,12 +214,12 @@ export function Navbar() {
                     title="Account Portal"
                   >
                     <User className="w-3.5 h-3.5 text-[#7C3AED]" />
-                    <span className="max-w-[140px] truncate">{userEmail || 'Account'}</span>
+                    <span className="max-w-[140px] truncate">{getSafeUserDisplayName(userEmail)}</span>
                   </button>
 
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-[1.02]"
+                    className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer"
                   >
                     <LogOut className="w-4 h-4 text-red-600" />
                     <span>Log Out</span>
@@ -214,16 +228,20 @@ export function Navbar() {
               ) : (
                 <div className="flex items-center gap-3">
                   <button 
-                    onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }))}
-                    className="text-sm font-bold text-[#1E293B] hover:text-[#7C3AED] transition-colors px-3 py-2"
+                    onClick={() => {
+                      const el = document.getElementById('document-auditor');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                      } else {
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+                        setTimeout(() => {
+                          document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
+                      }
+                    }}
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] cursor-pointer"
                   >
-                    Sign In / Portal
-                  </button>
-                  <button 
-                    onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }))}
-                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 transition-all"
-                  >
-                    Get Started
+                    Audit Document
                   </button>
                 </div>
               )}
@@ -265,15 +283,23 @@ export function Navbar() {
                       if (link.name === 'Dashboard') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+                      } else if (link.name === 'Audit Trail') {
+                        e.preventDefault();
+                        const el = document.getElementById('audittrail');
+                        if (el) {
+                          el.scrollIntoView({ behavior: 'smooth' });
+                        } else {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+                          setTimeout(() => {
+                            document.getElementById('audittrail')?.scrollIntoView({ behavior: 'smooth' });
+                          }, 100);
+                        }
                       } else if (link.name === 'Contacts & Vendors') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'contacts' } }));
                       } else if (link.name === 'Tasks & Remediation') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'tasks' } }));
-                      } else if (link.name === 'Gmail Auditor') {
-                        e.preventDefault();
-                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'gmail' } }));
                       } else if (link.name === 'Google Forms') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'forms' } }));
@@ -289,6 +315,10 @@ export function Navbar() {
                       } else if (link.name === 'Firm Clients') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'clients' } }));
+                      } else if (link.name === 'Pricing') {
+                        e.preventDefault();
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'pricing' } }));
+                        window.dispatchEvent(new CustomEvent('open-freemius-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
                       } else {
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
                       }
@@ -325,29 +355,27 @@ export function Navbar() {
                       className="w-full text-center font-extrabold text-white bg-red-600 hover:bg-red-700 active:bg-red-800 py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer text-sm"
                     >
                       <LogOut className="w-5 h-5 text-white shrink-0" />
-                      <span>SIGN OUT / LOG OUT {userEmail ? `(${userEmail})` : ''}</span>
+                      <span>SIGN OUT / LOG OUT {isSuperAdminEmail(userEmail) ? '(Administrator)' : userEmail ? `(${userEmail})` : ''}</span>
                     </button>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2 pt-1">
+                  <div className="pt-1">
                     <button 
                       onClick={() => {
-                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                        const el = document.getElementById('document-auditor');
+                        if (el) {
+                          el.scrollIntoView({ behavior: 'smooth' });
+                        } else {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+                          setTimeout(() => {
+                            document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
+                          }, 100);
+                        }
                         setMobileMenuOpen(false);
                       }}
                       className="w-full text-center font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] px-4 py-3 rounded-xl shadow-md transition-colors cursor-pointer"
                     >
-                      Get Started / Sign In
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full text-center font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-xs cursor-pointer"
-                    >
-                      <LogOut className="w-4 h-4 text-red-600 shrink-0" />
-                      <span>Log Out / Reset Session</span>
+                      Audit Document
                     </button>
                   </div>
                 )}

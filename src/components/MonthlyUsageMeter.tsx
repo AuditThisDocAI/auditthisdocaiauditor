@@ -78,8 +78,11 @@ export function MonthlyUsageMeter() {
         </span>
 
         <button
-          onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'pricing' } }))}
-          className="text-purple-600 hover:text-purple-700 font-bold flex items-center gap-1 hover:underline"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'pricing' } }));
+            window.dispatchEvent(new CustomEvent('open-freemius-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
+          }}
+          className="text-purple-600 hover:text-purple-700 font-bold flex items-center gap-1 hover:underline cursor-pointer"
         >
           Expand Monthly Quota
           <ArrowUpRight className="w-3.5 h-3.5" />

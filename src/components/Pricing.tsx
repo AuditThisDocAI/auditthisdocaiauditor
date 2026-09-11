@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, ShieldAlert, Bot, ChevronDown } from 'lucide-react';
+import { Check, ShieldAlert, Bot, ChevronDown, ArrowRight, CreditCard, ShieldCheck } from 'lucide-react';
 import { useCurrency } from '../lib/currency';
 
 const tiers = [
@@ -13,17 +13,17 @@ const tiers = [
       monthly: 'forever',
       yearly: 'forever'
     },
-    description: 'Try Dr. Aria directly with 1 free document audit on your device.',
+    description: 'Try Dr. Aria directly with 5 free document audits on your device.',
     featuresHeader: 'Free Tier Includes:',
     features: [
-      '1 Free Document Audit',
+      '5 Free Document Audits',
       'Dr. Aria PhD Forensic Engine',
       'Fraud & Compliance Risk Score (0-100)',
       'Line-Item & Tax ID Verification',
       'Detailed Discrepancy Observation Log',
     ],
     mostPopular: false,
-    buttonText: 'Start 1 Free Audit'
+    buttonText: 'Start 5 Free Audits'
   },
   {
     name: 'Business White Label Plan',
@@ -75,33 +75,43 @@ export function Pricing() {
             Plans & Pricing for Document Auditing
           </h2>
           <p className="text-[#64748B] text-base sm:text-lg leading-relaxed mb-6">
-            Get started with 1 free document audit directly on your device. Upgrade to Pro for 1,000 monthly audits, firm white-label branding, and client portals.
+            Get started with 5 free document audits directly on your device. Upgrade to Pro for 1,000 monthly audits, firm white-label branding, and client portals.
           </p>
         </div>
 
         {/* Dynamic Billing Switcher */}
-        <div className="flex justify-center items-center gap-4 mb-14">
-          <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-200 ${billingPeriod === 'monthly' ? 'text-[#7C3AED]' : 'text-[#64748B]'}`}>
-            Monthly
-          </span>
-          <button
-            onClick={() => setBillingPeriod(billingPeriod === 'monthly' ? 'yearly' : 'monthly')}
-            className="relative w-14 h-8 bg-[#E2E8F0] hover:bg-[#D1D5DB] rounded-full p-1 transition-colors duration-300 focus:outline-none"
-            aria-label="Toggle billing period"
-          >
-            <motion.div
-              layout
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              className="w-6 h-6 bg-white rounded-full shadow-md"
-              animate={{ x: billingPeriod === 'yearly' ? 24 : 0 }}
-            />
-          </button>
-          <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-200 flex items-center gap-2 ${billingPeriod === 'yearly' ? 'text-[#7C3AED]' : 'text-[#64748B]'}`}>
-            Yearly 
-            <span className="bg-[#10B981]/10 text-[#10B981] text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wide">
-              Save 20%
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-14">
+          <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 px-4 py-2 rounded-2xl">
+            <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-200 ${billingPeriod === 'monthly' ? 'text-[#7C3AED]' : 'text-[#64748B]'}`}>
+              Monthly
             </span>
-          </span>
+            <button
+              onClick={() => setBillingPeriod(billingPeriod === 'monthly' ? 'yearly' : 'monthly')}
+              className="relative w-14 h-8 bg-[#E2E8F0] hover:bg-[#D1D5DB] rounded-full p-1 transition-colors duration-300 focus:outline-none cursor-pointer"
+              aria-label="Toggle billing period"
+            >
+              <motion.div
+                layout
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                className="w-6 h-6 bg-white rounded-full shadow-md"
+                animate={{ x: billingPeriod === 'yearly' ? 24 : 0 }}
+              />
+            </button>
+            <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-200 flex items-center gap-2 ${billingPeriod === 'yearly' ? 'text-[#7C3AED]' : 'text-[#64748B]'}`}>
+              Yearly 
+              <span className="bg-[#10B981]/10 text-[#10B981] text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wide">
+                Save 20%
+              </span>
+            </span>
+          </div>
+
+          <button
+            onClick={() => handleAction(billingPeriod)}
+            className="px-4 py-2.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C3AED] hover:text-[#5B21B6] font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-2 shadow-xs"
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>Open Direct Payment Plan Options</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-20">
@@ -144,28 +154,44 @@ export function Pricing() {
                 </div>
               </div>
 
-              <button
-                disabled={tier.id !== 'tier-free' && isCheckingOut}
-                onClick={() => {
-                  if (tier.id === 'tier-free') {
+              {tier.id === 'tier-free' ? (
+                <button
+                  onClick={() => {
                     const el = document.getElementById('document-auditor');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  } else {
-                    handleAction();
-                  }
-                }}
-                className={`w-full text-center py-3.5 rounded-xl font-bold transition-all mb-8 text-sm ${
-                  tier.mostPopular
-                    ? 'bg-[#7C3AED] text-white hover:bg-[#6D28D9] shadow-lg shadow-purple-500/20 hover:-translate-y-0.5'
-                    : 'bg-white text-[#1E293B] border-2 border-[#E2E8F0] hover:border-[#7C3AED] hover:bg-[#F8F9FC]'
-                }`}
-              >
-                {tier.id !== 'tier-free' && isCheckingOut 
-                  ? 'Redirecting to Checkout...' 
-                  : tier.id === 'tier-free' 
-                  ? 'Start 1 Free Audit' 
-                  : `Get Started - ${format(billingPeriod === 'yearly' ? tier.usdYearly : tier.usdMonthly, { hideDecimals: true })}/${billingPeriod === 'yearly' ? 'year' : 'month'}`}
-              </button>
+                  }}
+                  className="w-full text-center py-3.5 rounded-xl font-bold transition-all mb-8 text-sm bg-white text-[#1E293B] border-2 border-[#E2E8F0] hover:border-[#7C3AED] hover:bg-[#F8F9FC] cursor-pointer"
+                >
+                  Start 5 Free Audits
+                </button>
+              ) : (
+                <div className="space-y-2 mb-8">
+                  <button
+                    onClick={() => handleAction(billingPeriod)}
+                    className="w-full text-center py-3.5 px-4 rounded-xl font-extrabold transition-all text-sm bg-[#7C3AED] text-white hover:bg-[#6D28D9] shadow-lg shadow-purple-500/20 hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <span>
+                      Choose {billingPeriod === 'yearly' ? 'Annual Plan' : 'Monthly Plan'} ({format(billingPeriod === 'yearly' ? tier.usdYearly : tier.usdMonthly, { hideDecimals: true })}/{billingPeriod === 'yearly' ? 'year' : 'month'})
+                    </span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const otherInterval = billingPeriod === 'yearly' ? 'monthly' : 'yearly';
+                      handleAction(otherInterval);
+                    }}
+                    className="w-full text-center py-2 px-3 rounded-lg text-xs font-bold text-[#7C3AED] hover:text-[#5B21B6] bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>
+                      {billingPeriod === 'yearly' 
+                        ? `Or Choose Monthly Plan (${format(59, { hideDecimals: true })}/mo)` 
+                        : `Or Choose Annual Plan (${format(590, { hideDecimals: true })}/yr — Save 20%)`}
+                    </span>
+                  </button>
+                </div>
+              )}
 
               <div className="flex-1">
                 <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider mb-4">
@@ -220,8 +246,8 @@ export function Pricing() {
           </div>
           <div className="space-y-3">
             {[
-              { q: 'What is your Refund and Cancellation policy?', a: 'All subscriptions come with a 14-Day Money-Back Guarantee. You can request a 100% refund within 14 days of subscribing by contacting support@forensicdocaudit.com or clicking Manage Subscription in your Freemius receipt. You can also cancel your plan at any time with zero cancellation fees.' },
-              { q: 'How does the 1 free audit trial work?', a: 'Every user and device receives 1 free document audit automatically. You can test any invoice, receipt, or agreement. Once your 1 free audit is used, subscribe to Pro for 1,000 audits/month and full white label features.' },
+              { q: 'What is your Refund and Cancellation policy?', a: 'All subscriptions come with a 14-Day Money-Back Guarantee. You can request a 100% refund within 14 days of subscribing by contacting Auditthisdoc@zohomail.com or clicking Manage Subscription in your Freemius receipt. You can also cancel your plan at any time with zero cancellation fees.' },
+              { q: 'How does the 5 free audits trial work?', a: 'Every user and device receives 5 free document audits automatically. You can test any invoice, receipt, or agreement. Once your 5 free audits are used, subscribe to Pro for 1,000 audits/month and full white label features.' },
               { q: 'Who is Dr. Aria?', a: 'Dr. Aria is our specialized AI system fine-tuned on forensic accounting principles, tax rules, invoice fraud indicators, and contract verification.' },
               { q: 'Is my financial text data secure?', a: 'Yes. All text and documents are processed securely in memory for the duration of the audit and are never stored or shared with external third parties. We are fully compliant with GDPR and bank-grade AES-256 standards.' }
             ].map((faq, i) => (

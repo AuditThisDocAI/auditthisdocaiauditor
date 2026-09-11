@@ -73,7 +73,7 @@ interface DashboardData {
   recentAudits: AuditLog[];
 }
 
-import { isCurrentAdmin, isUserPro, isSuperAdminEmail, ADMIN_EMAIL, FREE_AUDIT_LIMIT } from '../lib/authUtils';
+import { isCurrentAdmin, isUserPro, isSuperAdminEmail, FREE_AUDIT_LIMIT } from '../lib/authUtils';
 
 export function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -276,6 +276,16 @@ export function Dashboard() {
 
           {isPro && (
             <button
+              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'audittrail' } }))}
+              className="bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4 text-purple-600" />
+              Audit Trail
+            </button>
+          )}
+
+          {isPro && (
+            <button
               onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }))}
               className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
               title="Configure Business White Label Branding"
@@ -402,7 +412,7 @@ export function Dashboard() {
               {isAdmin ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 text-purple-200 border border-purple-500/30 text-xs font-bold">
                   <ShieldCheck className="w-4 h-4 text-purple-300" />
-                  Admin Unlimited Scans ({ADMIN_EMAIL})
+                  Unlimited VIP Access
                 </span>
               ) : isPro ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">

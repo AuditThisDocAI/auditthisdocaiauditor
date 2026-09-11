@@ -17,6 +17,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { getWhiteLabelConfig, saveWhiteLabelConfig, WhiteLabelConfig } from '../lib/whitelabel';
+import { isSuperAdminEmail } from '../lib/authUtils';
 
 interface WhiteLabelModalProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export function WhiteLabelModal({ isOpen, onClose }: WhiteLabelModalProps) {
 
   const authed = localStorage.getItem('audit-this-doc-cms-auth') === 'true';
   const email = (localStorage.getItem('audit-this-doc-user-email') || '').toLowerCase().trim();
-  const isAdmin = email === 'brigittalombard09@gmail.com';
+  const isAdmin = isSuperAdminEmail(email);
   const isPro = localStorage.getItem('audit_this_doc_is_pro') === 'true' || isAdmin;
   const isPaidAndSignedUp = authed && isPro;
 

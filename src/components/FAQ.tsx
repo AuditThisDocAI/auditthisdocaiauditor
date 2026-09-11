@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react';
 const faqs = [
   {
     question: "What is your Refund & Cancellation Policy?",
-    answer: "We offer an unconditional 14-Day Money-Back Guarantee on all subscription tiers. If you are not completely satisfied, email support@forensicdocaudit.com within 14 days of subscribing for a full refund back to your original payment method. You can also cancel your recurring subscription at any time directly through your account or Freemius receipt with zero cancellation fees."
+    answer: "We offer an unconditional 14-Day Money-Back Guarantee on all subscription tiers. If you are not completely satisfied, email Auditthisdoc@zohomail.com within 14 days of subscribing for a full refund back to your original payment method. You can also cancel your recurring subscription at any time directly through your account or Freemius receipt with zero cancellation fees."
   },
   {
     question: "What are the Terms and Conditions for AI forensic audits?",

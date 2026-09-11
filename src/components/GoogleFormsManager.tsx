@@ -31,7 +31,6 @@ import {
   getGoogleForm, 
   getGoogleFormResponses, 
   createGoogleForm, 
-  AUDIT_FORM_TEMPLATES,
   GoogleFormSummary, 
   GoogleFormDetail, 
   FormResponseItem 
@@ -49,7 +48,6 @@ export function GoogleFormsManager({ onAuditFormResponses }: GoogleFormsManagerP
   const [formsList, setFormsList] = useState<GoogleFormSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [isSigningIn, setIsSigningIn] = useState<boolean>(false);
-  const [creatingTemplateId, setCreatingTemplateId] = useState<string | null>(null);
   
   // Selected Form View / Responses
   const [selectedFormDetail, setSelectedFormDetail] = useState<GoogleFormDetail | null>(null);
@@ -169,31 +167,6 @@ export function GoogleFormsManager({ onAuditFormResponses }: GoogleFormsManagerP
     setSelectedFormDetail(null);
     setFormResponses([]);
     showToastSuccess('Google account disconnected.');
-  };
-
-  const handleCreateFromTemplate = async (tmpl: typeof AUDIT_FORM_TEMPLATES[0]) => {
-    if (!accessToken) {
-      showToastError('Please connect your Google account first.');
-      return;
-    }
-
-    setCreatingTemplateId(tmpl.id);
-    try {
-      const newForm = await createGoogleForm(
-        accessToken,
-        tmpl.title,
-        tmpl.description,
-        tmpl.questions
-      );
-
-      showToastSuccess(`Created Google Form: "${newForm.info?.title || tmpl.title}"`);
-      await loadForms(accessToken);
-    } catch (err: any) {
-      console.error('Template creation error:', err);
-      showToastError(err.message || 'Failed to generate Google Form from template.');
-    } finally {
-      setCreatingTemplateId(null);
-    }
   };
 
   const handleCreateCustomForm = async () => {
@@ -435,68 +408,6 @@ Date of Ingestion: ${new Date().toLocaleDateString()}
           )}
         </div>
 
-        {/* 1-Click Forensic Templates Section */}
-        <div className="p-6 bg-slate-50/60 border-b border-[#E2E8F0]">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-extrabold text-[#1E293B] flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-purple-600" />
-                <span>Forensic Pre-Built Audit Questionnaires</span>
-              </h3>
-              <p className="text-xs text-[#64748B]">
-                Deploy standardized questionnaires to Google Forms in one click to collect verified audit evidence.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {AUDIT_FORM_TEMPLATES.map((tmpl) => {
-              const isCreating = creatingTemplateId === tmpl.id;
-
-              return (
-                <div
-                  key={tmpl.id}
-                  className="p-5 bg-white rounded-2xl border border-slate-200 hover:border-purple-300 shadow-xs flex flex-col justify-between transition-all"
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-purple-50 text-purple-700 border border-purple-100">
-                        {tmpl.category}
-                      </span>
-                      <span className="text-[11px] font-semibold text-slate-400">
-                        {tmpl.questions.length} questions
-                      </span>
-                    </div>
-                    <h4 className="text-sm font-extrabold text-slate-900 mb-1 leading-snug">
-                      {tmpl.title}
-                    </h4>
-                    <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                      {tmpl.description}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => handleCreateFromTemplate(tmpl)}
-                    disabled={isCreating}
-                    className="w-full py-2 bg-slate-900 hover:bg-purple-600 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {isCreating ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Deploying to Google Forms...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Deploy Template</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Existing Google Forms Library */}
         <div className="p-6">

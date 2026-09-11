@@ -286,7 +286,7 @@ export function LegalModal({
                   </p>
                   <ol className="space-y-2 text-xs text-slate-700 pl-5 list-decimal">
                     <li>
-                      <strong>Direct Email</strong>: Send an email to <a href="mailto:support@forensicdocaudit.com" className="text-purple-600 font-bold underline">support@forensicdocaudit.com</a> or <a href="mailto:brigittalombard09@gmail.com" className="text-purple-600 font-bold underline">brigittalombard09@gmail.com</a> with your purchase email address or Freemius Order ID.
+                      <strong>Direct Email</strong>: Send an email to <a href="mailto:Auditthisdoc@zohomail.com" className="text-purple-600 font-bold underline">Auditthisdoc@zohomail.com</a> with your purchase email address or Freemius Order ID.
                     </li>
                     <li>
                       <strong>Freemius Portal</strong>: Click "Manage Subscription" directly from your email receipt issued by Freemius to submit a refund inquiry.
@@ -383,8 +383,8 @@ export function LegalModal({
             <div className="text-xs text-slate-500 flex items-center gap-1.5">
               <Mail className="w-4 h-4 text-slate-400" />
               <span>Questions? Contact us at:</span>
-              <a href="mailto:support@forensicdocaudit.com" className="font-bold text-purple-600 hover:underline">
-                support@forensicdocaudit.com
+              <a href="mailto:Auditthisdoc@zohomail.com" className="font-bold text-purple-600 hover:underline">
+                Auditthisdoc@zohomail.com
               </a>
             </div>
 

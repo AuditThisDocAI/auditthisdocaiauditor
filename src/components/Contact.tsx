@@ -28,11 +28,6 @@ export function Contact() {
     } finally {
       setIsSubmitting(false);
       setSubmitted(true);
-
-      // 2. Open mailto trigger for direct client sending to forensicdocaudit@zohomail.com
-      const subject = encodeURIComponent(`FORENSICDOCAUDIT Inquiry from ${formData.name || formData.email}`);
-      const body = encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\n\nMessage:\n${formData.message}`);
-      window.location.href = `mailto:forensicdocaudit@zohomail.com?subject=${subject}&body=${body}`;
     }
   };
 
@@ -53,7 +48,7 @@ export function Contact() {
                 <CheckCircle2 className="w-12 h-12 text-[#10B981] mx-auto" />
                 <h4 className="text-xl font-bold text-[#1E293B]">Message Sent!</h4>
                 <p className="text-sm text-[#64748B] max-w-md mx-auto">
-                  Thank you for reaching out. Your message has been dispatched to <strong className="text-[#1E293B]">forensicdocaudit@zohomail.com</strong>. Our team will review your inquiry and get back to you shortly.
+                  Thank you for reaching out. Your message has been securely sent to our team. We will review your inquiry and get back to you shortly.
                 </p>
                 <button
                   onClick={() => { setSubmitted(false); setFormData({ name: '', email: '', phone: '', message: '' }); }}

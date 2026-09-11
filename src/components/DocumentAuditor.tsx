@@ -34,8 +34,10 @@ import { ExportPdfReportModal } from './ExportPdfReportModal';
 import { getWhiteLabelConfig, WhiteLabelConfig } from '../lib/whitelabel';
 import { recordFirmAuditUsage, getActiveFirm } from '../lib/multiTenantDb';
 import { generateBrandedReportWindow } from '../lib/pdfReportGenerator';
-import { isUserPro, isCurrentAdmin, FREE_AUDIT_LIMIT, hasExceededFreeLimit, ADMIN_EMAIL } from '../lib/authUtils';
+import { isUserPro, isCurrentAdmin, FREE_AUDIT_LIMIT, hasExceededFreeLimit } from '../lib/authUtils';
 import { analyzeDocumentLocally } from '../lib/auditEngine';
+import { useCurrency } from '../lib/currency';
+import { logAuditTrailEvent } from '../lib/auditTrailService';
 
 const SAMPLES = [
   {
@@ -83,6 +85,14 @@ Total Paid (Visa ending *4920): $583.20`
 ];
 
 export function DocumentAuditor() {
+  const { format } = useCurrency();
+  
+  const formatDetectedAmount = (amountStr: string | undefined) => {
+    if (!amountStr) return format(0);
+    const num = parseFloat(amountStr.replace(/[^0-9.-]+/g, '')) || 0;
+    return format(num);
+  };
+  
   const [docText, setDocText] = useState('');
   const [docName, setDocName] = useState('');
   const [isAuditing, setIsAuditing] = useState(false);
@@ -93,104 +103,6 @@ export function DocumentAuditor() {
   const [showExportPdfModal, setShowExportPdfModal] = useState(false);
   const [whiteLabelConfig, setWhiteLabelConfig] = useState<WhiteLabelConfig>(getWhiteLabelConfig());
   const [copiedJson, setCopiedJson] = useState(false);
-
-  const [inputMode, setInputMode] = useState<'upload' | 'text'>('upload');
-  const [uploadedFile, setUploadedFile] = useState<{
-    name: string;
-    size: string;
-    type: 'pdf' | 'image' | 'text';
-    previewUrl?: string;
-  } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileUpload = (file: File) => {
-    if (!file) return;
-
-    const sizeStr = file.size > 1024 * 1024 
-      ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` 
-      : `${Math.round(file.size / 1024)} KB`;
-
-    let fileType: 'pdf' | 'image' | 'text' = 'text';
-    if (file.type.includes('pdf') || file.name.endsWith('.pdf')) {
-      fileType = 'pdf';
-    } else if (file.type.startsWith('image/')) {
-      fileType = 'image';
-    }
-
-    const previewUrl = fileType === 'image' ? URL.createObjectURL(file) : undefined;
-
-    setUploadedFile({
-      name: file.name,
-      size: sizeStr,
-      type: fileType,
-      previewUrl
-    });
-
-    setDocName(file.name.replace(/\.[^/.]+$/, ""));
-
-    // Extract text from text/csv files or generate scanned OCR representation for images/pdfs
-    if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.csv')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        setDocText(text || `[Scanned file: ${file.name}]\nFile size: ${sizeStr}`);
-      };
-      reader.readAsText(file);
-    } else if (fileType === 'pdf') {
-      setDocText(`PDF DOCUMENT SCAN: ${file.name} (${sizeStr})
-Document Classification: Vendor Purchase Order / Master Service Agreement
-Extracted Header Details:
-- Document Reference: ${file.name.replace(/\.[^/.]+$/, "")}
-- File Format: Portable Document Format (PDF 1.7 Encrypted)
-- Estimated Pages: 2 Pages
-
-Extracted Line Items & Terms:
-1. Professional Consulting & Systems Audit Services: $14,250.00
-2. License & Hosting Surcharge: $2,100.00
-Total Amount Payable: $16,350.00
-
-Payment Details:
-Wire Transfer to Foreign Account #8839201. Payment required within 48 hours.`);
-    } else {
-      setDocText(`SCANNED IMAGE RECEIPT / INVOICE: ${file.name} (${sizeStr})
-Image Processing: Optical Character Recognition (OCR) Complete
-Extracted Visual Text:
-- Vendor Name: High Performance Logistics Corp
-- Invoice Number: HPL-90214
-- Date: ${new Date().toLocaleDateString()}
-- Tax Registration / VAT: US-8820194
-
-Line Items Scanned:
-- Expedited Air Freight Courier Services: $3,450.00
-- Fuel & Insurance Surcharge: $420.00
-Subtotal: $3,870.00
-Sales Tax (8.5%): $328.95
-Total Due: $4,198.95
-
-Vendor Payment Note:
-Please disburse payment immediately via ACH or Corporate Credit Card.`);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
   const [isAdmin, setIsAdmin] = useState(false);
 
   const checkProStatus = () => {
@@ -206,17 +118,6 @@ Please disburse payment immediately via ACH or Corporate Credit Card.`);
       setAuditCount(parseInt(savedCount, 10));
     }
     checkProStatus();
-
-    // Check if there is an incoming audit task from Gmail Auditor
-    const pendingText = sessionStorage.getItem('pending_gmail_audit_text');
-    const pendingName = sessionStorage.getItem('pending_gmail_audit_name');
-    if (pendingText) {
-      setDocText(pendingText);
-      setDocName(pendingName || 'Gmail Audited Correspondence');
-      setInputMode('text');
-      sessionStorage.removeItem('pending_gmail_audit_text');
-      sessionStorage.removeItem('pending_gmail_audit_name');
-    }
 
     window.addEventListener('pro-status-changed', checkProStatus);
     window.addEventListener('admin-auth-changed', checkProStatus);
@@ -317,6 +218,20 @@ Please disburse payment immediately via ACH or Corporate Credit Card.`);
         console.error('Failed to sync bookkeeping entry:', e);
       }
 
+      // Log event to immutable Forensic Audit Trail
+      try {
+        logAuditTrailEvent({
+          category: 'DOCUMENT_AUDIT',
+          action: `Forensic Scan: ${docName || 'Document'}`,
+          severity: data.riskLevel === 'Critical' ? 'CRITICAL' : data.riskLevel === 'High' ? 'WARNING' : 'VERIFIED',
+          actor: 'Dr. Aria AI Forensic Engine',
+          documentRef: docName || 'Document Scan',
+          details: `Risk Level: ${data.riskLevel} (${data.riskScore}/100). Flagged ${data.flags?.length || 0} compliance issues. Summary: ${data.summary?.slice(0, 120) || 'Scan completed'}`
+        });
+      } catch (trailErr) {
+        console.error('Failed to record event to audit trail:', trailErr);
+      }
+
       setAuditResult(data);
     } catch (e) {
       console.error('Audit processing error:', e);
@@ -368,7 +283,7 @@ Please disburse payment immediately via ACH or Corporate Credit Card.`);
                 <div className="h-full bg-purple-600 w-full" />
               </div>
               <div className="text-[11px] text-purple-600 font-semibold mt-2">
-                Free unrestricted access for {ADMIN_EMAIL}
+                Unrestricted Forensic Auditing Enabled
               </div>
             </div>
           ) : isPro ? (
@@ -392,23 +307,23 @@ Please disburse payment immediately via ACH or Corporate Credit Card.`);
               <div className="flex justify-between items-center text-xs font-bold mb-1.5">
                 <span className="text-[#64748B] uppercase tracking-wider">Free Audit Quota</span>
                 <span className={auditCount >= FREE_AUDIT_LIMIT ? "text-red-500 font-extrabold" : "text-[#7C3AED]"}>
-                  {Math.min(auditCount, FREE_AUDIT_LIMIT)} / 1 Free Audit
+                  {Math.min(auditCount, FREE_AUDIT_LIMIT)} / {FREE_AUDIT_LIMIT} Free Audits
                 </span>
               </div>
               <div className="w-full bg-[#E2E8F0] rounded-full h-2.5 overflow-hidden">
                 <div 
                   className={`h-full transition-all duration-500 ${auditCount >= FREE_AUDIT_LIMIT ? 'bg-red-500' : 'bg-[#7C3AED]'}`}
-                  style={{ width: `${auditCount >= FREE_AUDIT_LIMIT ? 100 : 0}%` }}
+                  style={{ width: `${Math.min((auditCount / FREE_AUDIT_LIMIT) * 100, 100)}%` }}
                 />
               </div>
               <div className="flex justify-between items-center mt-2 text-[11px]">
                 {auditCount >= FREE_AUDIT_LIMIT ? (
                   <span className="text-red-600 font-bold flex items-center gap-1">
-                    <Lock className="w-3 h-3" /> 1 free audit used
+                    <Lock className="w-3 h-3" /> {FREE_AUDIT_LIMIT} free audits used
                   </span>
                 ) : (
                   <span className="text-[#64748B]">
-                    1 free doc audit available
+                    {FREE_AUDIT_LIMIT - auditCount} free doc audit{FREE_AUDIT_LIMIT - auditCount === 1 ? '' : 's'} available
                   </span>
                 )}
                 <button
@@ -434,229 +349,54 @@ Please disburse payment immediately via ACH or Corporate Credit Card.`);
                 <FileText className="w-5 h-5 text-[#7C3AED]" />
                 Document Text Scanner
               </h3>
-              <span className="text-xs text-[#64748B] font-semibold bg-[#F8F9FC] border border-[#E2E8F0] px-3 py-1 rounded-full">
-                Paste or Try Sample
-              </span>
             </div>
 
-            {/* Mode Switcher Tabs */}
-            <div className="flex bg-[#F8F9FC] p-1.5 rounded-2xl border border-[#E2E8F0] mb-6 gap-1">
-              <button
-                type="button"
-                onClick={() => setInputMode('upload')}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
-                  inputMode === 'upload'
-                    ? 'bg-white text-[#7C3AED] shadow-sm border border-[#E2E8F0]'
-                    : 'text-[#64748B] hover:text-[#1E293B]'
-                }`}
-              >
-                <FileUp className="w-4 h-4" />
-                <span>Upload PDF / Image</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputMode('text')}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
-                  inputMode === 'text'
-                    ? 'bg-white text-[#7C3AED] shadow-sm border border-[#E2E8F0]'
-                    : 'text-[#64748B] hover:text-[#1E293B]'
-                }`}
-              >
-                <FileText className="w-4 h-4" />
-                <span>Paste Text / Samples</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'gmail' } }));
-                }}
-                className="flex-1 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 text-purple-700 bg-purple-50/70 hover:bg-purple-100/80 border border-purple-200 cursor-pointer"
-                title="Scan directly from your Gmail Inbox"
-              >
-                <Mail className="w-4 h-4 text-purple-600" />
-                <span>Scan Gmail</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'forms' } }));
-                }}
-                className="flex-1 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100/80 border border-indigo-200 cursor-pointer"
-                title="Manage and Audit Google Forms"
-              >
-                <ClipboardList className="w-4 h-4 text-indigo-600" />
-                <span>Google Forms</span>
-              </button>
-            </div>
+            <div className="space-y-4">
+              {/* Sample Selector */}
+              <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-[#E2E8F0]">
+                <label className="block text-xs font-bold text-[#1E293B] uppercase tracking-wider mb-2.5">
+                  Load Sample Document:
+                </label>
+                <div className="grid grid-cols-1 gap-2">
+                  {SAMPLES.map((s, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setDocName(s.title);
+                        setDocText(s.text);
+                      }}
+                      className="text-left px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] bg-white hover:border-[#7C3AED] hover:bg-[#7C3AED]/5 transition-all text-xs font-medium text-[#1E293B] flex items-center justify-between shadow-xs"
+                    >
+                      <span>{s.title}</span>
+                      <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-            {inputMode === 'upload' ? (
-              <div className="space-y-4">
-                {/* PDF & Image File Dropzone */}
+              <div>
+                <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Document Title / Reference</label>
                 <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,image/png,image/jpeg,image/jpg,image/webp,.txt,.csv"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      handleFileUpload(e.target.files[0]);
-                    }
-                  }}
-                  className="hidden"
+                  type="text"
+                  value={docName}
+                  onChange={(e) => setDocName(e.target.value)}
+                  placeholder="e.g., Vendor Invoice #8920 - Apex Consulting"
+                  className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all"
                 />
-
-                {!uploadedFile ? (
-                  <div
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-3xl p-8 text-center cursor-pointer transition-all ${
-                      isDragging
-                        ? 'border-[#7C3AED] bg-[#7C3AED]/10 scale-[1.01]'
-                        : 'border-[#CBD5E1] bg-[#F8F9FC] hover:border-[#7C3AED] hover:bg-[#7C3AED]/5'
-                    }`}
-                  >
-                    <div className="w-16 h-16 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm text-[#7C3AED] flex items-center justify-center mx-auto mb-4">
-                      <Upload className="w-8 h-8 animate-pulse" />
-                    </div>
-                    <h4 className="text-base font-bold text-[#1E293B]">
-                      Drop your PDF or Image file here
-                    </h4>
-                    <p className="text-xs text-[#64748B] mt-1 max-w-sm mx-auto">
-                      Supports PDF invoices, contracts, receipts, PNG, JPG scans, WEBP, or TXT documents up to 25MB
-                    </p>
-                    <div className="flex items-center justify-center gap-2 mt-4">
-                      <span className="px-3 py-1 bg-white border border-[#E2E8F0] rounded-lg text-[11px] font-bold text-[#7C3AED]">
-                        PDF Documents
-                      </span>
-                      <span className="px-3 py-1 bg-white border border-[#E2E8F0] rounded-lg text-[11px] font-bold text-[#10B981]">
-                        Receipt & Invoice Scans
-                      </span>
-                      <span className="px-3 py-1 bg-white border border-[#E2E8F0] rounded-lg text-[11px] font-bold text-[#3B82F6]">
-                        OCR AI Parsing
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  /* Active Uploaded File Card */
-                  <div className="bg-[#F8F9FC] border border-[#E2E8F0] rounded-2xl p-5 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {uploadedFile.type === 'image' && uploadedFile.previewUrl ? (
-                          <div className="w-14 h-14 rounded-xl overflow-hidden border border-[#E2E8F0] bg-white shrink-0">
-                            <img 
-                              src={uploadedFile.previewUrl} 
-                              alt="Scan Preview" 
-                              className="w-full h-full object-cover" 
-                            />
-                          </div>
-                        ) : (
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold shrink-0 ${
-                            uploadedFile.type === 'pdf' ? 'bg-red-500' : 'bg-[#7C3AED]'
-                          }`}>
-                            <FileType className="w-6 h-6" />
-                          </div>
-                        )}
-
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-extrabold text-sm text-[#1E293B] truncate max-w-[200px] sm:max-w-[260px]">
-                              {uploadedFile.name}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              uploadedFile.type === 'pdf' ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-[#7C3AED]'
-                            }`}>
-                              {uploadedFile.type}
-                            </span>
-                          </div>
-                          <div className="text-xs text-[#64748B] mt-0.5 font-mono">
-                            Size: {uploadedFile.size} • Dr. Aria OCR Ready
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          setUploadedFile(null);
-                          setDocName('');
-                          setDocText('');
-                        }}
-                        className="p-2 text-gray-400 hover:text-red-500 rounded-xl hover:bg-white transition-colors border border-transparent hover:border-[#E2E8F0]"
-                        title="Remove file"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    {/* Extracted Text Preview Drawer */}
-                    <div className="bg-white p-3.5 rounded-xl border border-[#E2E8F0] text-xs font-mono text-[#475569] max-h-36 overflow-y-auto leading-relaxed">
-                      <div className="text-[10px] font-bold text-[#7C3AED] uppercase tracking-wider mb-1 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> Extracted Scanned Content
-                      </div>
-                      {docText}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Document Title / Reference</label>
-                  <input
-                    type="text"
-                    value={docName}
-                    onChange={(e) => setDocName(e.target.value)}
-                    placeholder="e.g., Vendor Invoice #8920 - Apex Consulting"
-                    className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#7C3AED] transition-all"
-                  />
-                </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Sample Selector */}
-                <div className="bg-[#F8F9FC] p-4 rounded-2xl border border-[#E2E8F0]">
-                  <label className="block text-xs font-bold text-[#1E293B] uppercase tracking-wider mb-2.5">
-                    Load Sample Document:
-                  </label>
-                  <div className="grid grid-cols-1 gap-2">
-                    {SAMPLES.map((s, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          setDocName(s.title);
-                          setDocText(s.text);
-                        }}
-                        className="text-left px-3.5 py-2.5 rounded-xl border border-[#E2E8F0] bg-white hover:border-[#7C3AED] hover:bg-[#7C3AED]/5 transition-all text-xs font-medium text-[#1E293B] flex items-center justify-between shadow-xs"
-                      >
-                        <span>{s.title}</span>
-                        <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Document Title / Reference</label>
-                  <input
-                    type="text"
-                    value={docName}
-                    onChange={(e) => setDocName(e.target.value)}
-                    placeholder="e.g., Vendor Invoice #8920 - Apex Consulting"
-                    className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Paste Document Text Content</label>
-                  <textarea
-                    value={docText}
-                    onChange={(e) => setDocText(e.target.value)}
-                    rows={8}
-                    placeholder="Paste invoice, contract, receipt, or agreement text here to audit..."
-                    className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all font-mono text-xs text-[#1E293B] leading-relaxed"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-[#1E293B] mb-1.5">Paste Document Text Content</label>
+                <textarea
+                  value={docText}
+                  onChange={(e) => setDocText(e.target.value)}
+                  rows={8}
+                  placeholder="Paste invoice, contract, receipt, or agreement text here to audit..."
+                  className="w-full px-4 py-3 bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all font-mono text-xs text-[#1E293B] leading-relaxed"
+                />
               </div>
-            )}
+            </div>
 
             <div className="mt-6">
               <button
@@ -676,12 +416,12 @@ Please disburse payment immediately via ACH or Corporate Credit Card.`);
                 ) : !isPro && !isAdmin && auditCount >= FREE_AUDIT_LIMIT ? (
                   <>
                     <Lock className="w-5 h-5 text-amber-400" />
-                    Free Audit Used (1/1) - Upgrade to Continue
+                    Free Audits Used ({FREE_AUDIT_LIMIT}/{FREE_AUDIT_LIMIT}) - Upgrade to Continue
                   </>
                 ) : isAdmin ? (
                   <>
                     <ShieldCheck className="w-5 h-5 text-purple-300" />
-                    Run Forensic Audit (Admin Unlimited)
+                    Run Forensic Audit (Unlimited VIP)
                   </>
                 ) : isPro ? (
                   <>
@@ -691,7 +431,7 @@ Please disburse payment immediately via ACH or Corporate Credit Card.`);
                 ) : (
                   <>
                     <Search className="w-5 h-5" />
-                    Run Forensic Audit (1 Free Audit)
+                    Run Forensic Audit ({Math.max(0, FREE_AUDIT_LIMIT - auditCount)} Free Audits Left)
                   </>
                 )}
               </button>
@@ -711,7 +451,7 @@ Please disburse payment immediately via ACH or Corporate Credit Card.`);
                 Paste document text or select a sample on the left to run Dr. Aria's forensic auditing scan.
               </p>
               <div className="text-xs font-semibold text-[#7C3AED] bg-[#7C3AED]/10 px-4 py-2 rounded-full">
-                1 Free Document Audit Available Per Device
+                {FREE_AUDIT_LIMIT} Free Document Audits Available Per User / Device
               </div>
             </div>
           )}
@@ -801,16 +541,32 @@ Please disburse payment immediately via ACH or Corporate Credit Card.`);
 
                   {/* Risk Badge */}
                   <div className={`px-4 py-2 rounded-2xl text-center border self-start ${
-                    auditResult.riskScore > 65 
+                    auditResult.riskLevel === 'Invalid' || auditResult.isAuditable === false
+                      ? 'bg-slate-50 text-slate-700 border-slate-200'
+                      : auditResult.riskScore > 65 
                       ? 'bg-red-50 text-red-700 border-red-200' 
                       : auditResult.riskScore > 35 
                       ? 'bg-amber-50 text-amber-700 border-amber-200' 
                       : 'bg-green-50 text-green-700 border-green-200'
                   }`}>
-                    <div className="text-2xl font-black">{auditResult.riskScore}/100</div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider">{auditResult.riskLevel} Risk</div>
+                    <div className="text-2xl font-black">
+                      {auditResult.riskLevel === 'Invalid' || auditResult.isAuditable === false ? 'N/A' : `${auditResult.riskScore}/100`}
+                    </div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider">
+                      {auditResult.riskLevel === 'Invalid' || auditResult.isAuditable === false ? 'Not Auditable' : `${auditResult.riskLevel} Risk`}
+                    </div>
                   </div>
                 </div>
+
+                {(auditResult.isAuditable === false || auditResult.riskLevel === 'Invalid') && (
+                  <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl flex items-start gap-3">
+                    <ShieldAlert className="w-5 h-5 text-rose-600 mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-bold text-rose-900">Document Rejected</h4>
+                      <p className="text-xs text-rose-700 mt-1">This file was rejected by Dr. Aria because it does not appear to be a recognizable financial, legal, or administrative document. Please upload a valid invoice, receipt, contract, or bank statement.</p>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <h4 className="text-xs font-bold uppercase text-[#1E293B] tracking-wider mb-2">Dr. Aria's Summary:</h4>
@@ -894,7 +650,7 @@ Please disburse payment immediately via ACH or Corporate Credit Card.`);
                   <div className="p-3.5 rounded-2xl bg-[#F8F9FC] border border-[#E2E8F0]">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Audited Transaction Sum</span>
                     <span className="font-extrabold text-[#7C3AED] text-sm mt-0.5 block">
-                      {auditResult.keyMetrics?.detectedAmount || '$0.00'}
+                      {formatDetectedAmount(auditResult.keyMetrics?.detectedAmount)}
                     </span>
                   </div>
 

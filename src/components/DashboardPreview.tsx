@@ -52,7 +52,7 @@ export function DashboardPreview() {
           Dr. Aria Forensic Engine v2.4
         </div>
         <div className="text-[10px] font-bold text-[#7C3AED] bg-[#7C3AED]/10 px-2 py-0.5 rounded-full">
-          1 Free Audit Active
+          5 Free Audits Active
         </div>
       </div>
 
@@ -85,7 +85,7 @@ export function DashboardPreview() {
 
           <div className="mt-auto p-3 rounded-xl bg-[#F8F9FC] border border-[#E2E8F0] text-center">
             <div className="text-[10px] font-extrabold text-[#64748B] uppercase">Free Plan</div>
-            <div className="text-xs font-bold text-[#7C3AED] mt-0.5">1 Free Doc Audit</div>
+            <div className="text-xs font-bold text-[#7C3AED] mt-0.5">5 Free Doc Audits</div>
           </div>
         </div>
 

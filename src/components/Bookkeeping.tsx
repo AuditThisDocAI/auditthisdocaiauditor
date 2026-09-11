@@ -23,6 +23,7 @@ import {
   CreditCard 
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { isSuperAdminEmail } from '../lib/authUtils';
 import { useCurrency } from '../lib/currency';
 
 export interface JournalEntry {
@@ -72,7 +73,7 @@ export function Bookkeeping() {
 
   const checkPlanStatus = () => {
     const userEmail = (localStorage.getItem('audit-this-doc-user-email') || '').toLowerCase().trim();
-    const isAdmin = userEmail === 'brigittalombard09@gmail.com';
+    const isAdmin = isSuperAdminEmail(userEmail);
     const isPaidPro = localStorage.getItem('audit_this_doc_is_pro') === 'true';
     setIsPro(isPaidPro || isAdmin);
   };

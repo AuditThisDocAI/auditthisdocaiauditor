@@ -1,4 +1,5 @@
 import { getActiveFirm, FirmProfile } from './multiTenantDb';
+import { formatCurrency } from './currency';
 
 export interface AuditFindingItem {
   category: string;
@@ -35,6 +36,12 @@ export interface AuditReportData {
 }
 
 export function generateBrandedReportWindow(data: AuditReportData): void {
+  const formatAmountStr = (amtStr: string | undefined) => {
+    if (!amtStr) return formatCurrency(0);
+    const num = parseFloat(amtStr.replace(/[^0-9.-]+/g, '')) || 0;
+    return formatCurrency(num);
+  };
+
   const defaultFirm = getActiveFirm();
   const firm = { ...defaultFirm, ...data.firmOverride };
   const printWindow = window.open('', '_blank', 'width=950,height=1150');
@@ -603,7 +610,7 @@ export function generateBrandedReportWindow(data: AuditReportData): void {
           <div class="meta-card">
             <div class="meta-label">Audited Transaction Sum</div>
             <div class="meta-value" style="color: ${firm.primaryColor || '#7C3AED'};">
-              ${data.keyMetrics?.detectedAmount || '$0.00'}
+              ${formatAmountStr(data.keyMetrics?.detectedAmount)}
             </div>
           </div>
           <div class="meta-card">

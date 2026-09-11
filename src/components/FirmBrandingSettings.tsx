@@ -33,6 +33,7 @@ import {
 import { getActiveFirm, saveActiveFirm, exportAllFirmDataAsJson, FirmProfile } from '../lib/multiTenantDb';
 import { generateBrandedReportWindow } from '../lib/pdfReportGenerator';
 import { PaywallModal } from './PaywallModal';
+import { isSuperAdminEmail } from '../lib/authUtils';
 
 export function FirmBrandingSettings() {
   const [firm, setFirm] = useState<FirmProfile>(getActiveFirm());
@@ -48,7 +49,7 @@ export function FirmBrandingSettings() {
   const checkAccess = () => {
     const authed = localStorage.getItem('audit-this-doc-cms-auth') === 'true';
     const email = (localStorage.getItem('audit-this-doc-user-email') || '').toLowerCase().trim();
-    const isAdmin = email === 'brigittalombard09@gmail.com';
+    const isAdmin = isSuperAdminEmail(email);
     const pro = localStorage.getItem('audit_this_doc_is_pro') === 'true' || isAdmin;
 
     setIsLoggedIn(authed);

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lock, ShieldAlert, Check, Sparkles, X, ArrowRight, CreditCard, LogIn, UserPlus, Loader2 } from 'lucide-react';
 import { useCurrency } from '../lib/currency';
+import { FREE_AUDIT_LIMIT } from '../lib/authUtils';
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface PaywallModalProps {
   auditCount?: number;
 }
 
-export function PaywallModal({ isOpen, onClose, auditCount = 1 }: PaywallModalProps) {
+export function PaywallModal({ isOpen, onClose, auditCount = FREE_AUDIT_LIMIT }: PaywallModalProps) {
   const [loadingPlan, setLoadingPlan] = useState<'monthly' | 'yearly' | null>(null);
   const { format } = useCurrency();
 
@@ -45,13 +46,13 @@ export function PaywallModal({ isOpen, onClose, auditCount = 1 }: PaywallModalPr
             </button>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 text-xs font-bold uppercase tracking-wider mb-3">
               <Lock className="w-3.5 h-3.5" />
-              1/1 Free Trial Audit Completed
+              {FREE_AUDIT_LIMIT}/{FREE_AUDIT_LIMIT} Free Trial Audits Completed
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Unlock Unlimited Dr. Aria Audits
             </h2>
             <p className="text-purple-100 text-sm mt-2 leading-relaxed">
-              You've completed your 1 free trial audit. Subscribe to Pro (1,000 audits/month) or log in as Admin to continue scanning documents.
+              You've completed your {FREE_AUDIT_LIMIT} free trial audits. Subscribe to Pro (1,000 audits/month) to continue scanning documents.
             </p>
           </div>
 
@@ -61,7 +62,7 @@ export function PaywallModal({ isOpen, onClose, auditCount = 1 }: PaywallModalPr
               <div>
                 <div className="text-[10px] font-bold uppercase text-[#64748B] tracking-wider">Free Trial Status</div>
                 <div className="text-base font-extrabold text-[#1E293B] flex items-center gap-2 mt-0.5">
-                  <span className="text-red-500">1 / 1 Free Audit Completed</span>
+                  <span className="text-red-500">{Math.min(auditCount, FREE_AUDIT_LIMIT)} / {FREE_AUDIT_LIMIT} Free Audits Completed</span>
                 </div>
               </div>
               <div className="text-right">

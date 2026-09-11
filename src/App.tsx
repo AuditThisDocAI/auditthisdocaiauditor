@@ -13,16 +13,18 @@ import { Bookkeeping } from './components/Bookkeeping';
 import { FirmBrandingSettings } from './components/FirmBrandingSettings';
 import { StaffManagement } from './components/StaffManagement';
 import { ClientManagement } from './components/ClientManagement';
-import { GmailAuditor } from './components/GmailAuditor';
 import { GoogleFormsManager } from './components/GoogleFormsManager';
 import { GoogleContactsManager } from './components/GoogleContactsManager';
 import { GoogleTasksManager } from './components/GoogleTasksManager';
 import { FreemiusCheckoutModal } from './components/FreemiusCheckoutModal';
 import { LegalModal, LegalPolicyTab } from './components/LegalModal';
 import { SessionTimeoutModal } from './components/SessionTimeoutModal';
+import { AuditTrail } from './components/AuditTrail';
+import { isUserPro } from './lib/authUtils';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients' | 'gmail' | 'forms' | 'contacts' | 'tasks'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients' | 'forms' | 'contacts' | 'tasks' | 'audittrail'>('landing');
+  const [isPro, setIsPro] = useState(isUserPro());
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [freemiusCheckoutOpen, setFreemiusCheckoutOpen] = useState(false);
   const [checkoutPlan, setCheckoutPlan] = useState<'pro_monthly' | 'pro_yearly'>('pro_monthly');
@@ -79,15 +81,24 @@ export default function App() {
       setLegalModalOpen(true);
     };
 
+    const checkPro = () => setIsPro(isUserPro());
+    checkPro();
+
     window.addEventListener('navigate', handleNavigate);
     window.addEventListener('open-freemius-checkout', handleOpenFreemiusCheckout);
     window.addEventListener('open-stripe-checkout', handleOpenFreemiusCheckout);
     window.addEventListener('open-legal-modal', handleOpenLegal);
+    window.addEventListener('pro-status-changed', checkPro);
+    window.addEventListener('admin-auth-changed', checkPro);
+    window.addEventListener('storage', checkPro);
     return () => {
       window.removeEventListener('navigate', handleNavigate);
       window.removeEventListener('open-freemius-checkout', handleOpenFreemiusCheckout);
       window.removeEventListener('open-stripe-checkout', handleOpenFreemiusCheckout);
       window.removeEventListener('open-legal-modal', handleOpenLegal);
+      window.removeEventListener('pro-status-changed', checkPro);
+      window.removeEventListener('admin-auth-changed', checkPro);
+      window.removeEventListener('storage', checkPro);
     };
   }, []);
 
@@ -139,13 +150,15 @@ export default function App() {
             <div id="tasks" className="my-10">
               <GoogleTasksManager />
             </div>
-            <div id="gmail" className="my-10">
-              <GmailAuditor />
-            </div>
             <div id="forms" className="my-10">
               <GoogleFormsManager />
             </div>
             <Bookkeeping />
+            {isPro && (
+              <div id="audittrail" className="my-10">
+                <AuditTrail />
+              </div>
+            )}
             <Features />
             <Pricing />
             <FAQ />
@@ -164,11 +177,6 @@ export default function App() {
             <GoogleTasksManager />
           </div>
         )}
-        {currentView === 'gmail' && (
-          <div className="py-4">
-            <GmailAuditor />
-          </div>
-        )}
         {currentView === 'forms' && (
           <div className="py-4">
             <GoogleFormsManager />
@@ -178,6 +186,11 @@ export default function App() {
         {currentView === 'whitelabel' && <FirmBrandingSettings />}
         {currentView === 'staff' && <StaffManagement />}
         {currentView === 'clients' && <ClientManagement />}
+        {currentView === 'audittrail' && (
+          <div className="py-4">
+            <AuditTrail />
+          </div>
+        )}
       </main>
       
       {/* Footer */}
@@ -218,10 +231,42 @@ export default function App() {
                   <a href="#document-auditor" className="hover:text-[#7C3AED] transition-colors">Dr. Aria Forensic Scanner</a>
                 </li>
                 <li>
+                  <a 
+                    href="#audittrail"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (isPro) {
+                        const el = document.getElementById('audittrail');
+                        if (el) {
+                          el.scrollIntoView({ behavior: 'smooth' });
+                          return;
+                        }
+                      }
+                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'audittrail' } }));
+                    }}
+                    className="text-left hover:text-[#7C3AED] transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+                  >
+                    <span>Forensic Audit Trail</span>
+                    {isPro ? (
+                      <span className="bg-purple-100 text-purple-800 text-[10px] px-1.5 py-0.2 rounded font-bold">SHA-256</span>
+                    ) : (
+                      <span className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.2 rounded font-bold">PRO</span>
+                    )}
+                  </a>
+                </li>
+                <li>
                   <a href="#bookkeeping" className="hover:text-[#7C3AED] transition-colors">Ledger & Bookkeeping</a>
                 </li>
                 <li>
-                  <a href="#pricing" className="hover:text-[#7C3AED] transition-colors">Subscription Pricing</a>
+                  <button 
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'pricing' } }));
+                      window.dispatchEvent(new CustomEvent('open-freemius-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
+                    }}
+                    className="hover:text-[#7C3AED] transition-colors cursor-pointer text-left"
+                  >
+                    Subscription Pricing & Plans
+                  </button>
                 </li>
                 <li>
                   <a href="#faq" className="hover:text-[#7C3AED] transition-colors">Frequently Asked Questions</a>
@@ -290,6 +335,16 @@ export default function App() {
               </button>
               <button onClick={() => openLegalTab('privacy')} className="hover:text-[#1E293B] underline cursor-pointer">
                 Privacy Policy
+              </button>
+              <button 
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }} 
+                className="hover:text-[#1E293B] cursor-pointer opacity-30 hover:opacity-100 transition-opacity text-[11px]"
+                title="Firm & Staff Portal"
+              >
+                Portal
               </button>
             </div>
           </div>
