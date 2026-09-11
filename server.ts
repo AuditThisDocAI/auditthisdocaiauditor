@@ -91,8 +91,17 @@ async function startServer() {
     const productId = process.env.FREEMIUS_PRODUCT_ID || process.env.FREEMIUS_PLUGIN_ID || process.env.FREEMIUS_APP_ID || '33243';
     const publicKey = process.env.FREEMIUS_PUBLIC_KEY || '';
     const storeId = process.env.FREEMIUS_STORE_ID || '';
-    const planMonthlyId = process.env.FREEMIUS_PLAN_ID_MONTHLY || process.env.FREEMIUS_PLAN_ID || '61454';
-    const planYearlyId = process.env.FREEMIUS_PLAN_ID_YEARLY || '61464';
+    
+    // Check if the user has provided any explicit plan ID
+    const anyUserPlanId = process.env.FREEMIUS_PLAN_ID || process.env.FREEMIUS_PLAN_ID_MONTHLY || process.env.FREEMIUS_PLAN_ID_YEARLY;
+    
+    // Fall back to a default ONLY if the user hasn't provided anything
+    const defaultPlan = anyUserPlanId || '61454';
+    
+    // Set monthly and yearly IDs, falling back to the user's provided plan if missing the specific interval
+    const planMonthlyId = process.env.FREEMIUS_PLAN_ID_MONTHLY || process.env.FREEMIUS_PLAN_ID || defaultPlan;
+    const planYearlyId = process.env.FREEMIUS_PLAN_ID_YEARLY || process.env.FREEMIUS_PLAN_ID || planMonthlyId;
+    
     const customCheckoutUrl = process.env.FREEMIUS_CHECKOUT_URL || '';
     const isSandbox = process.env.FREEMIUS_SANDBOX === 'true';
 

@@ -9,18 +9,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { performLogout } from '../lib/sessionManager';
 import { isSuperAdminEmail, getSafeUserDisplayName } from '../lib/authUtils';
 
-const navLinks = [
-  { name: 'Dr. Aria Auditor', href: '#document-auditor' },
-  { name: 'Audit Trail', href: '#audittrail' },
-  { name: 'Contacts & Vendors', href: '#contacts' },
-  { name: 'Tasks & Remediation', href: '#tasks' },
-  { name: 'Bookkeeping', href: '#bookkeeping' },
-  { name: 'Features', href: '#features' },
-  { name: 'Pricing', href: '#pricing' },
-  { name: 'FAQ', href: '#faq' },
-  { name: 'Contact', href: '#contact' },
-];
-
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -86,9 +74,9 @@ export function Navbar() {
   const isPaidAndSignedUp = isLoggedIn && isPro;
 
   const linksToShow = [
-    navLinks[0], // Dr. Aria Auditor
-    ...(isPro ? [navLinks[1]] : []), // Audit Trail - strictly visible to paying subscribers
-    navLinks[4], // Bookkeeping
+    ...(isPro ? [{ name: 'Audit Trail', href: '#audittrail' }] : []), // Audit Trail - strictly visible to paying subscribers
+    { name: 'Bookkeeping', href: '#bookkeeping' },
+    { name: 'Features', href: '#features' },
     ...(isLoggedIn ? [{ name: 'Dashboard', href: '#dashboard' }] : []),
     ...(isPaidAndSignedUp ? [{ name: 'Branding', href: '#whitelabel' }] : []),
     ...(isLoggedIn ? [{ name: 'Staff Team', href: '#staff' }, { name: 'Firm Clients', href: '#clients' }] : []),
@@ -160,12 +148,6 @@ export function Navbar() {
                               document.getElementById('audittrail')?.scrollIntoView({ behavior: 'smooth' });
                             }, 100);
                           }
-                        } else if (link.name === 'Contacts & Vendors') {
-                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'contacts' } }));
-                        } else if (link.name === 'Tasks & Remediation') {
-                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'tasks' } }));
-                        } else if (link.name === 'Google Forms') {
-                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'forms' } }));
                         } else if (link.name === 'Bookkeeping') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'bookkeeping' } }));
                         } else if (link.name === 'Branding') {
@@ -178,7 +160,20 @@ export function Navbar() {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'pricing' } }));
                           window.dispatchEvent(new CustomEvent('open-freemius-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
                         } else {
-                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+                          const targetId = link.href.startsWith('#') ? link.href.substring(1) : null;
+                          if (targetId) {
+                            const el = document.getElementById(targetId);
+                            if (el) {
+                              el.scrollIntoView({ behavior: 'smooth' });
+                            } else {
+                              window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+                              setTimeout(() => {
+                                document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' });
+                              }, 100);
+                            }
+                          } else {
+                            window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+                          }
                         }
                       }}
                       className="hover:text-[#7C3AED] transition-colors"
@@ -229,19 +224,19 @@ export function Navbar() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => {
-                      const el = document.getElementById('document-auditor');
+                      const el = document.getElementById('bookkeeping');
                       if (el) {
                         el.scrollIntoView({ behavior: 'smooth' });
                       } else {
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
                         setTimeout(() => {
-                          document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
+                          document.getElementById('bookkeeping')?.scrollIntoView({ behavior: 'smooth' });
                         }, 100);
                       }
                     }}
                     className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] cursor-pointer"
                   >
-                    Audit Document
+                    View Bookkeeping
                   </button>
                 </div>
               )}
@@ -294,15 +289,6 @@ export function Navbar() {
                             document.getElementById('audittrail')?.scrollIntoView({ behavior: 'smooth' });
                           }, 100);
                         }
-                      } else if (link.name === 'Contacts & Vendors') {
-                        e.preventDefault();
-                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'contacts' } }));
-                      } else if (link.name === 'Tasks & Remediation') {
-                        e.preventDefault();
-                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'tasks' } }));
-                      } else if (link.name === 'Google Forms') {
-                        e.preventDefault();
-                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'forms' } }));
                       } else if (link.name === 'Bookkeeping') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'bookkeeping' } }));
@@ -320,7 +306,21 @@ export function Navbar() {
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'pricing' } }));
                         window.dispatchEvent(new CustomEvent('open-freemius-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
                       } else {
-                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+                        e.preventDefault();
+                        const targetId = link.href.startsWith('#') ? link.href.substring(1) : null;
+                        if (targetId) {
+                          const el = document.getElementById(targetId);
+                          if (el) {
+                            el.scrollIntoView({ behavior: 'smooth' });
+                          } else {
+                            window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+                            setTimeout(() => {
+                              document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth' });
+                            }, 100);
+                          }
+                        } else {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+                        }
                       }
                       setMobileMenuOpen(false);
                     }}
@@ -362,20 +362,20 @@ export function Navbar() {
                   <div className="pt-1">
                     <button 
                       onClick={() => {
-                        const el = document.getElementById('document-auditor');
+                        const el = document.getElementById('bookkeeping');
                         if (el) {
                           el.scrollIntoView({ behavior: 'smooth' });
                         } else {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
                           setTimeout(() => {
-                            document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
+                            document.getElementById('bookkeeping')?.scrollIntoView({ behavior: 'smooth' });
                           }, 100);
                         }
                         setMobileMenuOpen(false);
                       }}
                       className="w-full text-center font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] px-4 py-3 rounded-xl shadow-md transition-colors cursor-pointer"
                     >
-                      Audit Document
+                      View Bookkeeping
                     </button>
                   </div>
                 )}

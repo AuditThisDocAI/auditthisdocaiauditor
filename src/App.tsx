@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
-import { Hero } from './components/Hero';
-import { TrustedBy } from './components/TrustedBy';
-import { DocumentAuditor } from './components/DocumentAuditor';
 import { Features } from './components/Features';
 import { Pricing } from './components/Pricing';
 import { FAQ } from './components/FAQ';
@@ -13,9 +10,6 @@ import { Bookkeeping } from './components/Bookkeeping';
 import { FirmBrandingSettings } from './components/FirmBrandingSettings';
 import { StaffManagement } from './components/StaffManagement';
 import { ClientManagement } from './components/ClientManagement';
-import { GoogleFormsManager } from './components/GoogleFormsManager';
-import { GoogleContactsManager } from './components/GoogleContactsManager';
-import { GoogleTasksManager } from './components/GoogleTasksManager';
 import { FreemiusCheckoutModal } from './components/FreemiusCheckoutModal';
 import { LegalModal, LegalPolicyTab } from './components/LegalModal';
 import { SessionTimeoutModal } from './components/SessionTimeoutModal';
@@ -141,18 +135,6 @@ export default function App() {
       <main className="py-6 px-4 lg:px-8">
         {currentView === 'landing' && (
           <>
-            <Hero />
-            <TrustedBy />
-            <DocumentAuditor />
-            <div id="contacts" className="my-10">
-              <GoogleContactsManager />
-            </div>
-            <div id="tasks" className="my-10">
-              <GoogleTasksManager />
-            </div>
-            <div id="forms" className="my-10">
-              <GoogleFormsManager />
-            </div>
             <Bookkeeping />
             {isPro && (
               <div id="audittrail" className="my-10">
@@ -167,21 +149,6 @@ export default function App() {
         )}
         {currentView === 'auth' && <Auth />}
         {currentView === 'dashboard' && <Dashboard />}
-        {currentView === 'contacts' && (
-          <div className="py-4">
-            <GoogleContactsManager />
-          </div>
-        )}
-        {currentView === 'tasks' && (
-          <div className="py-4">
-            <GoogleTasksManager />
-          </div>
-        )}
-        {currentView === 'forms' && (
-          <div className="py-4">
-            <GoogleFormsManager />
-          </div>
-        )}
         {currentView === 'bookkeeping' && <Bookkeeping />}
         {currentView === 'whitelabel' && <FirmBrandingSettings />}
         {currentView === 'staff' && <StaffManagement />}
@@ -227,9 +194,6 @@ export default function App() {
                 Platform
               </h4>
               <ul className="space-y-2 text-xs text-[#64748B]">
-                <li>
-                  <a href="#document-auditor" className="hover:text-[#7C3AED] transition-colors">Dr. Aria Forensic Scanner</a>
-                </li>
                 <li>
                   <a 
                     href="#audittrail"

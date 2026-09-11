@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShieldCheck, Lock, Check, ArrowLeft, Loader2, 
-  Key, ExternalLink, RefreshCw, CheckCircle2, AlertCircle, ArrowRight,
-  CreditCard, Sparkles, Receipt, Building, Shield, Wallet, Smartphone,
-  CircleDot, Circle, Zap
+  Key, ExternalLink, CheckCircle2, AlertCircle, ArrowRight,
+  CreditCard
 } from 'lucide-react';
 import { useCurrency } from '../lib/currency';
 import { isSuperAdminEmail } from '../lib/authUtils';
@@ -34,9 +33,6 @@ export function FreemiusCheckoutModal({
 
   const [activeTab, setActiveTab] = useState<'checkout' | 'license'>('checkout');
   const [userEmail, setUserEmail] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal' | 'apple_pay'>('card');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState('');
   const [checkoutError, setCheckoutError] = useState('');
   
   // Direct Payment Success State
@@ -48,11 +44,6 @@ export function FreemiusCheckoutModal({
     timestamp: string;
   } | null>(null);
 
-  // Card details (simulated secure input)
-  const [cardNumber, setCardNumber] = useState('4242 •••• •••• 4242');
-  const [cardExpiry, setCardExpiry] = useState('12/28');
-  const [cardCvc, setCardCvc] = useState('•••');
-
   // Check if current user is admin
   const currentLoggedInEmail = localStorage.getItem('audit-this-doc-user-email') || userEmail || '';
   const isAdmin = isSuperAdminEmail(currentLoggedInEmail);
@@ -63,8 +54,28 @@ export function FreemiusCheckoutModal({
   const [licenseError, setLicenseError] = useState('');
   const [licenseSuccess, setLicenseSuccess] = useState('');
 
+  // Fetch Freemius config from backend
+  const [fsConfig, setFsConfig] = useState<{ productId: string, planMonthlyId: string, planYearlyId: string, customCheckoutUrl?: string } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/freemius/config')
+      .then(res => res.json())
+      .then(data => setFsConfig(data))
+      .catch(err => console.error("Failed to load Freemius config", err));
+  }, []);
+
   // Default Freemius URL
-  const defaultFreemiusUrl = `https://checkout.freemius.com/app/33243/plan/${isYearly ? '61464' : '61454'}/?user_email=${encodeURIComponent(userEmail || '')}&billing_cycle=${isYearly ? 'annual' : 'monthly'}`;
+  const productId = fsConfig?.productId || '33243';
+  const planId = isYearly ? (fsConfig?.planYearlyId || '61464') : (fsConfig?.planMonthlyId || '61454');
+  
+  // Use custom checkout URL if provided, otherwise build the standard Freemius URL using /product/
+  let defaultFreemiusUrl = '';
+  if (fsConfig?.customCheckoutUrl) {
+    const separator = fsConfig.customCheckoutUrl.includes('?') ? '&' : '?';
+    defaultFreemiusUrl = `${fsConfig.customCheckoutUrl}${separator}user_email=${encodeURIComponent(userEmail || '')}&billing_cycle=${isYearly ? 'annual' : 'monthly'}`;
+  } else {
+    defaultFreemiusUrl = `https://checkout.freemius.com/product/${productId}/plan/${planId}/?user_email=${encodeURIComponent(userEmail || '')}&billing_cycle=${isYearly ? 'annual' : 'monthly'}`;
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -72,83 +83,11 @@ export function FreemiusCheckoutModal({
       if (storedEmail) setUserEmail(storedEmail);
       setSelectedInterval(interval === 'yearly' || plan === 'pro_yearly' ? 'yearly' : 'monthly');
       setCheckoutError('');
-      setIsProcessing(false);
       setPaymentSuccessData(null);
-      setCheckoutUrl(defaultFreemiusUrl);
     }
   }, [isOpen, interval, plan]);
 
-  useEffect(() => {
-    setCheckoutUrl(defaultFreemiusUrl);
-  }, [selectedInterval, userEmail]);
-
   if (!isOpen) return null;
-
-  // Direct In-App Payment Completion (Card, PayPal, Apple Pay, or Instant Activation)
-  const handleDirectPayment = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setCheckoutError('');
-    setIsProcessing(true);
-
-    try {
-      const cleanEmail = userEmail.trim() || 'subscriber@firm.com';
-
-      const response = await fetch('/api/freemius/complete-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan: isYearly ? 'pro_yearly' : 'pro_monthly',
-          interval: isYearly ? 'yearly' : 'monthly',
-          userEmail: cleanEmail,
-          paymentMethod,
-          amount: rawAmount
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Unable to complete payment. Please try again.');
-      }
-
-      // Activate Pro Privileges locally
-      localStorage.setItem('audit_this_doc_is_pro', 'true');
-      localStorage.setItem('audit_this_doc_free_count', '0');
-      if (data.licenseKey) {
-        localStorage.setItem('freemius_license_key', data.licenseKey);
-      }
-      if (cleanEmail && cleanEmail.includes('@')) {
-        localStorage.setItem('audit-this-doc-user-email', cleanEmail);
-      }
-
-      // Append verified SHA-256 event to Audit Trail
-      appendAuditTrailEvent({
-        category: 'SECURITY_AUTH',
-        action: `Pro Subscription Activated (${isYearly ? 'Annual' : 'Monthly'})`,
-        severity: 'VERIFIED',
-        actor: cleanEmail,
-        details: `Payment authorized via ${paymentMethod.toUpperCase()} (${data.transactionId}). 1,000 monthly audits and Audit Trail unlocked.`
-      });
-
-      // Dispatch global events to update navigation, quotas, and audit trail
-      window.dispatchEvent(new Event('pro-status-changed'));
-      window.dispatchEvent(new Event('admin-auth-changed'));
-
-      setPaymentSuccessData({
-        transactionId: data.transactionId,
-        licenseKey: data.licenseKey,
-        amount: data.amount,
-        plan: data.plan,
-        timestamp: data.timestamp || new Date().toLocaleString()
-      });
-
-    } catch (err: any) {
-      console.error('Payment error:', err);
-      setCheckoutError(err.message || 'Payment processing encountered an error. Please try again.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const handleVerifyLicenseKey = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,7 +202,7 @@ export function FreemiusCheckoutModal({
 
             <div className="flex items-center gap-2">
               <span className="bg-purple-100 text-purple-800 border border-purple-300 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
-                {isYearly ? 'Plan ID 61464 (Annual)' : 'Plan ID 61454 (Monthly)'}
+                {isYearly ? 'Annual Billing' : 'Monthly Billing'}
               </span>
             </div>
           </div>
@@ -384,7 +323,7 @@ export function FreemiusCheckoutModal({
                       <span className="text-2xl font-black text-slate-900">{formattedPrice}</span>
                     </div>
                     <span className="text-[11px] font-semibold text-[#7C3AED] bg-purple-50 px-2.5 py-1 rounded-full inline-block border border-purple-200">
-                      {isYearly ? 'Billed Annually ($590/year — Plan 61464)' : 'Billed Monthly ($59/month — Plan 61454)'}
+                      {isYearly ? 'Billed Annually ($590/year)' : 'Billed Monthly ($59/month)'}
                     </span>
                   </div>
 
@@ -418,17 +357,17 @@ export function FreemiusCheckoutModal({
                 {activeTab === 'checkout' ? (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-lg font-extrabold text-slate-900">Direct Payment Option</h4>
+                      <h4 className="text-lg font-extrabold text-slate-900">Checkout with Freemius</h4>
                       <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Instant Pro Activation</span>
+                        <span>Secure Checkout</span>
                       </div>
                     </div>
                     <p className="text-xs text-slate-500 mb-5">
-                      Select your preferred payment option below to immediately complete payment and unlock all Pro features.
+                      You will be redirected to the secure Freemius checkout gateway to complete your payment. After payment, you will receive a license key to activate your Pro features.
                     </p>
 
-                    <form onSubmit={handleDirectPayment} className="space-y-4">
+                    <div className="space-y-4">
                       <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1">
                           Account / Billing Email <span className="text-red-500">*</span>
@@ -443,189 +382,33 @@ export function FreemiusCheckoutModal({
                         />
                       </div>
 
-                      {/* Payment Method Selection */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-700">
-                            Select Payment Method:
-                          </label>
-                          <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-                            Encrypted Gateway
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                          {/* Credit / Debit Card */}
-                          <button
-                            type="button"
-                            onClick={() => setPaymentMethod('card')}
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                              paymentMethod === 'card'
-                                ? 'bg-purple-50/90 border-[#7C3AED] ring-2 ring-[#7C3AED]/20 shadow-xs'
-                                : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className={`p-1.5 rounded-lg ${paymentMethod === 'card' ? 'bg-[#7C3AED] text-white' : 'bg-slate-100 text-slate-600'}`}>
-                                <CreditCard className="w-4 h-4" />
-                              </div>
-                              {paymentMethod === 'card' ? (
-                                <CircleDot className="w-4 h-4 text-[#7C3AED]" />
-                              ) : (
-                                <Circle className="w-4 h-4 text-slate-300" />
-                              )}
-                            </div>
-                            <div>
-                              <div className="text-xs font-extrabold text-slate-900 leading-tight">Credit / Debit</div>
-                              <div className="text-[10px] text-slate-500 font-medium">Visa, MC, Amex</div>
-                            </div>
-                          </button>
-
-                          {/* PayPal */}
-                          <button
-                            type="button"
-                            onClick={() => setPaymentMethod('paypal')}
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                              paymentMethod === 'paypal'
-                                ? 'bg-purple-50/90 border-[#7C3AED] ring-2 ring-[#7C3AED]/20 shadow-xs'
-                                : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className={`p-1.5 rounded-lg ${paymentMethod === 'paypal' ? 'bg-[#7C3AED] text-white' : 'bg-slate-100 text-slate-600'}`}>
-                                <Wallet className="w-4 h-4" />
-                              </div>
-                              {paymentMethod === 'paypal' ? (
-                                <CircleDot className="w-4 h-4 text-[#7C3AED]" />
-                              ) : (
-                                <Circle className="w-4 h-4 text-slate-300" />
-                              )}
-                            </div>
-                            <div>
-                              <div className="text-xs font-extrabold text-slate-900 leading-tight">PayPal</div>
-                              <div className="text-[10px] text-slate-500 font-medium">Express & Balance</div>
-                            </div>
-                          </button>
-
-                          {/* Apple / Google Pay */}
-                          <button
-                            type="button"
-                            onClick={() => setPaymentMethod('apple_pay')}
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                              paymentMethod === 'apple_pay'
-                                ? 'bg-purple-50/90 border-[#7C3AED] ring-2 ring-[#7C3AED]/20 shadow-xs'
-                                : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className={`p-1.5 rounded-lg ${paymentMethod === 'apple_pay' ? 'bg-[#7C3AED] text-white' : 'bg-slate-100 text-slate-600'}`}>
-                                <Smartphone className="w-4 h-4" />
-                              </div>
-                              {paymentMethod === 'apple_pay' ? (
-                                <CircleDot className="w-4 h-4 text-[#7C3AED]" />
-                              ) : (
-                                <Circle className="w-4 h-4 text-slate-300" />
-                              )}
-                            </div>
-                            <div>
-                              <div className="text-xs font-extrabold text-slate-900 leading-tight">Apple / Google Pay</div>
-                              <div className="text-[10px] text-slate-500 font-medium">1-Click Fast Pay</div>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Card Input fields if Card selected */}
-                      {paymentMethod === 'card' && (
-                        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
-                          <div className="text-[11px] font-bold text-slate-600 flex items-center justify-between">
-                            <span>Card Details</span>
-                            <span className="text-emerald-600 font-bold flex items-center gap-1">
-                              <Lock className="w-3 h-3" /> PCI Encrypted
-                            </span>
-                          </div>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              value={cardNumber}
-                              onChange={(e) => setCardNumber(e.target.value)}
-                              placeholder="4242 •••• •••• 4242"
-                              className="w-full px-3 py-2 bg-white rounded-lg border border-slate-300 text-xs font-mono"
-                            />
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <input
-                              type="text"
-                              value={cardExpiry}
-                              onChange={(e) => setCardExpiry(e.target.value)}
-                              placeholder="MM/YY"
-                              className="px-3 py-2 bg-white rounded-lg border border-slate-300 text-xs font-mono text-center"
-                            />
-                            <input
-                              type="text"
-                              value={cardCvc}
-                              onChange={(e) => setCardCvc(e.target.value)}
-                              placeholder="CVC"
-                              className="px-3 py-2 bg-white rounded-lg border border-slate-300 text-xs font-mono text-center"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {checkoutError && (
-                        <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-bold flex items-start gap-2">
-                          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                          <span>{checkoutError}</span>
-                        </div>
-                      )}
-
                       {/* Primary Direct Payment Button */}
-                      <div className="pt-2">
-                        <button
-                          type="submit"
-                          disabled={isProcessing}
-                          className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] active:bg-[#5B21B6] disabled:opacity-60 text-white font-extrabold py-3.5 px-6 rounded-xl shadow-lg shadow-purple-500/25 transition-all text-sm flex items-center justify-center gap-2.5 cursor-pointer"
-                        >
-                          {isProcessing ? (
-                            <>
-                              <Loader2 className="w-5 h-5 animate-spin text-white" />
-                              <span>Authorizing & Activating Pro...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Lock className="w-4 h-4 text-white" />
-                              <span>
-                                {paymentMethod === 'card' && `Complete Payment (${formattedPrice}) & Activate Pro`}
-                                {paymentMethod === 'paypal' && `Pay with PayPal (${formattedPrice}) & Activate Pro`}
-                                {paymentMethod === 'apple_pay' && `Pay with Apple / Google Pay (${formattedPrice})`}
-                              </span>
-                              <ArrowRight className="w-4 h-4 text-white" />
-                            </>
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Alternative: External Hosted Freemius Gateway */}
-                      <div className="pt-1 flex items-center justify-between text-xs border-t border-slate-100 pt-3">
-                        <span className="text-slate-500 text-[11px]">Prefer external checkout?</span>
+                      <div className="pt-4">
                         <a
-                          href={checkoutUrl}
-                          target="_blank"
+                          href={userEmail ? defaultFreemiusUrl : '#'}
+                          target={userEmail ? "_blank" : "_self"}
                           rel="noopener noreferrer"
-                          className="text-[#7C3AED] hover:text-[#5B21B6] font-bold text-xs flex items-center gap-1 underline"
+                          onClick={(e) => {
+                            if (!userEmail) {
+                              e.preventDefault();
+                              alert('Please enter your billing email first.');
+                            }
+                          }}
+                          className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] active:bg-[#5B21B6] text-white font-extrabold py-3.5 px-6 rounded-xl shadow-lg shadow-purple-500/25 transition-all text-sm flex items-center justify-center gap-2.5 cursor-pointer"
                         >
-                          <span>Open Hosted Freemius Page</span>
-                          <ExternalLink className="w-3.5 h-3.5" />
+                          <Lock className="w-4 h-4 text-white" />
+                          <span>Proceed to Freemius Secure Checkout</span>
+                          <ExternalLink className="w-4 h-4 text-white" />
                         </a>
                       </div>
 
-                      <div className="text-center space-y-1.5 pt-1">
+                      <div className="text-center space-y-1.5 pt-4">
                         <div className="flex items-center justify-center gap-2 text-[11px] font-semibold text-emerald-700 bg-emerald-50 py-1.5 px-3 rounded-lg border border-emerald-200">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                           <span>14-Day 100% Money-Back Guarantee &bull; Cancel Anytime</span>
                         </div>
 
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-[11px] text-slate-500 mt-2">
                           By proceeding, you agree to our{' '}
                           <button
                             type="button"
@@ -648,7 +431,7 @@ export function FreemiusCheckoutModal({
                           </button>.
                         </p>
                       </div>
-                    </form>
+                    </div>
                   </div>
                 ) : (
                   /* Admin License Key Tab */
