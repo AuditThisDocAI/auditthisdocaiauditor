@@ -59,10 +59,6 @@ export function Auth() {
     try {
       const cleanEmail = email.trim().toLowerCase();
       const isSuperAdmin = isSuperAdminEmail(cleanEmail);
-      if (!isSuperAdmin) {
-        setAuthError('Access Denied: Unauthorized email address. Only brigittalombard09@gmail.com is allowed.');
-        return;
-      }
 
       // Admin verification: automatically grants full unrestricted access to all audit features
       if (isSuperAdmin) {
@@ -166,10 +162,6 @@ export function Auth() {
       const userEmailStr = user.email || 'Google User';
 
       const isSuperAdmin = isSuperAdminEmail(userEmailStr);
-      if (!isSuperAdmin) {
-        setAuthError('Access Denied: Unauthorized Google account. Only brigittalombard09@gmail.com is allowed.');
-        return;
-      }
       localStorage.setItem('audit-this-doc-cms-auth', 'true');
       localStorage.setItem('audit-this-doc-user-email', userEmailStr);
       if (isSuperAdmin) {
