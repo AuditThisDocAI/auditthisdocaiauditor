@@ -224,19 +224,21 @@ export function Navbar() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => {
-                      const el = document.getElementById('bookkeeping');
-                      if (el) {
-                        el.scrollIntoView({ behavior: 'smooth' });
-                      } else {
-                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
-                        setTimeout(() => {
-                          document.getElementById('bookkeeping')?.scrollIntoView({ behavior: 'smooth' });
-                        }, 100);
-                      }
+                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="text-[#64748B] hover:text-[#1E293B] font-bold text-sm px-2 cursor-pointer transition-colors"
+                  >
+                    Log In
+                  </button>
+                  <button 
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] cursor-pointer"
                   >
-                    View Bookkeeping
+                    Get Started - 1 Day Free Trial
                   </button>
                 </div>
               )}
@@ -359,23 +361,26 @@ export function Navbar() {
                     </button>
                   </div>
                 ) : (
-                  <div className="pt-1">
+                  <div className="pt-1 space-y-2">
                     <button 
                       onClick={() => {
-                        const el = document.getElementById('bookkeeping');
-                        if (el) {
-                          el.scrollIntoView({ behavior: 'smooth' });
-                        } else {
-                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
-                          setTimeout(() => {
-                            document.getElementById('bookkeeping')?.scrollIntoView({ behavior: 'smooth' });
-                          }, 100);
-                        }
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full text-center font-bold text-[#64748B] hover:text-[#1E293B] bg-slate-50 hover:bg-slate-100 px-4 py-3 rounded-xl transition-colors cursor-pointer"
+                    >
+                      Log In
+                    </button>
+                    <button 
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                         setMobileMenuOpen(false);
                       }}
                       className="w-full text-center font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] px-4 py-3 rounded-xl shadow-md transition-colors cursor-pointer"
                     >
-                      View Bookkeeping
+                      Get Started - 1 Day Free Trial
                     </button>
                   </div>
                 )}

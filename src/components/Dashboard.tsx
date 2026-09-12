@@ -74,6 +74,8 @@ interface DashboardData {
 }
 
 import { isCurrentAdmin, isUserPro, isSuperAdminEmail, FREE_AUDIT_LIMIT } from '../lib/authUtils';
+import AuditScanner from './AuditScanner';
+import { FinancialTools } from './FinancialTools';
 
 export function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -371,6 +373,11 @@ export function Dashboard() {
 
       {/* Compliance Session Security Widget */}
       <SessionSecurityWidget />
+
+      {/* Dr. Aria Forensic Scanner */}
+      <AuditScanner />
+
+      <FinancialTools />
 
       {/* Monthly Audit Quota Progress Bar Component */}
       <div className="bg-gradient-to-r from-[#1E293B] to-[#0F172A] text-white p-6 sm:p-8 rounded-3xl border border-[#334155] shadow-xl relative overflow-hidden">

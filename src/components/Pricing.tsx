@@ -13,17 +13,17 @@ const tiers = [
       monthly: 'forever',
       yearly: 'forever'
     },
-    description: 'Try Dr. Aria directly with 5 free document audits on your device.',
+    description: 'Try Dr. Aria directly with a 1-day free trial on your device.',
     featuresHeader: 'Free Tier Includes:',
     features: [
-      '5 Free Document Audits',
+      '1-Day Free Trial',
       'Dr. Aria PhD Forensic Engine',
       'Fraud & Compliance Risk Score (0-100)',
       'Line-Item & Tax ID Verification',
       'Detailed Discrepancy Observation Log',
     ],
     mostPopular: false,
-    buttonText: 'Start 5 Free Audits'
+    buttonText: 'Start 1-day free trial'
   },
   {
     name: 'Business White Label Plan',
@@ -75,7 +75,7 @@ export function Pricing() {
             Plans & Pricing for Document Auditing
           </h2>
           <p className="text-[#64748B] text-base sm:text-lg leading-relaxed mb-6">
-            Get started with 5 free document audits directly on your device. Upgrade to Pro for 1,000 monthly audits, firm white-label branding, and client portals.
+            Get started with a 1-day free trial directly on your device. Upgrade to Pro for 1,000 monthly audits, firm white-label branding, and client portals.
           </p>
         </div>
 
@@ -162,7 +162,7 @@ export function Pricing() {
                   }}
                   className="w-full text-center py-3.5 rounded-xl font-bold transition-all mb-8 text-sm bg-white text-[#1E293B] border-2 border-[#E2E8F0] hover:border-[#7C3AED] hover:bg-[#F8F9FC] cursor-pointer"
                 >
-                  Start 5 Free Audits
+                  Start 1-day free trial
                 </button>
               ) : (
                 <div className="space-y-2 mb-8">
@@ -247,7 +247,7 @@ export function Pricing() {
           <div className="space-y-3">
             {[
               { q: 'What is your Refund and Cancellation policy?', a: 'All subscriptions come with a 14-Day Money-Back Guarantee. You can request a 100% refund within 14 days of subscribing by contacting Auditthisdoc@zohomail.com or clicking Manage Subscription in your Freemius receipt. You can also cancel your plan at any time with zero cancellation fees.' },
-              { q: 'How does the 5 free audits trial work?', a: 'Every user and device receives 5 free document audits automatically. You can test any invoice, receipt, or agreement. Once your 5 free audits are used, subscribe to Pro for 1,000 audits/month and full white label features.' },
+              { q: 'How does the 1-day free trial work?', a: 'Every user and device receives a 1-day free trial automatically. You can test any invoice, receipt, or agreement for 24 hours. Once your trial is over, subscribe to Pro for 1,000 audits/month and full white label features.' },
               { q: 'Who is Dr. Aria?', a: 'Dr. Aria is our specialized AI system fine-tuned on forensic accounting principles, tax rules, invoice fraud indicators, and contract verification.' },
               { q: 'Is my financial text data secure?', a: 'Yes. All text and documents are processed securely in memory for the duration of the audit and are never stored or shared with external third parties. We are fully compliant with GDPR and bank-grade AES-256 standards.' }
             ].map((faq, i) => (

@@ -319,7 +319,7 @@ async function startServer() {
             }
           });
           
-          const systemInstruction = `You are Dr. Aria, PhD in Forensic Auditing. Analyze the provided document text or uploaded image/PDF file for financial risks, missing required fields, suspicious round numbers, duplicate references, vague terminology, or date inconsistencies.
+          const systemInstruction = `You are Dr. Aria, holding a PhD in Forensic Auditing. You must provide legally accurate, structurally perfect, and highly rigorous forensic analysis. Analyze the provided document text or uploaded image/PDF file for financial risks, missing required fields, suspicious round numbers, duplicate references, vague terminology, or date inconsistencies. Your output must be legally bulletproof and precise.
 
 CRITICAL FIRST STEP: Check if the content is a legitimate financial, legal, or administrative document (e.g., invoice, receipt, contract, form, correspondence, bank statement). If the provided text or image is random nonsense, a generic photo (like a landscape, animal, or random selfie), or unrelated conversational text, you MUST mark it as non-auditable by setting "isAuditable": false and explain the rejection in the "summary" field.
 
@@ -334,7 +334,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
     {
       "category": "Amount Analysis" | "Compliance" | "Vendor Verification" | "Formatting & Dates" | "Red Flags",
       "title": "Short title",
-      "description": "Detailed forensic finding",
+      "description": "Detailed, legally accurate forensic finding",
       "severity": "low" | "medium" | "high" | "critical",
       "recommendation": "Dr. Aria's recommended remediation step"
     }
@@ -419,7 +419,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
             }
           }
         } catch (geminiErr) {
-          console.error("Gemini API call error during audit, executing heuristic forensic engine:", geminiErr);
+          console.warn("Gemini API call error during audit, executing heuristic forensic engine. (API Key or Quota issue):", geminiErr.message || geminiErr);
         }
       }
 
@@ -521,7 +521,7 @@ You are professional, authoritative yet friendly, and help users understand thei
             return res.json({ text: response.text });
           }
         } catch (geminiError) {
-          console.error("Gemini API chat error, using Dr. Aria expert fallback:", geminiError);
+          console.warn("Gemini API chat error, using Dr. Aria expert fallback. (API Key or Quota issue):", geminiError.message || geminiError);
         }
       }
 

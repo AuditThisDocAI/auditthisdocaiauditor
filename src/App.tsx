@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ScanSearch } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { Features } from './components/Features';
 import { Pricing } from './components/Pricing';
@@ -14,6 +15,7 @@ import { FreemiusCheckoutModal } from './components/FreemiusCheckoutModal';
 import { LegalModal, LegalPolicyTab } from './components/LegalModal';
 import { SessionTimeoutModal } from './components/SessionTimeoutModal';
 import { AuditTrail } from './components/AuditTrail';
+import AuditScanner from './components/AuditScanner';
 import { isUserPro } from './lib/authUtils';
 
 export default function App() {
@@ -135,12 +137,38 @@ export default function App() {
       <main className="py-6 px-4 lg:px-8">
         {currentView === 'landing' && (
           <>
-            <Bookkeeping />
-            {isPro && (
-              <div id="audittrail" className="my-10">
-                <AuditTrail />
+            <div className="bg-[#1E293B] rounded-3xl p-8 md:p-16 text-center text-white shadow-2xl mb-12 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                <ScanSearch className="w-48 h-48" />
               </div>
-            )}
+              <div className="max-w-3xl mx-auto relative z-10">
+                <span className="text-[#7C3AED] font-bold tracking-widest uppercase text-sm mb-4 block bg-white/10 w-fit mx-auto px-4 py-1.5 rounded-full">Dr. Aria AI</span>
+                <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight">Advanced Forensic Document Auditing</h1>
+                <p className="text-slate-300 text-lg md:text-xl mb-10">
+                  Scan invoices, contracts, and receipts instantly. Detect fraud, missing tax IDs, and anomalies with PhD-level AI forensic analysis.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <button 
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-purple-500/20 w-full sm:w-auto cursor-pointer"
+                  >
+                    Start 1-Day Free Trial
+                  </button>
+                  <button 
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all border border-white/20 w-full sm:w-auto cursor-pointer"
+                  >
+                    Log In
+                  </button>
+                </div>
+              </div>
+            </div>
             <Features />
             <Pricing />
             <FAQ />
