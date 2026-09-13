@@ -19,8 +19,8 @@ const auditFeatures = [
     bg: "bg-[#7C3AED]/10"
   },
   {
-    title: "Dr. Aria PhD AI Agent",
-    description: "Dr. Aria applies doctorate-level forensic auditing logic to examine line items, vendor entities, and transaction history.",
+    title: "FOR-AI PhD AI Agent",
+    description: "FOR-AI applies doctorate-level forensic auditing logic to examine line items, vendor entities, and transaction history.",
     icon: Bot,
     color: "text-[#7C3AED]",
     bg: "bg-[#7C3AED]/10"
@@ -67,7 +67,7 @@ export function Features() {
             Comprehensive AI Document Auditing
           </h3>
           <p className="text-[#64748B] text-base lg:text-lg leading-relaxed">
-            Eliminate financial fraud, duplicate payouts, and compliance errors with Dr. Aria's automated forensic auditing engine.
+            Eliminate financial fraud, duplicate payouts, and compliance errors with FOR-AI's automated forensic auditing engine.
           </p>
         </div>
 

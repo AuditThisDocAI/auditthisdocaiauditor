@@ -142,7 +142,7 @@ export default function App() {
                 <ScanSearch className="w-48 h-48" />
               </div>
               <div className="max-w-3xl mx-auto relative z-10">
-                <span className="text-[#7C3AED] font-bold tracking-widest uppercase text-sm mb-4 block bg-white/10 w-fit mx-auto px-4 py-1.5 rounded-full">Dr. Aria AI</span>
+                <span className="text-[#7C3AED] font-bold tracking-widest uppercase text-sm mb-4 block bg-white/10 w-fit mx-auto px-4 py-1.5 rounded-full">FOR-AI AI</span>
                 <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight">Advanced Forensic Document Auditing</h1>
                 <p className="text-slate-300 text-lg md:text-xl mb-10">
                   Scan invoices, contracts, and receipts instantly. Detect fraud, missing tax IDs, and anomalies with PhD-level AI forensic analysis.

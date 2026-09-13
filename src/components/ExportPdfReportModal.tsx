@@ -44,7 +44,7 @@ export function ExportPdfReportModal({
 
   const [clientName, setClientName] = useState('Acme Global Enterprises');
   const [clientCompany, setClientCompany] = useState('Accounting & Audit Committee');
-  const [auditorName, setAuditorName] = useState('Dr. Aria Sterling, CPA / CFE');
+  const [auditorName, setAuditorName] = useState('FOR-AI Sterling, CPA / CFE');
   const [auditorTitle, setAuditorTitle] = useState('Lead Forensic Auditor');
   const [engagementRef, setEngagementRef] = useState(
     `AUD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}-F`
@@ -188,7 +188,7 @@ export function ExportPdfReportModal({
                 type="text"
                 value={auditorName}
                 onChange={(e) => setAuditorName(e.target.value)}
-                placeholder="e.g., Dr. Aria Sterling, CPA"
+                placeholder="e.g., FOR-AI Sterling, CPA"
                 className="w-full bg-[#F8F9FC] border border-[#E2E8F0] rounded-xl px-3.5 py-2 text-xs text-[#1E293B] focus:outline-none focus:border-[#7C3AED]"
               />
             </div>

@@ -149,7 +149,7 @@ export function Bookkeeping() {
       const updated = entries.map(e => e.status === 'Pending' ? { ...e, status: 'Reconciled' as const } : e);
       persistEntries(updated);
       setReconciling(false);
-      alert('🎉 Dr. Aria AI Reconciliation Complete! 100% of vendor transactions cross-referenced against audit logs.');
+      alert('🎉 FOR-AI AI Reconciliation Complete! 100% of vendor transactions cross-referenced against audit logs.');
     }, 1200);
   };
 
@@ -246,7 +246,7 @@ export function Bookkeeping() {
               <Crown className="w-3.5 h-3.5 text-amber-500" />
               Pro & Enterprise Exclusive System
             </span>
-            <span className="text-xs text-[#64748B] font-mono">Dr. Aria AI Auto-Reconciliation</span>
+            <span className="text-xs text-[#64748B] font-mono">FOR-AI AI Auto-Reconciliation</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-[#1E293B] mt-2 flex items-center gap-2">
             <Building2 className="w-8 h-8 text-[#7C3AED]" />
@@ -331,7 +331,7 @@ export function Bookkeeping() {
               <span className="font-bold text-amber-400 flex items-center gap-1">
                 <CheckCircle2 className="w-4 h-4" /> Auto Reconciliation
               </span>
-              <p className="text-slate-400">Match scanned invoices directly against ledger entries with Dr. Aria AI.</p>
+              <p className="text-slate-400">Match scanned invoices directly against ledger entries with FOR-AI AI.</p>
             </div>
             <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 space-y-1">
               <span className="font-bold text-emerald-400 flex items-center gap-1">
@@ -597,7 +597,7 @@ export function Bookkeeping() {
                         <div className="flex flex-col items-center justify-center gap-2">
                           <FileSpreadsheet className="w-8 h-8 text-[#94A3B8]" />
                           <p className="font-bold text-sm text-[#1E293B]">No authentic general ledger entries found</p>
-                          <p className="text-xs">Scan a document with Dr. Aria Auditor above or click "Post Journal Entry" to add real records.</p>
+                          <p className="text-xs">Scan a document with FOR-AI Auditor above or click "Post Journal Entry" to add real records.</p>
                         </div>
                       </td>
                     </tr>
@@ -695,7 +695,7 @@ export function Bookkeeping() {
                 Tax Compliance & Deduction Audit Schedule
               </h3>
               <p className="text-xs text-[#64748B] mt-1">
-                Authentic forensic breakdown of tax-deductible expenditures verified by Dr. Aria AI.
+                Authentic forensic breakdown of tax-deductible expenditures verified by FOR-AI AI.
               </p>
             </div>
 
@@ -712,7 +712,7 @@ export function Bookkeeping() {
                     <div>
                       <div className="font-bold text-[#1E293B]">{entry.vendorOrClient} ({entry.category})</div>
                       <div className={`text-[11px] ${entry.status === 'Flagged' ? 'text-amber-700 font-semibold' : 'text-[#64748B]'}`}>
-                        {entry.status === 'Flagged' ? 'Flagged by Dr. Aria AI - Verification Required' : `Tax Deductible (${entry.type}) • ${entry.status}`}
+                        {entry.status === 'Flagged' ? 'Flagged by FOR-AI AI - Verification Required' : `Tax Deductible (${entry.type}) • ${entry.status}`}
                       </div>
                     </div>
                     <span className={`font-mono font-bold ${entry.status === 'Flagged' ? 'text-red-600' : 'text-[#10B981]'}`}>

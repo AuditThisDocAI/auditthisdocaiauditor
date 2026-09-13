@@ -1,34 +1,15 @@
 const { GoogleGenAI } = require('@google/genai');
-const apiKey = process.env.GEMINI_API_KEY;
 
-async function testModel(modelName) {
+async function test() {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   try {
-    const ai = new GoogleGenAI({ 
-      apiKey,
-      httpOptions: {
-        headers: { 'User-Agent': 'aistudio-build' }
-      }
-    });
-    
     const response = await ai.models.generateContent({
-      model: modelName,
-      contents: [{ role: 'user', parts: [{ text: "say hi" }] }],
+      model: 'gemini-3.7-flash',
+      contents: 'Hello'
     });
-    console.log(`Success with ${modelName}: ${response.text}`);
-    return true;
-  } catch (e) {
-    console.log(`Failed with ${modelName}:`, e.message);
-    return false;
+    console.log("SUCCESS:", response.text);
+  } catch (err) {
+    console.log("ERROR:", err.message);
   }
 }
-
-async function run() {
-  await testModel('gemini-1.5-flash');
-  await testModel('gemini-1.5-pro');
-  await testModel('gemini-2.0-flash');
-  await testModel('gemini-2.5-flash');
-  await testModel('gemini-3.8-flash');
-  await testModel('gemini-3.7-flash');
-}
-
-run();
+test();

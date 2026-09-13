@@ -274,7 +274,7 @@ export function FreemiusCheckoutModal({
                   }}
                   className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-800 px-6 py-3.5 rounded-xl font-bold text-sm transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <span>Launch Dr. Aria Auditor</span>
+                  <span>Launch FOR-AI Auditor</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -332,7 +332,7 @@ export function FreemiusCheckoutModal({
                     {[
                       '1,000 Document & Invoice Audits / Month',
                       'Full Access to Audit Trail with SHA-256 Logs',
-                      'Dr. Aria PhD Forensic AI Engine',
+                      'FOR-AI PhD Forensic AI Engine',
                       'Full White Label Portal & Custom Subdomain',
                       'Branded PDF Reports with Firm Header',
                       'Firm Client Directory & Staff Roles',

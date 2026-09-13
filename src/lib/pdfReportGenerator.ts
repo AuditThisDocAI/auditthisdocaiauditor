@@ -70,7 +70,7 @@ export function generateBrandedReportWindow(data: AuditReportData): void {
   });
 
   const engagementRef = data.engagementRef || `ENG-AUD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-  const auditorName = data.auditorName || 'Dr. Aria Sterling, CPA / CFE';
+  const auditorName = data.auditorName || 'FOR-AI Sterling, CPA / CFE';
   const auditorTitle = data.auditorTitle || 'Lead Forensic Auditor';
   const clientName = data.clientName || 'Valued Corporate Client';
   const clientCompany = data.clientCompany || 'Corporate Advisory Division';

@@ -16,7 +16,7 @@ import {
 
 const steps = [
   { id: 0, label: 'Reading Document Text', icon: Upload },
-  { id: 1, label: 'Dr. Aria Forensic Scan', icon: Bot },
+  { id: 1, label: 'FOR-AI Forensic Scan', icon: Bot },
   { id: 2, label: 'Calculating Risk & Findings', icon: ShieldAlert },
 ];
 
@@ -49,7 +49,7 @@ export function DashboardPreview() {
           <div className="w-3 h-3 rounded-full bg-[#10B981]" />
         </div>
         <div className="bg-white border border-[#E2E8F0] rounded-md px-3 py-0.5 text-[11px] font-mono text-[#64748B]">
-          Dr. Aria Forensic Engine v2.4
+          FOR-AI Forensic Engine v2.4
         </div>
         <div className="text-[10px] font-bold text-[#7C3AED] bg-[#7C3AED]/10 px-2 py-0.5 rounded-full">
           5 Free Audits Active
@@ -105,7 +105,7 @@ export function DashboardPreview() {
                   <div className="w-12 h-12 rounded-2xl bg-[#7C3AED]/10 text-[#7C3AED] flex items-center justify-center mx-auto mb-4">
                     <Bot className="w-6 h-6 animate-bounce" />
                   </div>
-                  <h3 className="text-base font-bold text-[#1E293B] mb-4">Dr. Aria Forensic Scan</h3>
+                  <h3 className="text-base font-bold text-[#1E293B] mb-4">FOR-AI Forensic Scan</h3>
                   <div className="space-y-4 text-left">
                     {steps.map((step) => {
                       const isActive = analysisStep === step.id;
@@ -143,7 +143,7 @@ export function DashboardPreview() {
           <div className="space-y-4">
             <div className="flex justify-between items-start pb-3 border-b border-[#E2E8F0]">
               <div>
-                <span className="text-[10px] font-bold text-[#7C3AED] uppercase tracking-wider">Audit Completed by Dr. Aria</span>
+                <span className="text-[10px] font-bold text-[#7C3AED] uppercase tracking-wider">Audit Completed by FOR-AI</span>
                 <h3 className="text-lg font-bold text-[#1E293B]">Vendor Invoice #8920</h3>
                 <div className="text-xs text-[#64748B]">Apex Global Consulting LLC • $17,000.00</div>
               </div>
@@ -153,11 +153,11 @@ export function DashboardPreview() {
               </div>
             </div>
 
-            {/* Dr. Aria Summary */}
+            {/* FOR-AI Summary */}
             <div className="p-3.5 bg-[#F8F9FC] rounded-xl border border-[#E2E8F0]">
               <div className="flex items-center gap-2 mb-1">
                 <Bot className="w-4 h-4 text-[#7C3AED]" />
-                <span className="text-xs font-bold text-[#1E293B]">Dr. Aria (PhD Auditor) Summary:</span>
+                <span className="text-xs font-bold text-[#1E293B]">FOR-AI (PhD Auditor) Summary:</span>
               </div>
               <p className="text-xs text-[#475569] leading-relaxed">
                 "High risk detected due to urgent wire transfer request to an unverified crypto escrow account, combined with missing vendor Tax ID."

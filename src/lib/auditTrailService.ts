@@ -51,7 +51,7 @@ const INITIAL_EVENTS: AuditTrailEvent[] = [
     category: 'DOCUMENT_AUDIT',
     action: 'Invoice #8920 Forensic Analysis',
     severity: 'CRITICAL',
-    actor: 'Dr. Aria AI Forensic Engine',
+    actor: 'FOR-AI AI Forensic Engine',
     documentRef: 'Vendor Invoice #8920 (Apex Global)',
     details: 'Altered SWIFT wire instruction detected. Mismatched vendor tax ID and duplicate billing sequence flagged (Risk Score: 88/100).',
     hash: '3d4e92a1c7b80f1d52a89c2b4e6d8100a12f9c819e0a63d1b9e803fb7180bb14',

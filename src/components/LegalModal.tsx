@@ -152,7 +152,7 @@ export function LegalModal({
                     <span>Scope of Forensic AI & Professional Disclaimer</span>
                   </h5>
                   <p>
-                    ForensicDocAudit utilizes advanced machine learning, optical character recognition (OCR), and statistical anomaly algorithms (including the Dr. Aria AI Engine) to inspect documents, invoices, receipts, and ledger files.
+                    ForensicDocAudit utilizes advanced machine learning, optical character recognition (OCR), and statistical anomaly algorithms (including the FOR-AI AI Engine) to inspect documents, invoices, receipts, and ledger files.
                   </p>
                   <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 space-y-1">
                     <div className="font-bold flex items-center gap-1.5 text-amber-800">

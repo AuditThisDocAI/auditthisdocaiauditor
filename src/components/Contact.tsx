@@ -40,7 +40,7 @@ export function Contact() {
           <div className="p-8 lg:p-10">
             <div className="text-center mb-8">
               <h3 className="text-3xl font-extrabold text-[#1E293B] mb-2">Get in Touch with Our Forensic Team</h3>
-              <p className="text-[#64748B] text-sm">Have questions about Dr. Aria AI or custom enterprise auditing plans? Send your message below.</p>
+              <p className="text-[#64748B] text-sm">Have questions about FOR-AI AI or custom enterprise auditing plans? Send your message below.</p>
             </div>
 
             {submitted ? (

@@ -71,7 +71,7 @@ export default function AuditScanner() {
         <div>
           <h2 className="text-xl sm:text-2xl font-black flex items-center gap-2">
             <ScanSearch className="w-6 h-6 text-[#7C3AED]" />
-            Dr. Aria Forensic Scanner
+            FOR-AI Forensic Scanner
           </h2>
           <p className="text-slate-300 text-sm mt-1">Paste invoice, contract, or receipt text below for instant AI forensic analysis.</p>
         </div>

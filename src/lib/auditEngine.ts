@@ -173,7 +173,7 @@ export function analyzeDocumentLocally(text: string, documentName?: string): Aud
   else if (finalScore >= 55) riskLevel = 'High';
   else if (finalScore >= 35) riskLevel = 'Moderate';
 
-  const summary = `Dr. Aria's forensic analysis identified ${findings.filter(f => f.severity === 'high' || f.severity === 'critical').length} critical risk item(s) and ${findings.length} total forensic finding(s) on ${documentName || detectedType}. Risk Level: ${riskLevel} (${finalScore}/100).`;
+  const summary = `FOR-AI's forensic analysis identified ${findings.filter(f => f.severity === 'high' || f.severity === 'critical').length} critical risk item(s) and ${findings.length} total forensic finding(s) on ${documentName || detectedType}. Risk Level: ${riskLevel} (${finalScore}/100).`;
 
   return {
     riskScore: finalScore,
