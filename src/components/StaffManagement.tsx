@@ -75,18 +75,17 @@ export function StaffManagement() {
 
   const handleRemoveStaff = (id: string, name: string) => {
     if (staffList.length <= 1) {
-      alert('Your firm must retain at least one active firm owner.');
+      setActionNotice('Your firm must retain at least one active firm owner.');
+      setTimeout(() => setActionNotice(null), 3500);
       return;
     }
 
-    if (window.confirm(`Are you sure you want to revoke access for ${name}?`)) {
-      const updated = staffList.filter(s => s.id !== id);
-      saveFirmStaff(firm.id, updated);
-      setStaffList(updated);
+    const updated = staffList.filter(s => s.id !== id);
+    saveFirmStaff(firm.id, updated);
+    setStaffList(updated);
 
-      setActionNotice(`Staff access revoked for ${name}.`);
-      setTimeout(() => setActionNotice(null), 3000);
-    }
+    setActionNotice(`Staff access revoked for ${name}.`);
+    setTimeout(() => setActionNotice(null), 3000);
   };
 
   return (

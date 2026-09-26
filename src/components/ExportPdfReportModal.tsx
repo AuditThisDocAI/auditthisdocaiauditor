@@ -8,11 +8,18 @@ import {
   UserCheck, 
   Hash, 
   FileCheck2, 
-  Sparkles,
-  Printer,
-  CheckCircle2
+  Sparkles, 
+  Printer, 
+  CheckCircle2,
+  FileSpreadsheet
 } from 'lucide-react';
-import { generateBrandedReportWindow, AuditReportData, AuditFindingItem } from '../lib/pdfReportGenerator';
+import { 
+  generateBrandedReportWindow, 
+  downloadAuditReportPdf, 
+  exportAuditAsCsv, 
+  AuditReportData, 
+  AuditFindingItem 
+} from '../lib/pdfReportGenerator';
 import { getActiveFirm } from '../lib/multiTenantDb';
 
 interface ExportPdfReportModalProps {
@@ -81,7 +88,8 @@ export function ExportPdfReportModal({
       keyMetrics: auditResult.keyMetrics
     };
 
-    generateBrandedReportWindow(reportData);
+    // Directly download genuine PDF file using jsPDF
+    downloadAuditReportPdf(reportData);
 
     setTimeout(() => {
       setIsExporting(false);
@@ -243,14 +251,37 @@ export function ExportPdfReportModal({
             Outputs a high-resolution printable PDF certificate.
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
             <button
+              id="btn-modal-cancel"
+              type="button"
               onClick={onClose}
               className="px-4 py-2.5 rounded-xl border border-[#E2E8F0] text-xs font-bold text-[#64748B] hover:text-[#1E293B] hover:bg-white transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
+              id="btn-modal-export-csv"
+              type="button"
+              onClick={() => {
+                exportAuditAsCsv({
+                  documentName,
+                  riskScore: auditResult.riskScore,
+                  riskLevel: auditResult.riskLevel,
+                  documentType: auditResult.documentType,
+                  summary: auditResult.summary,
+                  findings: auditResult.findings,
+                  keyMetrics: auditResult.keyMetrics
+                });
+              }}
+              className="px-4 py-2.5 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-purple-600" />
+              <span>Export CSV</span>
+            </button>
+            <button
+              id="btn-modal-export-pdf"
+              type="button"
               onClick={handleGeneratePdf}
               disabled={isExporting}
               className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs shadow-md shadow-purple-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
@@ -263,7 +294,7 @@ export function ExportPdfReportModal({
               ) : (
                 <>
                   <Download className="w-4 h-4" />
-                  <span>{isExporting ? 'Generating Report...' : 'Download & Print PDF'}</span>
+                  <span>{isExporting ? 'Generating Report...' : 'Download Signed PDF'}</span>
                 </>
               )}
             </button>

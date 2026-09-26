@@ -1,27 +1,117 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ScanSearch, FileText, AlertTriangle, CheckCircle2, ShieldAlert, Loader2, Save } from 'lucide-react';
+import { ScanSearch, FileText, AlertTriangle, CheckCircle2, ShieldAlert, Loader2, Save, Camera, X, RefreshCw, Trash2, Eye, Download, FileDown, Bot } from 'lucide-react';
 import { analyzeDocumentLocally, AuditResult } from '../lib/auditEngine';
 import { appendAuditTrailEvent } from '../lib/auditTrailService';
+import { ExportPdfReportModal } from './ExportPdfReportModal';
+import { downloadImageFile } from '../lib/pdfReportGenerator';
 
 export default function AuditScanner() {
   const [text, setText] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [result, setResult] = useState<AuditResult | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isFromCamera, setIsFromCamera] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const startCamera = async () => {
+    try {
+      setCameraError(null);
+      setIsCameraActive(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.warn("Camera access not available:", err);
+      setCameraError("Camera access unavailable. Please ensure permissions are granted, or upload a photo directly.");
+      setIsCameraActive(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const capturedFile = new File([blob], `invoice_scan_${Date.now().toString().slice(-4)}.jpg`, { type: "image/jpeg" });
+            setFile(capturedFile);
+            setPreviewUrl(URL.createObjectURL(capturedFile));
+            setIsFromCamera(true);
+            stopCamera();
+          }
+        }, 'image/jpeg', 0.9);
+      }
+    }
+  };
+
+  const clearCapturedImage = () => {
+    setFile(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    setIsFromCamera(false);
+  };
 
   const handleScan = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() && !file) return;
     
     setIsScanning(true);
     setResult(null);
     setIsSaved(false);
 
     try {
+      let base64Data = '';
+      let mimeType = '';
+      let documentName = '';
+
+      if (file) {
+        documentName = file.name;
+        mimeType = file.type;
+        base64Data = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]);
+          };
+          reader.onerror = error => reject(error);
+        });
+      }
+
       const response = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ documentText: text })
+        body: JSON.stringify({ 
+          documentText: text,
+          documentName: documentName,
+          fileData: file ? { base64: base64Data, mimeType } : undefined
+        })
       });
 
       if (!response.ok) throw new Error('API error');
@@ -29,7 +119,7 @@ export default function AuditScanner() {
       const scanResult = await response.json();
       setResult(scanResult);
     } catch (e) {
-      console.warn("Falling back to local heuristic analysis:", e);
+      console.info("Using local analysis fallback.");
       const scanResult = analyzeDocumentLocally(text);
       setResult(scanResult);
     } finally {
@@ -65,6 +155,12 @@ export default function AuditScanner() {
     }
   };
 
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
   return (
     <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-sm overflow-hidden mb-8">
       <div className="bg-gradient-to-r from-[#1E293B] to-[#0F172A] p-6 text-white flex items-center justify-between">
@@ -84,28 +180,172 @@ export default function AuditScanner() {
       <div className="p-6 sm:p-8">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-slate-400" />
-              Raw Document Text
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-slate-400" />
+                Upload Document or Take Photo
+              </label>
+              {!isCameraActive && (
+                <button
+                  onClick={startCamera}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#7C3AED] bg-[#7C3AED]/10 rounded-lg hover:bg-[#7C3AED]/20 transition-all"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  {previewUrl && isFromCamera ? 'Retake Photo' : 'Use Camera'}
+                </button>
+              )}
+            </div>
+
+            {cameraError && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-900 text-xs rounded-xl flex items-center justify-between gap-2">
+                <span>{cameraError}</span>
+                <button type="button" onClick={() => setCameraError(null)} className="text-amber-700 hover:text-amber-900 cursor-pointer">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {isCameraActive && (
+              <div className="mb-4 relative rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-200">
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  playsInline 
+                  className="w-full max-h-[400px] object-contain"
+                />
+                <canvas ref={canvasRef} className="hidden" />
+                
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent flex justify-center items-center gap-4">
+                  <button 
+                    onClick={stopCamera}
+                    className="p-3 bg-white/20 text-white rounded-full hover:bg-white/30 backdrop-blur-sm transition-all"
+                    title="Cancel"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                  <button 
+                    onClick={capturePhoto}
+                    className="w-16 h-16 bg-white rounded-full border-4 border-slate-300 hover:border-white transition-all shadow-lg flex items-center justify-center"
+                    title="Take Photo"
+                  >
+                    <Camera className="w-6 h-6 text-slate-800" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Thumbnail Preview of Captured/Selected Image */}
+            {previewUrl && file && !isCameraActive && (
+              <div className="mb-4 p-4 rounded-2xl border border-purple-200 bg-purple-50/60 transition-all">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="relative flex-shrink-0">
+                      <img 
+                        src={previewUrl} 
+                        alt="Captured invoice thumbnail preview" 
+                        className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl border-2 border-purple-300 shadow-sm bg-white"
+                      />
+                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center shadow-sm">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#7C3AED] text-white shadow-sm">
+                          {isFromCamera ? (
+                            <>
+                              <Camera className="w-3 h-3" />
+                              Captured Photo
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="w-3 h-3" />
+                              Document Image
+                            </>
+                          )}
+                        </span>
+                        <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100/90 border border-emerald-200 px-2 py-0.5 rounded-full">
+                          Ready to Audit
+                        </span>
+                      </div>
+                      <p className="text-sm font-bold text-slate-900 truncate max-w-[200px] sm:max-w-[280px]">
+                        {file.name}
+                      </p>
+                      <p className="text-xs text-slate-500 font-mono">
+                        {(file.size / 1024).toFixed(1)} KB • {file.type || 'image/jpeg'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                    <button
+                      type="button"
+                      onClick={() => file && downloadImageFile(file, file.name)}
+                      className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-[#7C3AED] transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                      title="Download image file to your device"
+                    >
+                      <Download className="w-3.5 h-3.5 text-[#7C3AED]" />
+                      Download Scan
+                    </button>
+                    {isFromCamera && (
+                      <button
+                        type="button"
+                        onClick={startCamera}
+                        className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-[#7C3AED] transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Retake Photo
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={clearCapturedImage}
+                      className="flex-1 sm:flex-none px-3.5 py-2 text-xs font-bold text-red-600 bg-white border border-red-200 rounded-xl hover:bg-red-50 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!isCameraActive && !previewUrl && (
+              <div className="mb-4">
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, application/pdf"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setFile(f);
+                      setPreviewUrl(URL.createObjectURL(f));
+                      setIsFromCamera(false);
+                    }
+                  }}
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-[#7C3AED]/10 file:text-[#7C3AED] hover:file:bg-[#7C3AED]/20 transition-all cursor-pointer"
+                />
+              </div>
+            )}
+            
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Paste the raw text of an invoice, receipt, or contract here..."
-              className="w-full h-48 p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all resize-none text-sm font-mono text-slate-600"
+              placeholder="Optional: Paste raw text here if you want to scan text instead..."
+              className="w-full h-32 p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all resize-none text-sm font-mono text-slate-600"
             />
           </div>
-
           <div className="flex justify-end">
             <button
               onClick={handleScan}
-              disabled={isScanning || !text.trim()}
+              disabled={isScanning || (!text.trim() && !file)}
               className="bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-purple-500/20 flex items-center gap-2"
             >
               {isScanning ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Analyzing Text...
+                  Analyzing...
                 </>
               ) : (
                 <>
@@ -179,6 +419,38 @@ export default function AuditScanner() {
                 </div>
               </div>
 
+              {previewUrl && (
+                <div className="mb-8">
+                  <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <ScanSearch className="w-4 h-4 text-[#7C3AED]" />
+                    Visual Anomaly Overlay
+                  </h3>
+                  <div className="relative inline-block w-full max-w-2xl border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                    <img src={previewUrl} alt="Document Preview" className="w-full h-auto object-contain" />
+                    {result.findings.map((finding, idx) => {
+                      if (finding.boundingBox) {
+                        return (
+                          <div 
+                            key={idx}
+                            className="absolute border-2 border-red-500 bg-red-500/20 cursor-pointer group"
+                            style={{ 
+                              left: `${finding.boundingBox.x}%`, 
+                              top: `${finding.boundingBox.y}%`, 
+                              width: `${finding.boundingBox.width}%`, 
+                              height: `${finding.boundingBox.height}%` 
+                            }}
+                          >
+                            <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+                              {finding.title}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+                </div>
+              )}
               {/* Findings */}
               <div>
                 <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
@@ -216,11 +488,46 @@ export default function AuditScanner() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-slate-200">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowReportModal(true)}
+                    className="px-5 py-3 rounded-xl font-bold bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center gap-2 transition-all shadow-md shadow-[#7C3AED]/20 text-xs sm:text-sm cursor-pointer"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    Export / Download PDF Report
+                  </button>
+
+                  {file && (
+                    <button
+                      type="button"
+                      onClick={() => downloadImageFile(file, file.name)}
+                      className="px-4 py-3 rounded-xl font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center gap-2 transition-all text-xs sm:text-sm shadow-sm cursor-pointer"
+                    >
+                      <Download className="w-4 h-4 text-slate-500" />
+                      Download Scan File
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('open-dr-aria-chat', {
+                        detail: { prompt: `Dr. Aria, please review this ${result.documentType} scan with risk score ${result.riskScore}/100. What remediation do you advise?` }
+                      }));
+                    }}
+                    className="px-4 py-3 rounded-xl font-bold bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C3AED] flex items-center gap-2 transition-all text-xs sm:text-sm shadow-xs cursor-pointer"
+                  >
+                    <Bot className="w-4 h-4 text-[#7C3AED]" />
+                    Consult Dr. Aria
+                  </button>
+                </div>
+
                 <button
                   onClick={handleCommitToLedger}
                   disabled={isSaved}
-                  className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm ${
+                  className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm text-xs sm:text-sm cursor-pointer ${
                     isSaved 
                       ? 'bg-emerald-100 text-emerald-700 cursor-not-allowed'
                       : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'
@@ -243,6 +550,15 @@ export default function AuditScanner() {
           )}
         </AnimatePresence>
       </div>
+
+      {result && (
+        <ExportPdfReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          auditResult={result}
+          documentName={file?.name || 'Document Scan'}
+        />
+      )}
     </div>
   );
 }

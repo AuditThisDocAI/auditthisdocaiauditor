@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShieldCheck, Lock, Check, ArrowLeft, Loader2, 
-  Key, ExternalLink, CheckCircle2, AlertCircle, ArrowRight,
+  Key, ExternalLink, CheckCircle2, AlertCircle, AlertTriangle, ArrowRight,
   CreditCard
 } from 'lucide-react';
 import { useCurrency } from '../lib/currency';
@@ -54,23 +54,40 @@ export function FreemiusCheckoutModal({
   const [licenseError, setLicenseError] = useState('');
   const [licenseSuccess, setLicenseSuccess] = useState('');
 
-  // Fetch Freemius config from backend
-  const [fsConfig, setFsConfig] = useState<{ productId: string, planMonthlyId: string, planYearlyId: string, customCheckoutUrl?: string } | null>(null);
+  // Fetch Freemius config from backend with resilient defaults
+  const [fsConfig, setFsConfig] = useState<{ productId: string, planMonthlyId: string, planYearlyId: string, customCheckoutUrl?: string }>({
+    productId: 'pk_c5c45a2d02f27da8abc030891cdc6',
+    planMonthlyId: '67417',
+    planYearlyId: '67417',
+    customCheckoutUrl: 'https://checkout.freemius.com/app/39287/plan/67417/licenses/1/'
+  });
 
   useEffect(() => {
-    fetch('/api/freemius/config')
-      .then(res => res.json())
-      .then(data => setFsConfig(data))
-      .catch(err => console.error("Failed to load Freemius config", err));
+    let isMounted = true;
+    const loadConfig = async () => {
+      try {
+        const res = await fetch('/api/freemius/config');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data && data.productId) {
+            setFsConfig(data);
+          }
+        }
+      } catch (err) {
+        // Graceful fallback to default configuration without spitting uncaught errors
+      }
+    };
+    loadConfig();
+    return () => { isMounted = false; };
   }, []);
 
   // Default Freemius URL
-  const productId = fsConfig?.productId || '33243';
-  const planId = isYearly ? (fsConfig?.planYearlyId || '61464') : (fsConfig?.planMonthlyId || '61454');
+  const productId = fsConfig.productId || 'pk_c5c45a2d02f27da8abc030891cdc6';
+  const planId = isYearly ? (fsConfig.planYearlyId || '67417') : (fsConfig.planMonthlyId || '67417');
   
   // Use custom checkout URL if provided, otherwise build the standard Freemius URL using /product/
   let defaultFreemiusUrl = '';
-  if (fsConfig?.customCheckoutUrl) {
+  if (fsConfig.customCheckoutUrl) {
     const separator = fsConfig.customCheckoutUrl.includes('?') ? '&' : '?';
     defaultFreemiusUrl = `${fsConfig.customCheckoutUrl}${separator}user_email=${encodeURIComponent(userEmail || '')}&billing_cycle=${isYearly ? 'annual' : 'monthly'}`;
   } else {
@@ -382,17 +399,26 @@ export function FreemiusCheckoutModal({
                         />
                       </div>
 
+                      {checkoutError && (
+                        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                          <span>{checkoutError}</span>
+                        </div>
+                      )}
+
                       {/* Primary Direct Payment Button */}
-                      <div className="pt-4">
+                      <div className="pt-2">
                         <a
                           href={userEmail ? defaultFreemiusUrl : '#'}
                           target={userEmail ? "_blank" : "_self"}
                           rel="noopener noreferrer"
                           onClick={(e) => {
-                            if (!userEmail) {
+                            if (!userEmail || !userEmail.includes('@')) {
                               e.preventDefault();
-                              alert('Please enter your billing email first.');
+                              setCheckoutError('Please enter a valid billing email address before proceeding.');
+                              return;
                             }
+                            setCheckoutError('');
                           }}
                           className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] active:bg-[#5B21B6] text-white font-extrabold py-3.5 px-6 rounded-xl shadow-lg shadow-purple-500/25 transition-all text-sm flex items-center justify-center gap-2.5 cursor-pointer"
                         >

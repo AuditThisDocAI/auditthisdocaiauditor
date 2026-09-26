@@ -74,6 +74,7 @@ export function Navbar() {
   const isPaidAndSignedUp = isLoggedIn && isPro;
 
   const linksToShow = [
+    { name: 'AI Auditor', href: '#document-auditor' },
     ...(isPro ? [{ name: 'Audit Trail', href: '#audittrail' }] : []), // Audit Trail - strictly visible to paying subscribers
     { name: 'Bookkeeping', href: '#bookkeeping' },
     { name: 'Features', href: '#features' },
@@ -186,6 +187,17 @@ export function Navbar() {
             </div>
 
             <div className="hidden lg:flex items-center gap-3">
+              {/* Dr. Aria AI Chat Quick Launcher */}
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('open-dr-aria-chat'))}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C3AED] text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer shadow-xs"
+                title="Chat with Dr. Aria (AI Forensic Auditor)"
+              >
+                <Bot className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <span>Dr. Aria AI</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              </button>
+
               {/* Currency Converter Toggle - ONLY shown after user signed up */}
               {isLoggedIn && <CurrencySelector />}
 
@@ -264,6 +276,24 @@ export function Navbar() {
               className="absolute top-full left-0 right-0 bg-white border-t border-[#E2E8F0] p-4 lg:hidden shadow-2xl"
             >
               <div className="flex flex-col gap-2.5">
+                {/* Dr. Aria AI Launcher Mobile */}
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    window.dispatchEvent(new CustomEvent('open-dr-aria-chat'));
+                  }}
+                  className="bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C3AED] px-4 py-2.5 rounded-xl font-bold text-sm flex items-center justify-between transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Bot className="w-4 h-4 text-[#7C3AED]" />
+                    <span>Chat with Dr. Aria AI</span>
+                  </div>
+                  <span className="flex items-center gap-1 text-[11px] bg-white px-2 py-0.5 rounded-full border border-purple-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Online
+                  </span>
+                </button>
+
                 {isLoggedIn && (
                   <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 px-2">
                     <span className="text-xs font-bold text-slate-500">Currency Preference:</span>

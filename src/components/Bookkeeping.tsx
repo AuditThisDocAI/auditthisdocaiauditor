@@ -149,13 +149,11 @@ export function Bookkeeping() {
       const updated = entries.map(e => e.status === 'Pending' ? { ...e, status: 'Reconciled' as const } : e);
       persistEntries(updated);
       setReconciling(false);
-      alert('🎉 FOR-AI AI Reconciliation Complete! 100% of vendor transactions cross-referenced against audit logs.');
     }, 1200);
   };
 
   const handleExportCSV = () => {
     if (entries.length === 0) {
-      alert('No journal entries available to export.');
       return;
     }
     const headers = ['Journal ID', 'Date', 'Type', 'Vendor/Client', 'Category', 'Amount ($)', 'Tax ($)', 'Status', 'Notes'];

@@ -23,15 +23,24 @@ import {
   ShieldCheck,
   Building2,
   LogOut,
-  Palette
+  Palette,
+  Flame,
+  ScanSearch,
+  Layers,
+  UploadCloud,
+  FileDown,
+  FileSpreadsheet
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { WhiteLabelModal } from './WhiteLabelModal';
+import { ExportPdfReportModal } from './ExportPdfReportModal';
+import { exportAuditAsCsv } from '../lib/pdfReportGenerator';
 import { getWhiteLabelConfig, WhiteLabelConfig } from '../lib/whitelabel';
 import { MonthlyUsageMeter } from './MonthlyUsageMeter';
 import { DiscrepancyTrendAnalytics } from './DiscrepancyTrendAnalytics';
 import { SessionSecurityWidget } from './SessionSecurityWidget';
 import { performLogout } from '../lib/sessionManager';
+import DocumentHeatmapOverlay from './DocumentHeatmapOverlay';
 
 interface AuditLog {
   id: string;
@@ -43,11 +52,17 @@ interface AuditLog {
   summary: string;
   findingsCount: number;
   findings: Array<{
-    category: string;
+    category?: string;
     title: string;
     description: string;
-    severity: 'low' | 'medium' | 'high' | 'critical';
-    recommendation: string;
+    severity: 'low' | 'medium' | 'high' | 'critical' | string;
+    recommendation?: string;
+    boundingBox?: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
   }>;
   keyMetrics?: {
     detectedVendor?: string;
@@ -55,6 +70,7 @@ interface AuditLog {
     detectedDate?: string;
     missingFields?: string[];
   };
+  imageUrl?: string;
   ip?: string;
 }
 
@@ -75,6 +91,7 @@ interface DashboardData {
 
 import { isCurrentAdmin, isUserPro, isSuperAdminEmail, FREE_AUDIT_LIMIT } from '../lib/authUtils';
 import AuditScanner from './AuditScanner';
+import { SecureDocumentUploader } from './SecureDocumentUploader';
 import { FinancialTools } from './FinancialTools';
 
 export function Dashboard() {
@@ -82,10 +99,15 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [scannerMode, setScannerMode] = useState<'secure-upload' | 'quick-scanner'>('secure-upload');
   const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('All');
   const [typeFilter, setTypeFilter] = useState<string>('All');
   const [selectedAudit, setSelectedAudit] = useState<AuditLog | null>(null);
+  const [exportingAudit, setExportingAudit] = useState<AuditLog | null>(null);
+  const [selectedHeatmapAuditId, setSelectedHeatmapAuditId] = useState<string | null>(null);
+  const [modalTab, setModalTab] = useState<'heatmap' | 'report'>('heatmap');
+  const [activeFindingIndex, setActiveFindingIndex] = useState<number | null>(null);
   const [isPro, setIsPro] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [usedCount, setUsedCount] = useState(0);
@@ -127,9 +149,21 @@ export function Dashboard() {
       if (res.ok) {
         const json = await res.json();
         setData(json);
+      } else {
+        console.warn('Dashboard stats returned non-200 status code:', res.status);
       }
     } catch (err) {
-      console.error('Failed to fetch admin dashboard stats:', err);
+      console.info('Transient network or restart when fetching dashboard stats:', err);
+      // Graceful fallback to avoid empty or broken dashboard view during network transitions
+      setData(prev => prev || {
+        totalAudits: 0,
+        highRiskCount: 0,
+        avgRiskScore: 0,
+        activeSessions: 1,
+        riskDistribution: { Low: 0, Moderate: 0, High: 0, Critical: 0 },
+        documentTypes: { 'General': 0 },
+        recentAudits: []
+      });
     } finally {
       setLoading(false);
       if (isManual) setTimeout(() => setRefreshing(false), 400);
@@ -157,19 +191,19 @@ export function Dashboard() {
         await fetch('/api/admin/clear-audits', { method: 'POST' });
         fetchDashboardData(true);
       } catch (err) {
-        console.error('Failed to clear logs:', err);
+        console.warn('Failed to clear logs:', err);
       }
     }
   };
 
   const handleExportCSV = () => {
-    if (!data || !data.recentAudits.length) {
-      alert('No audit log records available to export.');
+    const list = data?.recentAudits || [];
+    if (!list.length) {
       return;
     }
 
     const headers = ['Audit ID', 'Timestamp', 'Document Name', 'Type', 'Risk Score', 'Risk Level', 'Detected Vendor', 'Detected Amount', 'Findings Count'];
-    const rows = data.recentAudits.map(a => [
+    const rows = list.map(a => [
       a.id,
       new Date(a.timestamp).toLocaleString(),
       `"${(a.documentName || '').replace(/"/g, '""')}"`,
@@ -204,6 +238,12 @@ export function Dashboard() {
 
     return matchesSearch && matchesRisk && matchesType;
   });
+
+  const activeHeatmapAudit = 
+    data?.recentAudits.find(a => a.id === selectedHeatmapAuditId) ||
+    data?.recentAudits.find(a => a.riskLevel === 'Critical' || a.riskLevel === 'High') ||
+    data?.recentAudits[0] ||
+    null;
 
   // Prepare Chart Data
   const riskChartData = [
@@ -347,10 +387,28 @@ export function Dashboard() {
           </button>
 
           <button
-            onClick={handleExportCSV}
-            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-purple-500/20 transition-all flex items-center gap-2"
+            id="btn-header-download-report"
+            onClick={() => {
+              const target = selectedAudit || activeHeatmapAudit || (data?.recentAudits && data.recentAudits[0]) || null;
+              if (target) {
+                setExportingAudit(target);
+              } else {
+                handleExportCSV();
+              }
+            }}
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-md shadow-purple-500/25 transition-all flex items-center gap-2 cursor-pointer"
+            title="Download signed forensic report as PDF or CSV"
           >
-            <Download className="w-4 h-4" />
+            <FileDown className="w-4 h-4" />
+            Download Report
+          </button>
+
+          <button
+            onClick={handleExportCSV}
+            className="bg-white hover:bg-slate-100 text-[#1E293B] border border-[#E2E8F0] px-4 py-2.5 rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center gap-2"
+            title="Export entire activity log history as CSV"
+          >
+            <Download className="w-4 h-4 text-[#7C3AED]" />
             Export CSV Log
           </button>
 
@@ -374,8 +432,70 @@ export function Dashboard() {
       {/* Compliance Session Security Widget */}
       <SessionSecurityWidget />
 
-      {/* FOR-AI Forensic Scanner */}
-      <AuditScanner />
+      {/* Forensic Scanning & Document Attachment Suite */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
+              Forensic Ingestion Mode:
+            </span>
+            <div className="inline-flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200">
+              <button
+                id="btn-mode-secure-upload"
+                type="button"
+                onClick={() => setScannerMode('secure-upload')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  scannerMode === 'secure-upload'
+                    ? 'bg-white text-[#7C3AED] shadow-2xs font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>Secure File Attachment (PDF / Images)</span>
+              </button>
+
+              <button
+                id="btn-mode-quick-scanner"
+                type="button"
+                onClick={() => setScannerMode('quick-scanner')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  scannerMode === 'quick-scanner'
+                    ? 'bg-white text-[#7C3AED] shadow-2xs font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <ScanSearch className="w-3.5 h-3.5" />
+                <span>Interactive OCR & Camera Scanner</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Real-time Gemini 3.8 Flash Neural Engine Active</span>
+          </div>
+        </div>
+
+        {scannerMode === 'secure-upload' ? (
+          <SecureDocumentUploader
+            onScanComplete={() => {
+              fetchDashboardData(true);
+              syncQuotaState();
+            }}
+            onViewHeatmap={(audit) => {
+              if (audit?.id) {
+                setSelectedHeatmapAuditId(audit.id);
+              }
+              const elem = document.getElementById('heatmap-analytics-section');
+              if (elem) {
+                elem.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+          />
+        ) : (
+          <AuditScanner />
+        )}
+      </div>
 
       <FinancialTools />
 
@@ -630,6 +750,91 @@ export function Dashboard() {
         avgRiskScore={data?.avgRiskScore || 0}
       />
 
+      {/* Visual Document Fraud Heatmap Showcase */}
+      <div id="heatmap-analytics-section" className="bg-white rounded-3xl border border-[#E2E8F0] shadow-sm overflow-hidden p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-red-500/10 text-red-600 border border-red-500/20">
+                <Flame className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="font-extrabold text-[#1E293B] text-xl">
+                AI Visual Document Heatmap
+              </h3>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
+                SVG Fraud Overlays
+              </span>
+            </div>
+            <p className="text-xs text-[#64748B] mt-1 max-w-2xl">
+              Real-time SVG heat dissipation and high-risk target overlays on audited documents, highlighting sections flagged for forgery, tax non-compliance, and wire tampering.
+            </p>
+          </div>
+
+          {/* Document Switcher Selector & Download Report Button */}
+          {data?.recentAudits && data.recentAudits.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-[#64748B] whitespace-nowrap">Select Scan:</span>
+              <select
+                value={activeHeatmapAudit?.id || ''}
+                onChange={(e) => {
+                  const target = data.recentAudits.find(a => a.id === e.target.value);
+                  if (target) {
+                    setSelectedHeatmapAuditId(target.id);
+                    setActiveFindingIndex(null);
+                  }
+                }}
+                className="bg-[#F8F9FC] border border-[#E2E8F0] text-[#1E293B] font-bold text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-[#7C3AED] max-w-xs truncate shadow-xs"
+              >
+                {data.recentAudits.map(audit => (
+                  <option key={audit.id} value={audit.id}>
+                    {audit.documentName} ({audit.riskScore}/100 - {audit.riskLevel} Risk)
+                  </option>
+                ))}
+              </select>
+
+              {activeHeatmapAudit && (
+                <button
+                  id="btn-heatmap-download-report"
+                  type="button"
+                  onClick={() => setExportingAudit(activeHeatmapAudit)}
+                  className="bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  title="Download signed forensic report or CSV for this document"
+                >
+                  <FileDown className="w-3.5 h-3.5 text-[#7C3AED]" />
+                  <span>Download Report</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Heatmap Component */}
+        {activeHeatmapAudit ? (
+          <div className="space-y-3">
+            <DocumentHeatmapOverlay
+              documentName={activeHeatmapAudit.documentName}
+              documentType={activeHeatmapAudit.documentType}
+              riskScore={activeHeatmapAudit.riskScore}
+              riskLevel={activeHeatmapAudit.riskLevel}
+              summary={activeHeatmapAudit.summary}
+              findings={activeHeatmapAudit.findings}
+              keyMetrics={activeHeatmapAudit.keyMetrics}
+              imageUrl={activeHeatmapAudit.imageUrl}
+              onFindingSelect={(f, idx) => {
+                setActiveFindingIndex(idx);
+              }}
+              selectedFindingIndex={activeFindingIndex}
+            />
+          </div>
+        ) : (
+          <div className="p-10 text-center bg-[#F8F9FC] rounded-2xl border border-dashed border-[#CBD5E1] text-[#64748B]">
+            <Flame className="w-10 h-10 mx-auto text-[#94A3B8] mb-2" />
+            <p className="font-bold text-sm">No audit documents available for heatmap visualization yet.</p>
+            <p className="text-xs mt-1">Upload an invoice or document to generate visual SVG heatmap overlays.</p>
+          </div>
+        )}
+      </div>
+
       {/* Main Realtime Audit Activity Table */}
       <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-sm overflow-hidden">
         {/* Table Filter Controls */}
@@ -747,13 +952,40 @@ export function Dashboard() {
                       )}
                     </td>
                     <td className="p-4 text-right">
-                      <button
-                        onClick={() => setSelectedAudit(audit)}
-                        className="bg-[#7C3AED]/10 hover:bg-[#7C3AED] text-[#7C3AED] hover:text-white px-3 py-1.5 rounded-lg font-bold text-xs transition-colors flex items-center gap-1 ml-auto"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        Inspect Report
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedAudit(audit);
+                            setModalTab('heatmap');
+                            setActiveFindingIndex(null);
+                          }}
+                          className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-colors flex items-center gap-1 shadow-xs"
+                          title="View visual SVG fraud heatmap"
+                        >
+                          <Flame className="w-3.5 h-3.5 text-red-500" />
+                          Heatmap
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedAudit(audit);
+                            setModalTab('report');
+                          }}
+                          className="bg-[#7C3AED]/10 hover:bg-[#7C3AED] text-[#7C3AED] hover:text-white px-2.5 py-1.5 rounded-lg font-bold text-xs transition-colors flex items-center gap-1"
+                          title="Inspect full audit report"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Report
+                        </button>
+                        <button
+                          id={`btn-table-download-${audit.id}`}
+                          onClick={() => setExportingAudit(audit)}
+                          className="bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-colors flex items-center gap-1 shadow-2xs cursor-pointer"
+                          title="Download signed PDF certificate or CSV report for this document"
+                        >
+                          <Download className="w-3.5 h-3.5 text-[#7C3AED]" />
+                          Download
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -763,118 +995,247 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Inspect Audit Detail Modal */}
+      {/* Inspect Audit Detail Modal with Visual Heatmap */}
       <AnimatePresence>
         {selectedAudit && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 border border-[#E2E8F0] shadow-2xl relative my-8"
+              className="bg-white rounded-3xl max-w-5xl w-full p-6 sm:p-8 border border-[#E2E8F0] shadow-2xl relative my-auto max-h-[92vh] flex flex-col"
             >
               <button
                 onClick={() => setSelectedAudit(null)}
-                className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+                className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors z-10"
               >
                 <X className="w-5 h-5" />
               </button>
 
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#7C3AED]">FOR-AI Forensic Report</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-[#7C3AED]">FOR-AI Forensic Report & Heatmap</span>
                 <span className="text-xs text-[#94A3B8]">• {new Date(selectedAudit.timestamp).toLocaleString()}</span>
               </div>
 
-              <h3 className="text-2xl font-black text-[#1E293B] mb-4">
-                {selectedAudit.documentName}
-              </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pr-10">
+                <h3 className="text-2xl font-black text-[#1E293B] truncate">
+                  {selectedAudit.documentName}
+                </h3>
 
-              {/* Banners */}
-              <div className="flex flex-wrap items-center gap-4 p-4 rounded-2xl bg-[#F8F9FC] border border-[#E2E8F0] mb-6">
-                <div>
-                  <span className="text-[10px] font-bold text-[#64748B] uppercase">Calculated Risk Score</span>
-                  <div className="text-2xl font-extrabold text-[#1E293B]">
-                    {selectedAudit.riskScore} <span className="text-xs text-[#64748B]">/ 100</span>
-                  </div>
+                {/* Tab Switcher */}
+                <div className="flex items-center p-1 bg-[#F1F5F9] rounded-xl border border-[#E2E8F0] text-xs font-bold shrink-0">
+                  <button
+                    onClick={() => setModalTab('heatmap')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                      modalTab === 'heatmap'
+                        ? 'bg-white text-red-600 shadow-xs border border-red-200'
+                        : 'text-[#64748B] hover:text-[#1E293B]'
+                    }`}
+                  >
+                    <Flame className="w-4 h-4 text-red-500" />
+                    Visual Heatmap
+                  </button>
+                  <button
+                    onClick={() => setModalTab('report')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                      modalTab === 'report'
+                        ? 'bg-white text-[#7C3AED] shadow-xs border border-[#E2E8F0]'
+                        : 'text-[#64748B] hover:text-[#1E293B]'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" />
+                    Executive Findings ({selectedAudit.findings.length})
+                  </button>
                 </div>
+              </div>
 
-                <div className="h-8 w-px bg-[#E2E8F0]" />
+              {/* Modal Body Container with Scroll */}
+              <div className="overflow-y-auto flex-1 pr-1 space-y-6">
+                {modalTab === 'heatmap' ? (
+                  <div className="space-y-4">
+                    <DocumentHeatmapOverlay
+                      documentName={selectedAudit.documentName}
+                      documentType={selectedAudit.documentType}
+                      riskScore={selectedAudit.riskScore}
+                      riskLevel={selectedAudit.riskLevel}
+                      summary={selectedAudit.summary}
+                      findings={selectedAudit.findings}
+                      keyMetrics={selectedAudit.keyMetrics}
+                      imageUrl={selectedAudit.imageUrl}
+                      onFindingSelect={(f, idx) => {
+                        setActiveFindingIndex(idx);
+                      }}
+                      selectedFindingIndex={activeFindingIndex}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Banners */}
+                    <div className="flex flex-wrap items-center gap-4 p-4 rounded-2xl bg-[#F8F9FC] border border-[#E2E8F0]">
+                      <div>
+                        <span className="text-[10px] font-bold text-[#64748B] uppercase">Calculated Risk Score</span>
+                        <div className="text-2xl font-extrabold text-[#1E293B]">
+                          {selectedAudit.riskScore} <span className="text-xs text-[#64748B]">/ 100</span>
+                        </div>
+                      </div>
 
-                <div>
-                  <span className="text-[10px] font-bold text-[#64748B] uppercase">Forensic Classification</span>
-                  <div className="mt-0.5">
-                    <span className={`px-3 py-1 rounded-full font-bold text-xs border ${getRiskBadgeColor(selectedAudit.riskLevel)}`}>
-                      {selectedAudit.riskLevel} Risk
+                      <div className="h-8 w-px bg-[#E2E8F0]" />
+
+                      <div>
+                        <span className="text-[10px] font-bold text-[#64748B] uppercase">Forensic Classification</span>
+                        <div className="mt-0.5">
+                          <span className={`px-3 py-1 rounded-full font-bold text-xs border ${getRiskBadgeColor(selectedAudit.riskLevel)}`}>
+                            {selectedAudit.riskLevel} Risk
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="h-8 w-px bg-[#E2E8F0]" />
+
+                      <div>
+                        <span className="text-[10px] font-bold text-[#64748B] uppercase">Document Type</span>
+                        <div className="text-sm font-bold text-[#1E293B] mt-0.5">{selectedAudit.documentType}</div>
+                      </div>
+                    </div>
+
+                    {/* Key Metrics */}
+                    {selectedAudit.keyMetrics && (
+                      <div className="grid grid-cols-2 gap-3 bg-purple-50/50 p-4 rounded-2xl border border-purple-100 text-xs">
+                        <div>
+                          <span className="font-bold text-[#64748B]">Detected Vendor:</span>
+                          <p className="font-extrabold text-[#1E293B] text-sm">{selectedAudit.keyMetrics.detectedVendor || 'Verified'}</p>
+                        </div>
+                        <div>
+                          <span className="font-bold text-[#64748B]">Detected Amount:</span>
+                          <p className="font-extrabold text-[#10B981] text-sm">{selectedAudit.keyMetrics.detectedAmount || 'N/A'}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Summary */}
+                    <div>
+                      <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider mb-2">Executive Audit Summary</h4>
+                      <p className="text-sm text-[#475569] leading-relaxed bg-[#F8F9FC] p-4 rounded-2xl border border-[#E2E8F0]">
+                        {selectedAudit.summary}
+                      </p>
+                    </div>
+
+                    {/* Findings List */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider">
+                        Itemized Forensic Findings ({selectedAudit.findings.length})
+                      </h4>
+                      {selectedAudit.findings.map((f, i) => (
+                        <div key={i} className="p-4 rounded-2xl border border-[#E2E8F0] bg-white space-y-1.5 shadow-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-xs text-[#1E293B] flex items-center gap-2">
+                              <AlertTriangle className="w-4 h-4 text-amber-500" />
+                              {f.title}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getSeverityBadge(f.severity)}`}>
+                              {f.severity}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#64748B]">{f.description}</p>
+                          <div className="text-xs text-[#7C3AED] font-semibold pt-1 border-t border-gray-100 flex items-center justify-between">
+                            <span><strong>Remediation:</strong> {f.recommendation}</span>
+                            <button
+                              onClick={() => {
+                                setModalTab('heatmap');
+                                setActiveFindingIndex(i);
+                              }}
+                              className="text-red-600 hover:text-red-700 font-bold text-[11px] underline ml-2"
+                            >
+                              View on Heatmap →
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-[#E2E8F0] mt-4">
+                <div className="text-xs text-[#64748B]">
+                  {modalTab === 'heatmap' ? (
+                    <span className="flex items-center gap-1 text-red-600 font-medium">
+                      <Flame className="w-3.5 h-3.5" /> High-risk sections highlighted with SVG gradients & targets
                     </span>
-                  </div>
+                  ) : (
+                    <span>Audit Log ID: <span className="font-mono text-[#1E293B] font-bold">{selectedAudit.id}</span></span>
+                  )}
                 </div>
 
-                <div className="h-8 w-px bg-[#E2E8F0]" />
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                  <button
+                    id="btn-inspect-export-csv"
+                    type="button"
+                    onClick={() => {
+                      exportAuditAsCsv({
+                        documentName: selectedAudit.documentName,
+                        timestamp: selectedAudit.timestamp,
+                        riskScore: selectedAudit.riskScore,
+                        riskLevel: selectedAudit.riskLevel,
+                        documentType: selectedAudit.documentType,
+                        summary: selectedAudit.summary,
+                        findings: selectedAudit.findings,
+                        keyMetrics: selectedAudit.keyMetrics
+                      });
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    title="Export itemized audit analysis as CSV spreadsheet"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Export CSV</span>
+                  </button>
 
-                <div>
-                  <span className="text-[10px] font-bold text-[#64748B] uppercase">Document Type</span>
-                  <div className="text-sm font-bold text-[#1E293B] mt-0.5">{selectedAudit.documentType}</div>
+                  <button
+                    id="btn-inspect-download-pdf"
+                    type="button"
+                    onClick={() => setExportingAudit(selectedAudit)}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-purple-500/20"
+                    title="Generate and download certified signed PDF report"
+                  >
+                    <FileDown className="w-3.5 h-3.5" />
+                    <span>Download Signed PDF</span>
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedAudit(null)}
+                    className="bg-[#1E293B] hover:bg-[#0F172A] text-white px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Close Report
+                  </button>
                 </div>
-              </div>
-
-              {/* Key Metrics */}
-              {selectedAudit.keyMetrics && (
-                <div className="grid grid-cols-2 gap-3 mb-6 bg-purple-50/50 p-4 rounded-2xl border border-purple-100 text-xs">
-                  <div>
-                    <span className="font-bold text-[#64748B]">Detected Vendor:</span>
-                    <p className="font-extrabold text-[#1E293B] text-sm">{selectedAudit.keyMetrics.detectedVendor || 'Verified'}</p>
-                  </div>
-                  <div>
-                    <span className="font-bold text-[#64748B]">Detected Amount:</span>
-                    <p className="font-extrabold text-[#10B981] text-sm">{selectedAudit.keyMetrics.detectedAmount || 'N/A'}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Summary */}
-              <div className="mb-6">
-                <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider mb-2">Executive Audit Summary</h4>
-                <p className="text-sm text-[#475569] leading-relaxed bg-[#F8F9FC] p-4 rounded-2xl border border-[#E2E8F0]">
-                  {selectedAudit.summary}
-                </p>
-              </div>
-
-              {/* Findings List */}
-              <div className="space-y-3 mb-6">
-                <h4 className="text-xs font-bold text-[#1E293B] uppercase tracking-wider">
-                  Itemized Forensic Findings ({selectedAudit.findings.length})
-                </h4>
-                {selectedAudit.findings.map((f, i) => (
-                  <div key={i} className="p-4 rounded-2xl border border-[#E2E8F0] bg-white space-y-1.5">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-xs text-[#1E293B] flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-amber-500" />
-                        {f.title}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getSeverityBadge(f.severity)}`}>
-                        {f.severity}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#64748B]">{f.description}</p>
-                    <div className="text-xs text-[#7C3AED] font-semibold pt-1 border-t border-gray-100">
-                      <strong>Remediation:</strong> {f.recommendation}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <button
-                  onClick={() => setSelectedAudit(null)}
-                  className="bg-[#1E293B] hover:bg-[#0F172A] text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all"
-                >
-                  Close Report
-                </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* Export Signed PDF / CSV Report Modal */}
+      {exportingAudit && (
+        <ExportPdfReportModal
+          isOpen={Boolean(exportingAudit)}
+          onClose={() => setExportingAudit(null)}
+          documentName={exportingAudit.documentName}
+          auditResult={{
+            riskScore: exportingAudit.riskScore,
+            riskLevel: (['Low', 'Moderate', 'High', 'Critical'].includes(exportingAudit.riskLevel) ? (exportingAudit.riskLevel as any) : 'Low'),
+            documentType: exportingAudit.documentType || 'Financial Document',
+            summary: exportingAudit.summary || 'Forensic examination completed.',
+            findings: (exportingAudit.findings || []).map(f => ({
+              category: f.category || 'Forensic Finding',
+              title: f.title,
+              description: f.description,
+              severity: (['low', 'medium', 'high', 'critical'].includes(f.severity?.toLowerCase()) ? (f.severity.toLowerCase() as any) : 'medium'),
+              recommendation: f.recommendation || 'Verify documentation with issuing counterparty.'
+            })),
+            keyMetrics: exportingAudit.keyMetrics
+          }}
+        />
+      )}
 
       {/* White Label Branding Modal */}
       <WhiteLabelModal

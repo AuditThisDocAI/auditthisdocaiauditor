@@ -16,6 +16,7 @@ import { LegalModal, LegalPolicyTab } from './components/LegalModal';
 import { SessionTimeoutModal } from './components/SessionTimeoutModal';
 import { AuditTrail } from './components/AuditTrail';
 import AuditScanner from './components/AuditScanner';
+import { DrAriaChatPopup } from './components/DrAriaChatPopup';
 import { isUserPro } from './lib/authUtils';
 
 export default function App() {
@@ -122,6 +123,8 @@ export default function App() {
 
       <SessionTimeoutModal />
 
+      <DrAriaChatPopup />
+
       {showPaymentSuccess && (
         <div className="bg-[#10B981] text-white px-4 py-3 text-center font-bold text-sm flex items-center justify-center gap-3 shadow-md relative z-50">
           <span>🎉 Payment Successful! Pro Plan activated with 1,000 monthly document audits.</span>
@@ -150,12 +153,12 @@ export default function App() {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <button 
                     onClick={() => {
-                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-purple-500/20 w-full sm:w-auto cursor-pointer"
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-purple-500/20 w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2"
                   >
-                    Start 1-Day Free Trial
+                    <ScanSearch className="w-5 h-5" />
+                    <span>Scan Document Now</span>
                   </button>
                   <button 
                     onClick={() => {
@@ -164,16 +167,36 @@ export default function App() {
                     }}
                     className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all border border-white/20 w-full sm:w-auto cursor-pointer"
                   >
+                    Start 1-Day Free Trial
+                  </button>
+                  <button 
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="text-slate-300 hover:text-white px-5 py-4 font-bold text-base transition-colors cursor-pointer"
+                  >
                     Log In
                   </button>
                 </div>
               </div>
             </div>
+
+            {/* Live Interactive AI Forensic Document Auditor */}
+            <div id="document-auditor" className="mb-14 scroll-mt-24 max-w-7xl mx-auto">
+              <AuditScanner />
+            </div>
+
             <Features />
             <Pricing />
             <FAQ />
             <Contact />
           </>
+        )}
+        {currentView === 'auditor' && (
+          <div className="max-w-7xl mx-auto py-4">
+            <AuditScanner />
+          </div>
         )}
         {currentView === 'auth' && <Auth />}
         {currentView === 'dashboard' && <Dashboard />}

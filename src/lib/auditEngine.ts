@@ -4,6 +4,12 @@ export interface AuditFinding {
   description: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
   recommendation: string;
+  boundingBox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
 export interface AuditResult {
