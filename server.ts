@@ -745,7 +745,7 @@ async function startServer() {
 
   app.post("/api/chat", async (req, res) => {
     try {
-      const { message, history, documentContext, fileData } = req.body;
+      const { message, history, documentContext, fileData, model, role, customInstruction } = req.body;
       
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
@@ -763,8 +763,43 @@ async function startServer() {
           }
         }
       });
-      
-      let systemInstruction = `You are Dr. Aria, MD/PhD, Senior AI Forensic Document Auditor and Chief Compliance Investigator for FOR-AI (http://forensicdocaudit.com).
+
+      // Normalize requested model
+      let targetModel = typeof model === 'string' ? model.replace(/^models\//, '').trim() : 'gemini-3.8-flash';
+      const validModels = [
+        'gemini-3.8-flash',
+        'gemini-3.5-flash',
+        'gemini-3.1-flash-lite',
+        'gemini-3.1-pro-preview'
+      ];
+      if (!validModels.includes(targetModel)) {
+        targetModel = 'gemini-3.8-flash';
+      }
+
+      // Role system instructions
+      const roleKey = typeof role === 'string' ? role.toLowerCase() : 'dr-aria';
+      let systemInstruction = "";
+
+      if (roleKey === 'complex' || roleKey === 'legal' || targetModel === 'gemini-3.1-pro-preview') {
+        systemInstruction = `You are the Lead Legal & Forensic Logic Investigator for FOR-AI (http://forensicdocaudit.com).
+Your role is to solve complex, multi-party forensic audit challenges, intricate contract disputes, conflicting clauses, subtle fraud schemes, and statutory compliance cross-examinations.
+Provide thorough, deep-reasoning forensic logic. Break down complex clauses, check evidentiary chains of custody, and evaluate risk under SOX, GAAP, and legal precedents.
+Maintain an authoritative, rigorous, and highly analytical tone. Always advise that formal legal proceedings require court-certified forensic examiner testimony.`;
+      } else if (roleKey === 'fast' || roleKey === 'triage' || targetModel === 'gemini-3.1-flash-lite') {
+        systemInstruction = `You are the Rapid Fraud Triage Agent for FOR-AI (http://forensicdocaudit.com).
+Your role is to deliver lightning-fast, high-priority fraud assessments and numerical sanity checks.
+Be concise, punchy, and direct. Focus immediately on:
+1. Total amount arithmetic recalculation (subtotal + tax = total).
+2. Wire transfer / IBAN / routing anomalies and remittance diversion flags.
+3. Tax ID / VAT formatting and vendor sanity.
+Highlight critical red flags instantly without unnecessary preamble.`;
+      } else if (roleKey === 'general' || targetModel === 'gemini-3.5-flash') {
+        systemInstruction = `You are the General Compliance & Document Advisor for FOR-AI (http://forensicdocaudit.com).
+Your role is to assist accounting teams, bookkeepers, and business owners with everyday invoice reviews, general audit inquiries, record-keeping best practices, and document verification.
+Provide helpful, well-structured, practical guidance with clear explanations and checklists.`;
+      } else {
+        // Default: Dr. Aria Chief Forensic Auditor
+        systemInstruction = `You are Dr. Aria, MD/PhD, Senior AI Forensic Document Auditor and Chief Compliance Investigator for FOR-AI (http://forensicdocaudit.com).
 You provide authoritative, clear, rigorous, and actionable forensic analysis on document auditing, invoice fraud detection, payroll compliance, medical prescription verification, bank statements, contract alterations, and fraud risk scoring.
 You are professional, sharp, polite, and articulate.
 When discussing forensic examination:
@@ -773,6 +808,11 @@ When discussing forensic examination:
 - If a document or audit result is provided in the conversation or active context, analyze and reference its specific data, risk score, findings, and metrics.
 - Maintain your persona as Dr. Aria throughout the entire conversation.
 - Always include a brief note that while your AI forensic audit is thorough, certified forensic examiners should be consulted for formal court proceedings.`;
+      }
+
+      if (customInstruction && typeof customInstruction === 'string') {
+        systemInstruction += `\n\nSpecific Role Instructions:\n${customInstruction.trim()}`;
+      }
 
       if (documentContext) {
         systemInstruction += `\n\nActive Document Context:\nDocument Name: ${documentContext.documentName || 'Unknown'}\nDocument Type: ${documentContext.documentType || 'Document'}\nRisk Score: ${documentContext.riskScore ?? 'N/A'}/100 (${documentContext.riskLevel || 'Unknown'})\nSummary: ${documentContext.summary || 'None'}\nFindings: ${JSON.stringify(documentContext.findings || [])}`;
@@ -785,7 +825,7 @@ When discussing forensic examination:
 
       for (const msg of rawHistory) {
         if (!msg || typeof msg.text !== 'string' || !msg.text.trim()) continue;
-        const role = msg.sender === 'user' ? 'user' : 'model';
+        const role = (msg.sender === 'user' || msg.role === 'user') ? 'user' : 'model';
 
         // Gemini cannot start with a 'model' turn
         if (contents.length === 0 && role === 'model') {
@@ -833,26 +873,44 @@ When discussing forensic examination:
         }
       }
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents,
-        config: {
-          systemInstruction,
-        }
-      });
-      
-      const replyText = response.text?.trim();
+      // Try primary requested model, with fallback to gemini-3.8-flash or gemini-3.5-flash
+      let replyText = "";
+      let modelUsed = targetModel;
+
+      try {
+        const response = await ai.models.generateContent({
+          model: targetModel,
+          contents,
+          config: {
+            systemInstruction,
+          }
+        });
+        replyText = response.text?.trim() || "";
+      } catch (primaryErr: any) {
+        console.warn(`Primary model ${targetModel} encountered error, trying fallback:`, primaryErr?.message);
+        const fallbackModel = targetModel === 'gemini-3.8-flash' ? 'gemini-3.5-flash' : 'gemini-3.8-flash';
+        modelUsed = fallbackModel;
+        const fallbackRes = await ai.models.generateContent({
+          model: fallbackModel,
+          contents,
+          config: {
+            systemInstruction,
+          }
+        });
+        replyText = fallbackRes.text?.trim() || "";
+      }
+
       if (!replyText) {
         throw new Error("No response generated by Gemini model.");
       }
 
-      return res.json({ text: replyText });
+      return res.json({ text: replyText, model: modelUsed, role: roleKey });
 
     } catch (error: any) {
       console.error('Gemini Chat API error:', error);
       return res.status(500).json({ 
         error: 'Failed to process AI chat with Dr. Aria',
-        text: `Dr. Aria AI was unable to generate a response: ${error?.message || 'Gemini processing error'}. Please try again.`
+        text: `Gemini AI chat was unable to generate a response: ${error?.message || 'Processing error'}. Please try again.`
       });
     }
   });

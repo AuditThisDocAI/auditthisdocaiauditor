@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScanSearch } from 'lucide-react';
+import { ScanSearch, Bot, LayoutDashboard } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { Features } from './components/Features';
 import { Pricing } from './components/Pricing';
@@ -7,6 +7,7 @@ import { FAQ } from './components/FAQ';
 import { Contact } from './components/Contact';
 import { Auth } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
+import { AuditDashboard } from './components/AuditDashboard';
 import { Bookkeeping } from './components/Bookkeeping';
 import { FirmBrandingSettings } from './components/FirmBrandingSettings';
 import { StaffManagement } from './components/StaffManagement';
@@ -17,10 +18,11 @@ import { SessionTimeoutModal } from './components/SessionTimeoutModal';
 import { AuditTrail } from './components/AuditTrail';
 import AuditScanner from './components/AuditScanner';
 import { DrAriaChatPopup } from './components/DrAriaChatPopup';
+import { GeminiChatView } from './components/GeminiChatView';
 import { isUserPro } from './lib/authUtils';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients' | 'forms' | 'contacts' | 'tasks' | 'audittrail'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients' | 'forms' | 'contacts' | 'tasks' | 'audittrail' | 'chat'>('landing');
   const [isPro, setIsPro] = useState(isUserPro());
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [freemiusCheckoutOpen, setFreemiusCheckoutOpen] = useState(false);
@@ -162,19 +164,39 @@ export default function App() {
                   </button>
                   <button 
                     onClick={() => {
-                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                      setCurrentView('chat');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all border border-white/20 w-full sm:w-auto cursor-pointer"
+                    className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-7 py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-indigo-500/20 w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2"
                   >
-                    Start 1-Day Free Trial
+                    <Bot className="w-5 h-5" />
+                    <span>Gemini AI Chat</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setCurrentView('dashboard');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="bg-white/10 hover:bg-white/20 text-white px-6 py-4 rounded-xl font-bold text-lg transition-all border border-white/20 w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <LayoutDashboard className="w-5 h-5 text-purple-300" />
+                    <span>Audit Dashboard</span>
                   </button>
                   <button 
                     onClick={() => {
                       window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="text-slate-300 hover:text-white px-5 py-4 font-bold text-base transition-colors cursor-pointer"
+                    className="bg-white/10 hover:bg-white/20 text-white px-7 py-4 rounded-xl font-bold text-lg transition-all border border-white/20 w-full sm:w-auto cursor-pointer"
+                  >
+                    Start Free Trial
+                  </button>
+                  <button 
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="text-slate-300 hover:text-white px-4 py-4 font-bold text-base transition-colors cursor-pointer"
                   >
                     Log In
                   </button>
@@ -199,7 +221,7 @@ export default function App() {
           </div>
         )}
         {currentView === 'auth' && <Auth />}
-        {currentView === 'dashboard' && <Dashboard />}
+        {currentView === 'dashboard' && <AuditDashboard />}
         {currentView === 'bookkeeping' && <Bookkeeping />}
         {currentView === 'whitelabel' && <FirmBrandingSettings />}
         {currentView === 'staff' && <StaffManagement />}
@@ -209,6 +231,7 @@ export default function App() {
             <AuditTrail />
           </div>
         )}
+        {currentView === 'chat' && <GeminiChatView />}
       </main>
       
       {/* Footer */}

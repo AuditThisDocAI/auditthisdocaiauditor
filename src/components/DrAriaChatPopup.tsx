@@ -29,6 +29,8 @@ export interface ChatMessage {
   sender: 'user' | 'aria';
   text: string;
   timestamp: string;
+  modelUsed?: string;
+  roleUsed?: string;
   documentFile?: {
     name: string;
     size?: string;
@@ -71,6 +73,8 @@ export function DrAriaChatPopup() {
     return saved ? parseInt(saved, 10) || 0 : 0;
   });
 
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.8-flash');
+  const [selectedRole, setSelectedRole] = useState<string>('dr-aria');
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isAuditingDoc, setIsAuditingDoc] = useState(false);
@@ -421,14 +425,21 @@ export function DrAriaChatPopup() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: textToSend,
-          history: chatHistory
+          history: chatHistory,
+          model: selectedModel,
+          role: selectedRole
         })
       });
 
       let replyText = "";
+      let modelUsed = selectedModel;
+      let roleUsed = selectedRole;
+
       if (res.ok) {
         const data = await res.json();
         if (data && data.text) replyText = data.text;
+        if (data && data.model) modelUsed = data.model;
+        if (data && data.role) roleUsed = data.role;
       } else {
         const errorData = await res.json().catch(() => ({}));
         replyText = errorData.text || errorData.error || "Dr. Aria AI was unable to generate a response. Please check your connection and try again.";
@@ -442,7 +453,9 @@ export function DrAriaChatPopup() {
         id: `aria-${Date.now()}`,
         sender: 'aria',
         text: replyText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        modelUsed,
+        roleUsed
       };
 
       setMessages(prev => [...prev, ariaMsg]);
@@ -702,6 +715,19 @@ export function DrAriaChatPopup() {
                   <RotateCcw className="w-4 h-4" />
                 </button>
 
+                {/* Expand to Full Page Gemini Chat View */}
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'chat' } }));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="p-1.5 text-purple-400 hover:text-white rounded-lg hover:bg-purple-950/60 transition-colors"
+                  title="Open Full Page Gemini Workspace"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </button>
+
                 {/* Minimize */}
                 <button
                   onClick={() => setIsMinimized(!isMinimized)}
@@ -725,6 +751,35 @@ export function DrAriaChatPopup() {
             {/* Chat Body (Hidden when minimized) */}
             {!isMinimized && (
               <>
+                {/* Compact Gemini Model & Role Bar */}
+                <div className="bg-slate-900 border-b border-slate-800 px-3 py-1.5 flex items-center justify-between text-[11px] text-slate-300 shrink-0 gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Model:</span>
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      className="bg-slate-800 text-purple-300 font-semibold rounded px-1.5 py-0.5 text-[11px] border border-slate-700 focus:outline-hidden cursor-pointer"
+                    >
+                      <option value="gemini-3.8-flash">Gemini 3.8 Flash (Default)</option>
+                      <option value="gemini-3.5-flash">Gemini 3.5 Flash (General)</option>
+                      <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Fast)</option>
+                      <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Complex)</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={selectedRole}
+                      onChange={(e) => setSelectedRole(e.target.value)}
+                      className="bg-slate-800 text-emerald-300 font-semibold rounded px-1.5 py-0.5 text-[11px] border border-slate-700 focus:outline-hidden cursor-pointer"
+                    >
+                      <option value="dr-aria">Dr. Aria (Forensic)</option>
+                      <option value="complex">Complex Reasoning</option>
+                      <option value="general">General Audit</option>
+                      <option value="fast">Rapid Triage</option>
+                    </select>
+                  </div>
+                </div>
+
                 {/* Free Limit Warning Banner if Reached */}
                 {isLimitReached && (
                   <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 text-xs text-amber-900 flex items-center justify-between gap-2 shrink-0">

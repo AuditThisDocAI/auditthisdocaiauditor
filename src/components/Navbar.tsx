@@ -74,11 +74,12 @@ export function Navbar() {
   const isPaidAndSignedUp = isLoggedIn && isPro;
 
   const linksToShow = [
+    { name: 'Dashboard', href: '#dashboard' },
     { name: 'AI Auditor', href: '#document-auditor' },
+    { name: 'Gemini Chat', href: '#chat' },
     ...(isPro ? [{ name: 'Audit Trail', href: '#audittrail' }] : []), // Audit Trail - strictly visible to paying subscribers
     { name: 'Bookkeeping', href: '#bookkeeping' },
     { name: 'Features', href: '#features' },
-    ...(isLoggedIn ? [{ name: 'Dashboard', href: '#dashboard' }] : []),
     ...(isPaidAndSignedUp ? [{ name: 'Branding', href: '#whitelabel' }] : []),
     ...(isLoggedIn ? [{ name: 'Staff Team', href: '#staff' }, { name: 'Firm Clients', href: '#clients' }] : []),
     { name: 'Pricing', href: '#pricing' },
@@ -139,6 +140,9 @@ export function Navbar() {
                         e.preventDefault();
                         if (link.name === 'Dashboard') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+                        } else if (link.name === 'Gemini Chat') {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'chat' } }));
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
                         } else if (link.name === 'Audit Trail') {
                           const el = document.getElementById('audittrail');
                           if (el) {
@@ -310,6 +314,10 @@ export function Navbar() {
                       if (link.name === 'Dashboard') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+                      } else if (link.name === 'Gemini Chat') {
+                        e.preventDefault();
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'chat' } }));
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                       } else if (link.name === 'Audit Trail') {
                         e.preventDefault();
                         const el = document.getElementById('audittrail');
