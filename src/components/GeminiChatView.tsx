@@ -39,11 +39,51 @@ export interface ChatMessageItem {
   };
 }
 
-export const GEMINI_MODELS = [
+export const AI_MODELS = [
+  {
+    id: 'openai/gpt-oss-120b',
+    name: 'Groq GPT-OSS 120B',
+    tag: 'Ultra-Fast LPU (Active)',
+    desc: 'High-speed forensic visual/text analysis and deep reasoning on Groq LPUs.',
+    speed: 'Ultra Fast (1000+ T/s)',
+    tier: 'Groq High Precision'
+  },
+  {
+    id: 'openai/gpt-oss-20b',
+    name: 'Groq GPT-OSS 20B',
+    tag: 'Instantaneous',
+    desc: 'Rapid arithmetic sanity checks, vendor verification, and quick triage.',
+    speed: 'Instantaneous',
+    tier: 'Groq Fast Triage'
+  },
+  {
+    id: 'qwen/qwen3.8-27b',
+    name: 'Groq Qwen 3.8 27B',
+    tag: 'Math & Logic',
+    desc: 'Structured reasoning, calculation checks, and contract cross-referencing.',
+    speed: 'Ultra Fast',
+    tier: 'Groq Reasoning'
+  },
+  {
+    id: 'grok-2-latest',
+    name: 'xAI Grok 2',
+    tag: 'Complex Logic',
+    desc: 'Cross-examines multi-party contract clauses and intricate legal liabilities.',
+    speed: 'Fast',
+    tier: 'xAI Grok'
+  },
+  {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    tag: 'Instant Multimodal',
+    desc: 'High-speed multimodal vision and text analysis with near-instant inference.',
+    speed: 'Instant',
+    tier: 'Multimodal Speed'
+  },
   {
     id: 'gemini-3.8-flash',
     name: 'Gemini 3.8 Flash',
-    tag: 'Recommended Default',
+    tag: 'Standard Default',
     desc: 'Balanced high-speed & deep forensic vision analysis.',
     speed: 'Ultra Fast',
     tier: 'Standard'
@@ -73,6 +113,8 @@ export const GEMINI_MODELS = [
     tier: 'Complex'
   }
 ];
+
+export const GEMINI_MODELS = AI_MODELS;
 
 export const CHATBOT_ROLES = [
   {
@@ -133,12 +175,35 @@ const SAMPLE_PROMPTS = [
 ];
 
 export function GeminiChatView() {
-  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.8-flash');
+  const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-oss-120b');
   const [selectedRole, setSelectedRole] = useState<string>('dr-aria');
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   
+  // AI Status tracking
+  const [aiStatus, setAiStatus] = useState<{
+    connected: boolean;
+    activeProvider: string;
+    providerName: string;
+    defaultModel: string;
+    hasGroq: boolean;
+    hasXAI: boolean;
+    hasGemini: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/ai/status')
+      .then(res => res.json())
+      .then(data => {
+        setAiStatus(data);
+        if (data.defaultModel) {
+          setSelectedModel(data.defaultModel);
+        }
+      })
+      .catch(e => console.warn('Could not load AI status', e));
+  }, []);
+
   // File attachment state
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [attachedPreview, setAttachedPreview] = useState<string | null>(null);
@@ -480,11 +545,16 @@ export function GeminiChatView() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-black text-lg tracking-tight text-white">Gemini Multi-Turn Forensic Chat</h2>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <h2 className="font-black text-lg tracking-tight text-white">AI Forensic Chat Workspace</h2>
+                {aiStatus?.connected && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    {aiStatus.providerName}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-400 font-medium">
-                Maintains multi-turn context across audits, invoices, and statutory compliance checks
+                Multi-turn forensic audit consultations, invoice verification, and statutory compliance checks
               </p>
             </div>
           </div>
@@ -496,13 +566,13 @@ export function GeminiChatView() {
             <div className="flex items-center bg-slate-800/80 border border-slate-700 rounded-xl px-2.5 py-1.5 gap-2">
               <Cpu className="w-4 h-4 text-purple-400 shrink-0" />
               <div className="flex flex-col">
-                <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Gemini Model</span>
+                <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Active Model</span>
                 <select
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
                   className="bg-transparent text-xs font-bold text-white focus:outline-hidden cursor-pointer"
                 >
-                  {GEMINI_MODELS.map(m => (
+                  {AI_MODELS.map(m => (
                     <option key={m.id} value={m.id} className="bg-slate-900 text-white">
                       {m.name} ({m.tag})
                     </option>

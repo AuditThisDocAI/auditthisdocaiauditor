@@ -140,6 +140,11 @@ export function Navbar() {
                         e.preventDefault();
                         if (link.name === 'Dashboard') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+                        } else if (link.name === 'AI Auditor') {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+                          setTimeout(() => {
+                            document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
+                          }, 100);
                         } else if (link.name === 'Gemini Chat') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'chat' } }));
                           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -314,6 +319,12 @@ export function Navbar() {
                       if (link.name === 'Dashboard') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+                      } else if (link.name === 'AI Auditor') {
+                        e.preventDefault();
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+                        setTimeout(() => {
+                          document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
                       } else if (link.name === 'Gemini Chat') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'chat' } }));

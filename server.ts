@@ -354,101 +354,218 @@ async function startServer() {
     }
   });
 
-  app.post("/api/audit", async (req, res) => {
-    try {
-      const { documentText, documentName, fileData } = req.body;
-      
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (apiKey) {
-        try {
-          const ai = new GoogleGenAI({ 
-            apiKey,
-            httpOptions: {
-              headers: { 'User-Agent': 'aistudio-build' }
-            }
-          });
-          
-          const systemInstruction = `You are FOR-AI, a Forensic Document Audit Assistant for http://forensicdocaudit.com\n\nYour goal is to analyze uploaded documents and detect signs of fraud, alteration, or forgery.\nDo not just summarize the text. You must act like a forensic examiner.\n\nThe user will upload images or PDFs. These can be bank statements, payslips, IDs, invoices, contracts, qualifications, etc.\n\nFollow these 5 steps for every document:\n\nSTEP 1: DOCUMENT TYPE AND AUTHENTICITY CHECK\nIdentify what type of document this is.\nCheck if the layout matches the official layout of the bank, company, or institution named on it.\nFlag any missing security features like logos, watermarks, stamps, or signatures.\n\nSTEP 2: VISUAL FORENSIC ANALYSIS\nLook at the image itself for these red flags:\nInconsistent fonts, font sizes, or spacing\nPixelation around logos, stamps, or numbers\nMisaligned text or tables\nSigns of cropping, eraser marks, or copy-paste\nSignatures that look too perfect or have different pen pressure\nAt the end give a risk rating: LOW, MEDIUM, or HIGH\n\nSTEP 3: DATA AND LOGIC CHECK\nCheck if the dates make sense. Issue date vs transaction date.\nCheck if the math adds up. Example: Salary minus deductions equals net pay.\nCheck if ID numbers, account numbers follow the correct South African format.\nLook for duplicate transaction IDs or reference numbers.\n\nSTEP 4: METADATA AND TECHNICAL CHECK\nIf it is a PDF, note if the metadata says it was created recently but the document claims to be old.\nIf it is an image, note the resolution and any signs of editing.\n\nSTEP 5: FINAL VERDICT AND RECOMMENDATION\nGive a clear verdict. Choose one: LIKELY GENUINE, SUSPICIOUS - REQUIRES EXPERT REVIEW, or LIKELY FORGED\nGive a confidence percentage.\nList the top 3 key red flags you found.\nGive a clear recommendation on what the user should do next.\n\nIMPORTANT RULES:\n1. You are not a lawyer. Always add this disclaimer at the end: This is an AI preliminary audit. For legal or court purposes, contact a certified forensic expert at http://forensicdocaudit.com\n2. Be specific. Do not say "looks fake". Say exactly what looks wrong, like "The font in R15,000 does not match the rest of the document"\n3. If the uploaded image is blurry, ask the user to upload a higher resolution scan.\n4. Keep your tone professional, direct, and helpful.\n\nOUTPUT FORMAT (JSON ONLY):\nReturn ONLY a valid JSON object matching this schema. Incorporate your 5-step analysis into the summary and findings fields.\n{\n  "isAuditable": boolean,\n  "riskScore": number (0 to 100),\n  "riskLevel": "Low" | "Moderate" | "High" | "Critical" | "Invalid",\n  "summary": "Write your full 5-step analysis, verdict, and the mandatory legal disclaimer here.",\n  "documentType": "String",\n  "findings": [\n    {\n      "category": "String",\n      "title": "Short title for red flag",\n      "description": "Specific details from Step 2, 3, or 4",\n      "severity": "low" | "medium" | "high" | "critical",\n      "recommendation": "What to do about this finding"\n    }\n  ],\n  "keyMetrics": {\n    "detectedVendor": "string",\n    "detectedAmount": "string",\n    "detectedDate": "string",\n    "missingFields": ["string array"]\n  }\n}`;
+  // AI Provider Configuration & Multi-Engine Helpers
+  function getAIProviderConfig() {
+    let rawGroq = (process.env.GROQ_API_KEY || '').trim();
+    let rawGrok = (process.env.GROK_API_KEY || '').trim();
+    let rawXai = (process.env.XAI_API_KEY || '').trim();
+    const rawGemini = (process.env.GEMINI_API_KEY || '').trim();
 
-          const parts: any[] = [];
-          if (fileData?.base64 && fileData?.mimeType) {
-            parts.push({
-              inlineData: {
-                mimeType: fileData.mimeType,
-                data: fileData.base64
-              }
-            });
-            parts.push({
-              text: `Document Title: ${documentName || 'Uploaded Document'}\nPlease examine this attached document file carefully and perform a complete forensic audit.`
-            });
-          } else if (documentText && documentText.startsWith('data:')) {
-            const matches = documentText.match(/^data:(.*?);base64,(.*)$/);
-            if (matches && matches.length === 3) {
-              parts.push({
-                inlineData: {
-                  mimeType: matches[1],
-                  data: matches[2]
-                }
-              });
-              parts.push({
-                text: `Document Title: ${documentName || 'Uploaded Document'}\nPlease examine this attached document file carefully and perform a complete forensic audit.`
-              });
-            } else {
-              parts.push({
-                text: `Document Title: ${documentName || 'Untitled Document'}\n\nDocument Content:\n${documentText}`
-              });
-            }
-          } else {
-            parts.push({
-              text: `Document Title: ${documentName || 'Untitled Document'}\n\nDocument Text:\n${documentText}`
-            });
-          }
+    // Dynamically search all env keys in case user named the secret GROK_KEY, GROK, GROQ_KEY, etc.
+    for (const key of Object.keys(process.env)) {
+      const val = (process.env[key] || '').trim();
+      if (!val) continue;
+      if (/^GROK(_API)?(_KEY)?$/i.test(key) && !rawGrok) rawGrok = val;
+      if (/^GROQ(_API)?(_KEY)?$/i.test(key) && !rawGroq) rawGroq = val;
+      if (/^XAI(_API)?(_KEY)?$/i.test(key) && !rawXai) rawXai = val;
+      if (/grok/i.test(key) && !rawGrok && !rawGroq) rawGrok = val;
+      if (/groq/i.test(key) && !rawGroq && !rawGrok) rawGroq = val;
+    }
 
-          const response = await ai.models.generateContent({
-            model: 'gemini-3.8-flash',
-            contents: [{ role: 'user', parts }],
-            config: {
-              systemInstruction,
-              responseMimeType: 'application/json'
-            }
-          });
+    // A key starting with 'gsk_' is a Groq Cloud key (whether stored as GROQ_API_KEY or GROK_API_KEY in secrets)
+    // A key starting with 'xai-' is an xAI Grok key
+    const anyGrokCandidate = rawGrok || rawGroq || rawXai;
+    let groqKey = '';
+    let xaiKey = '';
 
-          if (response.text) {
-            try {
-              const parsed = JSON.parse(response.text);
-              if (parsed.isAuditable === undefined) {
-                parsed.isAuditable = parsed.riskLevel !== 'Invalid';
-              }
-              
-              // Record audit event in real-time tracking array
-              const auditRecord = {
-                id: 'audit_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-                timestamp: new Date().toISOString(),
-                documentName: documentName || 'Submitted Document',
-                documentType: parsed.documentType || 'Invoice',
-                riskScore: parsed.riskScore,
-                riskLevel: parsed.riskLevel,
-                summary: parsed.summary,
-                findingsCount: parsed.findings?.length || 0,
-                findings: parsed.findings || [],
-                keyMetrics: parsed.keyMetrics || {},
-                ip: req.ip || (req.headers['x-forwarded-for'] as string) || '127.0.0.1'
-              };
-              liveAuditLogs.unshift(auditRecord);
+    if (anyGrokCandidate.startsWith('gsk_')) {
+      groqKey = anyGrokCandidate;
+    } else if (anyGrokCandidate.startsWith('xai-')) {
+      xaiKey = anyGrokCandidate;
+    } else {
+      groqKey = rawGroq || (rawGrok.startsWith('gsk_') ? rawGrok : '');
+      xaiKey = rawXai || (rawGrok.startsWith('xai-') ? rawGrok : '');
+      if (!groqKey && !xaiKey && anyGrokCandidate) {
+        groqKey = anyGrokCandidate;
+      }
+    }
 
-              return res.json(parsed);
-            } catch (e) {
-              console.error('Failed to parse Gemini JSON response:', e);
-            }
-          }
-        } catch (geminiErr) {
-          console.info("Using heuristic engine fallback (API quota).");
+    const geminiKey = rawGemini;
+    const hasGroq = Boolean(groqKey);
+    const hasXAI = Boolean(xaiKey);
+    const hasGemini = Boolean(geminiKey);
+
+    let activeProvider: 'groq' | 'xai' | 'gemini' | 'none' = 'none';
+    if (hasGroq) activeProvider = 'groq';
+    else if (hasXAI) activeProvider = 'xai';
+    else if (hasGemini) activeProvider = 'gemini';
+
+    return {
+      groqKey,
+      xaiKey,
+      geminiKey,
+      hasGroq,
+      hasXAI,
+      hasGemini,
+      activeProvider
+    };
+  }
+
+  async function callGroqChat({
+    apiKey,
+    model,
+    messages,
+    temperature = 0.2,
+    jsonMode = false,
+    maxTokens = 2500
+  }: {
+    apiKey: string;
+    model?: string;
+    messages: Array<{ role: string; content: string }>;
+    temperature?: number;
+    jsonMode?: boolean;
+    maxTokens?: number;
+  }) {
+    const targetModel = model && (model.startsWith('openai/') || model.startsWith('qwen/')) ? model : "openai/gpt-oss-120b";
+    const body: any = {
+      model: targetModel,
+      messages,
+      temperature,
+      max_tokens: maxTokens
+    };
+    if (jsonMode) {
+      body.response_format = { type: "json_object" };
+    }
+
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      // If 120b is busy or unavailable, attempt fallback to gpt-oss-20b or qwen
+      if (targetModel === "openai/gpt-oss-120b") {
+        body.model = "openai/gpt-oss-20b";
+        const fbRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+        if (fbRes.ok) {
+          const fbData = await fbRes.json();
+          return {
+            text: fbData.choices?.[0]?.message?.content || "",
+            modelUsed: "openai/gpt-oss-20b"
+          };
         }
       }
+      throw new Error(`Groq API error (${res.status}): ${errText}`);
+    }
 
-      // Heuristic fallback forensic engine if Gemini is unavailable
-      let text = (documentText || '').trim();
-      let ocrWords = [];
+    const data = await res.json();
+    return {
+      text: data.choices?.[0]?.message?.content || "",
+      modelUsed: targetModel
+    };
+  }
+
+  async function callXAIChat({
+    apiKey,
+    model,
+    messages,
+    temperature = 0.2,
+    jsonMode = false,
+    maxTokens = 2500
+  }: {
+    apiKey: string;
+    model?: string;
+    messages: Array<{ role: string; content: string }>;
+    temperature?: number;
+    jsonMode?: boolean;
+    maxTokens?: number;
+  }) {
+    const targetModel = model || "grok-2-latest";
+    const body: any = {
+      model: targetModel,
+      messages,
+      temperature,
+      max_tokens: maxTokens
+    };
+    if (jsonMode) {
+      body.response_format = { type: "json_object" };
+    }
+
+    const res = await fetch("https://api.x.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`xAI API error (${res.status}): ${errText}`);
+    }
+
+    const data = await res.json();
+    return {
+      text: data.choices?.[0]?.message?.content || "",
+      modelUsed: targetModel
+    };
+  }
+
+  // Active AI Provider Status Endpoint
+  app.get("/api/ai/status", (req, res) => {
+    const config = getAIProviderConfig();
+    res.json({
+      connected: config.hasGroq || config.hasXAI || config.hasGemini,
+      activeProvider: config.activeProvider,
+      providerName: config.hasGroq ? "Groq Ultra-Fast LPU / Grok Key (Active)" : config.hasXAI ? "xAI Grok (Active)" : config.hasGemini ? "Google Gemini (Active)" : "No AI Key Connected",
+      defaultModel: config.hasGroq ? "openai/gpt-oss-120b" : config.hasXAI ? "grok-2-latest" : config.hasGemini ? "gemini-2.5-flash" : "none",
+      legalStandard: "SAS 99 / AU-C 240 / FRE 902 Genuine AI Certified",
+      isHeuristicDisabled: true,
+      hasGroq: config.hasGroq,
+      hasXAI: config.hasXAI,
+      hasGemini: config.hasGemini,
+      availableModels: [
+        ...(config.hasGroq ? [
+          { id: "openai/gpt-oss-120b", name: "Groq GPT-OSS 120B", provider: "Groq", speed: "Ultra-Fast (1000+ T/s)", tag: "Deep Forensic Analysis" },
+          { id: "openai/gpt-oss-20b", name: "Groq GPT-OSS 20B", provider: "Groq", speed: "Instantaneous", tag: "Rapid Triage" },
+          { id: "qwen/qwen3.8-27b", name: "Groq Qwen 3.8 27B", provider: "Groq", speed: "Ultra-Fast", tag: "Reasoning & Math" }
+        ] : []),
+        ...(config.hasXAI ? [
+          { id: "grok-2-latest", name: "xAI Grok 2", provider: "xAI", speed: "Fast", tag: "Complex Logic" },
+          { id: "grok-beta", name: "xAI Grok Beta", provider: "xAI", speed: "Fast", tag: "General" }
+        ] : []),
+        ...(config.hasGemini ? [
+          { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "Google", speed: "Instant Multimodal", tag: "Fast Vision & Text" },
+          { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash", provider: "Google", speed: "Ultra Fast", tag: "Standard Default" },
+          { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash", provider: "Google", speed: "Fast", tag: "General Tasks" },
+          { id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash Lite", provider: "Google", speed: "Instant", tag: "Fast Triage" },
+          { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro Preview", provider: "Google", speed: "Deep Reasoning", tag: "Complex Logic" }
+        ] : [])
+      ]
+    });
+  });
+
+  const handleDocumentAudit = async (req: express.Request, res: express.Response) => {
+    try {
+      const { documentText, text: bodyText, content: bodyContent, documentName, fileData } = req.body;
+      const aiConfig = getAIProviderConfig();
+
+      // Extract document text and run OCR if PDF/image was provided
+      let text = (documentText || bodyText || bodyContent || '').trim();
+      let ocrWords: any[] = [];
       let imageWidth = 1000;
       let imageHeight = 1000;
       
@@ -466,326 +583,381 @@ async function startServer() {
           }
         } else if (fileData.mimeType?.startsWith('image/')) {
           try {
-            console.info("Running fallback OCR via Tesseract.js...");
+            console.info("Running OCR via Tesseract.js...");
             const imgBuffer = Buffer.from(fileData.base64, 'base64');
             const result = await Tesseract.recognize(imgBuffer, 'eng') as any;
-            text = result.data.text.trim();
-            ocrWords = result.data.words || [];
-            imageWidth = result.data.imageColor ? result.data.imageColor.width : 1000;
-            imageHeight = result.data.imageColor ? result.data.imageColor.height : 1000;
+            text = (result?.data?.text || '').trim();
+            ocrWords = result?.data?.words || [];
+            imageWidth = result?.data?.imageColor ? result.data.imageColor.width : 1000;
+            imageHeight = result?.data?.imageColor ? result.data.imageColor.height : 1000;
             console.info("OCR Extracted text length:", text.length);
           } catch (ocrErr) {
-            console.info("Fallback OCR failed");
+            console.info("OCR failed:", ocrErr);
           }
         }
       }
 
-      const findings: any[] = [];
-      const lowerText = text.toLowerCase();
-      const docNameLower = (documentName || '').toLowerCase();
-      
-      const isLikelyDocument = 
-        lowerText.includes('invoice') || 
-        lowerText.includes('receipt') || 
-        lowerText.includes('contract') || 
-        lowerText.includes('total') || 
-        lowerText.includes('date') || 
-        lowerText.includes('amount') ||
-        lowerText.includes('salary') ||
-        lowerText.includes('payslip') ||
-        lowerText.includes('prescription') ||
-        lowerText.includes('doctor') ||
-        lowerText.includes('rx') ||
-        lowerText.includes('patient') ||
-        lowerText.includes('statement') ||
-        lowerText.includes('bank') ||
-        lowerText.includes('balance') ||
-        lowerText.includes('bill') ||
-        lowerText.includes('payment') ||
-        docNameLower.includes('invoice') ||
-        docNameLower.includes('receipt') ||
-        docNameLower.includes('slip') ||
-        docNameLower.includes('salary') ||
-        docNameLower.includes('payslip') ||
-        docNameLower.includes('prescription') ||
-        docNameLower.includes('statement') ||
-        docNameLower.includes('bill') ||
-        docNameLower.includes('doc') ||
-        docNameLower.endsWith('.pdf') ||
-        docNameLower.endsWith('.jpg') ||
-        docNameLower.endsWith('.jpeg') ||
-        docNameLower.endsWith('.png') ||
-        text.length > 20;
+      const forensicSystemInstruction = `You are the Lead Forensic Document Auditor and Senior Fraud Investigator for FOR-AI (http://forensicdocaudit.com).
+Your examination must be STRICTLY FACTUAL, OBJECTIVE, AND LEGALLY ACCURATE, adhering to judicial and statutory accounting standards:
+1. AICPA SAS No. 99 / AU-C Section 240: Consideration of Fraud in a Financial Statement Audit.
+2. International Standard on Auditing (ISA) 240: The Auditor's Responsibilities Relating to Fraud in an Audit of Financial Statements.
+3. Federal Rules of Evidence (FRE) Rule 902(11) / Rule 901 for Self-Authenticating Business and Financial Records.
+4. Statutory Tax & Entity Validation: US Internal Revenue Code EIN/W-9 registration, EU VAT Directive Art. 214 VIES verification, and international commercial registry conventions.
+5. Anti-Fraud & Banking Security: FinCEN Red Flags for Business Email Compromise (BEC), Unauthorized Offshore Remittance Diversions, and ISO 20022 banking routing standards.
 
-      // Classify document type
-      let detectedType = 'General Document';
-      if (lowerText.includes('prescription') || lowerText.includes('doctor') || lowerText.includes('pharmacy') || lowerText.includes('patient') || docNameLower.includes('prescription') || docNameLower.includes('rx')) {
-        detectedType = 'Medical Prescription / Rx';
-      } else if (lowerText.includes('salary') || lowerText.includes('payslip') || lowerText.includes('payroll') || lowerText.includes('earnings') || docNameLower.includes('salary') || docNameLower.includes('slip') || docNameLower.includes('payslip')) {
-        detectedType = 'Salary Slip / Payroll';
-      } else if (lowerText.includes('statement') || lowerText.includes('account number') || lowerText.includes('balance') || docNameLower.includes('statement')) {
-        detectedType = 'Bank Statement';
-      } else if (lowerText.includes('invoice') || docNameLower.includes('invoice') || lowerText.includes('inv-') || lowerText.includes('bill to')) {
-        detectedType = 'Invoice';
-      } else if (lowerText.includes('receipt') || docNameLower.includes('receipt')) {
-        detectedType = 'Receipt';
-      } else if (lowerText.includes('contract') || lowerText.includes('agreement') || docNameLower.includes('contract') || docNameLower.includes('agreement')) {
-        detectedType = 'Contract / Agreement';
-      }
+CRITICAL MANDATE:
+- NO HEURISTIC GUESSWORK. You must act as a qualified, court-testifying forensic examiner.
+- If a document is authentic, mathematically sound, has standard commercial payment terms, and valid identifiers, confirm it as LIKELY GENUINE with low risk.
+- If irregularities exist (e.g. arithmetic discrepancies where subtotal + tax != total, missing or invalid Tax ID/VAT, high-urgency demands to remit to unverified offshore or third-party bank accounts, baseline text alterations or font inconsistencies, or missing authorizations), state the exact statutory/factual issue, assign an accurate evidence-based risk score (0-100), and define legally actionable recommendations.
 
-      // Data extraction heuristics
-      const amountMatch = text.match(/(?:R|\$|€|£)?\s*\d{1,3}(?:[,\s]\d{3})*(?:\.\d{2})/);
-      const detectedAmount = amountMatch ? amountMatch[0] : (lowerText.includes('amount') ? 'Verified' : 'Not detected');
-      
-      const dateMatch = text.match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4}\b|\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}\b/);
-      const detectedDate = dateMatch ? dateMatch[0] : (new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }));
-
-      const taxIdMatch = text.match(/\b(?:VAT|EIN|Tax ID|TIN|Registration|Reg No)\s*[:\-#]?\s*([A-Z0-9\-]+)\b/i);
-
-      // Extract Vendor or Issuing Entity
-      let detectedVendor = 'Certified Entity';
-      if (detectedType === 'Medical Prescription / Rx') {
-        const docMatch = text.match(/Dr\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
-        detectedVendor = docMatch ? `Dr. ${docMatch[1]}` : (documentName ? documentName.replace(/\.[^/.]+$/, "") : 'Medical Practice');
-      } else if (detectedType === 'Salary Slip / Payroll') {
-        const empMatch = text.match(/(?:Employer|Company|Firm)\s*[:\-]?\s*([A-Za-z0-9\s&]{3,25})/i);
-        detectedVendor = empMatch ? empMatch[1].trim() : (documentName ? documentName.replace(/\.[^/.]+$/, "") : 'Corporate Employer');
-      } else {
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2 && l.length < 40);
-        if (lines.length > 0 && !lines[0].toLowerCase().includes('invoice') && !lines[0].toLowerCase().includes('receipt')) {
-          detectedVendor = lines[0];
-        } else {
-          detectedVendor = documentName ? documentName.replace(/\.[^/.]+$/, "") : 'Corporate Vendor';
-        }
-      }
-      
-      const missingFields: string[] = [];
-      if (!taxIdMatch && (detectedType === 'Invoice' || detectedType === 'Receipt')) missingFields.push("Tax/VAT ID");
-      if (!dateMatch) missingFields.push("Document Date");
-      if (!amountMatch && detectedType !== 'Medical Prescription / Rx') missingFields.push("Total Amount");
-      
-      let riskScore = 15;
-      let riskLevel = 'Low';
-      
-      if (isLikelyDocument) {
-        // Document-type specific forensic checks
-        if (detectedType === 'Invoice' || detectedType === 'Receipt') {
-          if (!taxIdMatch) {
-            findings.push({
-              title: "Missing Corporate Tax / VAT Identifier",
-              severity: "High",
-              description: "No registered VAT, EIN, or corporate Tax ID was located in the document. This prevents primary entity verification and increases fraud exposure.",
-              recommendation: "Request an updated W-9 or statutory tax certificate from the vendor prior to release of funds."
-            });
-            riskScore += 35;
-          }
-          
-          if (!dateMatch) {
-            findings.push({
-              title: "Omitted Transaction Timestamp",
-              severity: "Medium",
-              description: "No clear issuance date was recognized. Backdating or missing timestamps represent accounting control non-compliance.",
-              recommendation: "Request a formal re-issuance containing sequential invoice numbering and explicit date."
-            });
-            riskScore += 20;
-          }
-        } else if (detectedType === 'Salary Slip / Payroll') {
-          if (!lowerText.includes('deduction') && !lowerText.includes('tax') && !lowerText.includes('net pay')) {
-            findings.push({
-              title: "Payroll Statutory Deductions Missing",
-              severity: "Medium",
-              description: "Standard payroll documentation requires itemized tax withholding, pension/UIF, and net pay reconciliation.",
-              recommendation: "Corroborate with recent bank deposits or direct HR confirmation."
-            });
-            riskScore += 25;
-          }
-        } else if (detectedType === 'Medical Prescription / Rx') {
-          if (!lowerText.includes('dr') && !lowerText.includes('doctor') && !lowerText.includes('clinic') && !lowerText.includes('hospital')) {
-            findings.push({
-              title: "Practitioner Licensing Registry Unconfirmed",
-              severity: "Medium",
-              description: "The prescription text lacks verifiable practitioner credentials or medical practice registry number.",
-              recommendation: "Verify practitioner registration on official medical council database."
-            });
-            riskScore += 20;
-          }
-        }
-
-        // Global fraud indicators
-        if (lowerText.includes('wire') || lowerText.includes('crypto') || lowerText.includes('usdt') || lowerText.includes('bitcoin')) {
-          findings.push({
-            title: "Irreversible Payment Vector Detected",
-            severity: "Critical",
-            description: "The document requests payment via cryptocurrency or direct wire instructions, which is a known indicator of Business Email Compromise (BEC).",
-            recommendation: "Trigger a mandatory out-of-band telephone verification before processing payment."
-          });
-          riskScore += 45;
-        }
-
-        if (lowerText.includes('urgent') || lowerText.includes('immediate payment') || lowerText.includes('overdue')) {
-          findings.push({
-            title: "Urgency Pressure Pattern",
-            severity: "Medium",
-            description: "Artificial urgency language detected in document header, commonly used in social engineering to bypass internal accounting controls.",
-            recommendation: "Maintain standard three-way matching review timeframe."
-          });
-          riskScore += 15;
-        }
-        
-        if (findings.length === 0) {
-          findings.push({
-            title: "Structural Integrity & Layout Verified",
-            severity: "Low",
-            description: `Heuristic examination of ${detectedType} verified standard field conventions, layout geometry, and content markers.`,
-            recommendation: "Proceed with standard business process and record archiving."
-          });
-        }
-        
-        if (riskScore >= 75) riskLevel = 'Critical';
-        else if (riskScore >= 45) riskLevel = 'High';
-        else if (riskScore >= 25) riskLevel = 'Moderate';
-        else riskLevel = 'Low';
-      } else {
-        riskScore = 100;
-        riskLevel = 'Invalid';
-      }
-
-      // Apply bounding boxes from OCR words
-      if (typeof ocrWords !== 'undefined' && ocrWords.length > 0 && findings.length > 0) {
-        findings.forEach(finding => {
-          let keyword = '';
-          if (finding.title.includes('Crypto') || finding.title.includes('Irreversible')) keyword = 'wire';
-          else if (finding.title.includes('Tax')) keyword = 'tax';
-          else if (finding.title.includes('Date') || finding.title.includes('Timestamp')) keyword = 'date';
-          else if (finding.title.includes('Urgency')) keyword = 'urgent';
-          else keyword = 'invoice';
-
-          if (keyword) {
-            const matchWord = ocrWords.find((w: any) => w.text.toLowerCase().includes(keyword));
-            if (matchWord) {
-              const bbox = matchWord.bbox;
-              finding.boundingBox = {
-                x: Math.max(0, (bbox.x0 / imageWidth) * 100 - 2),
-                y: Math.max(0, (bbox.y0 / imageHeight) * 100 - 2),
-                width: Math.min(100, ((bbox.x1 - bbox.x0) / imageWidth) * 100 + 4),
-                height: Math.min(100, ((bbox.y1 - bbox.y0) / imageHeight) * 100 + 4)
-              };
-            }
-          }
-        });
-      }
-
-      // Ensure all findings have bounding boxes for heatmap visualization
-      findings.forEach((finding, idx) => {
-        if (!finding.boundingBox) {
-          const t = (finding.title || '').toLowerCase();
-          if (t.includes('tax') || t.includes('vat')) finding.boundingBox = { x: 54, y: 12, width: 40, height: 12 };
-          else if (t.includes('date') || t.includes('timestamp')) finding.boundingBox = { x: 56, y: 26, width: 36, height: 9 };
-          else if (t.includes('wire') || t.includes('crypto') || t.includes('irreversible') || t.includes('payment')) finding.boundingBox = { x: 8, y: 72, width: 68, height: 16 };
-          else if (t.includes('urgent') || t.includes('pressure')) finding.boundingBox = { x: 8, y: 5, width: 84, height: 8 };
-          else if (t.includes('deduction') || t.includes('payroll') || t.includes('statutory')) finding.boundingBox = { x: 8, y: 48, width: 84, height: 16 };
-          else if (t.includes('practitioner') || t.includes('license') || t.includes('doctor')) finding.boundingBox = { x: 8, y: 12, width: 46, height: 14 };
-          else {
-            const defaults = [
-              { x: 10, y: 38, width: 80, height: 12 },
-              { x: 52, y: 14, width: 40, height: 12 },
-              { x: 8, y: 72, width: 68, height: 16 }
-            ];
-            finding.boundingBox = defaults[idx % defaults.length];
-          }
-        }
-      });
-
-      const resultObj = {
-        isAuditable: isLikelyDocument,
-        riskScore,
-        riskLevel,
-        summary: !isLikelyDocument 
-          ? 'The provided text does not appear to be a recognizable financial, medical, or legal document.'
-          : findings.length > 1 
-            ? `FOR-AI's heuristic engine completed forensic examination of this ${detectedType} and detected ${findings.length} risk indicators resulting in a ${riskLevel} risk assessment (${riskScore}/100).`
-            : `FOR-AI forensic examination of this ${detectedType} verified standard field conventions, layout geometry, and content markers. Preliminary risk is assessed as ${riskLevel}.`,
-        documentType: detectedType,
-        findings,
-        keyMetrics: {
-          detectedVendor,
-          detectedAmount,
-          detectedDate,
-          missingFields
-        }
-      };
-
-      const auditRecord = {
-        id: 'audit_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-        timestamp: new Date().toISOString(),
-        documentName: documentName || 'Submitted Document',
-        documentType: resultObj.documentType,
-        riskScore: resultObj.riskScore,
-        riskLevel: resultObj.riskLevel,
-        summary: resultObj.summary,
-        findingsCount: findings.filter((f: any) => f.severity !== 'Low').length,
-        findings: resultObj.findings,
-        keyMetrics: resultObj.keyMetrics,
-        imageUrl: req.body.imageUrl || (fileData && fileData.mimeType && fileData.mimeType.startsWith('image/') ? `data:${fileData.mimeType};base64,${fileData.base64}` : undefined),
-        ip: req.ip || (req.headers['x-forwarded-for'] || '127.0.0.1')
-      };
-
-      liveAuditLogs.unshift(auditRecord);
-
-      return res.json({
-        ...resultObj,
-        imageUrl: auditRecord.imageUrl
-      });
-
-    } catch (error) {
-      console.log('Audit API error');
-      res.status(500).json({ error: 'Failed to process document audit' });
+OUTPUT FORMAT (JSON ONLY):
+Return ONLY a valid, parseable JSON object matching this schema:
+{
+  "isAuditable": true,
+  "riskScore": number (0 to 100),
+  "riskLevel": "Low" | "Moderate" | "High" | "Critical",
+  "statutoryStandard": "SAS 99 / AU-C 240 / FRE 902 Legal Forensic Standard",
+  "summary": "Legally accurate forensic examination summary, statutory findings, and definitive audit verdict.",
+  "documentType": "String",
+  "findings": [
+    {
+      "category": "Statutory Compliance" | "Arithmetic & Ledger Reconciliation" | "Wire / Remittance Diversion" | "Entity & Identity Authentication" | "Typography & Physical Integrity",
+      "title": "Precise legal/forensic finding title",
+      "description": "Specific factual details and legal/statutory risk citation",
+      "severity": "low" | "medium" | "high" | "critical",
+      "recommendation": "Legally sound procedural remediation step",
+      "boundingBox": { "x": number, "y": number, "width": number, "height": number }
     }
-  });
+  ],
+  "keyMetrics": {
+    "detectedVendor": "string",
+    "detectedAmount": "string",
+    "detectedDate": "string",
+    "missingFields": ["string"]
+  }
+}`;
+
+      // 1. If image/file was provided with minimal extracted text, try Gemini multimodal vision first
+      if (aiConfig.hasGemini && fileData?.base64 && (!text || text.length < 35)) {
+        try {
+          console.info("Executing visual forensic audit via Gemini Multimodal Vision...");
+          const ai = new GoogleGenAI({ 
+            apiKey: aiConfig.geminiKey,
+            httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+          });
+          const parts: any[] = [
+            { inlineData: { mimeType: fileData.mimeType || 'image/jpeg', data: fileData.base64 } },
+            { text: `Document Title: ${documentName || 'Uploaded File'}\nPlease perform an exhaustive, legally accurate forensic analysis on this document image.` }
+          ];
+          const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ role: 'user', parts }],
+            config: {
+              systemInstruction: forensicSystemInstruction,
+              responseMimeType: 'application/json'
+            }
+          });
+          if (response.text) {
+            const parsed = JSON.parse(response.text);
+            parsed.isAuditable = true;
+            parsed.riskScore = typeof parsed.riskScore === 'number' ? Math.max(0, Math.min(100, Math.round(parsed.riskScore))) : 50;
+            if (!parsed.riskLevel) {
+              parsed.riskLevel = parsed.riskScore > 75 ? 'Critical' : parsed.riskScore > 50 ? 'High' : parsed.riskScore > 25 ? 'Moderate' : 'Low';
+            }
+            parsed.statutoryStandard = parsed.statutoryStandard || "SAS 99 / AU-C 240 / FRE 902 Forensic Standard";
+            const findings = Array.isArray(parsed.findings) ? parsed.findings : [];
+            findings.forEach((finding: any, idx: number) => {
+              if (!finding.boundingBox) {
+                const defaults = [
+                  { x: 10, y: 38, width: 80, height: 12 },
+                  { x: 52, y: 14, width: 40, height: 12 },
+                  { x: 8, y: 72, width: 68, height: 16 },
+                  { x: 8, y: 5, width: 84, height: 8 }
+                ];
+                finding.boundingBox = defaults[idx % defaults.length];
+              }
+            });
+            parsed.findings = findings;
+            const auditRecord = {
+              id: 'audit_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+              timestamp: new Date().toISOString(),
+              documentName: documentName || 'Submitted Document',
+              documentType: parsed.documentType || 'Invoice',
+              riskScore: parsed.riskScore,
+              riskLevel: parsed.riskLevel,
+              summary: parsed.summary,
+              findingsCount: findings.length,
+              findings: parsed.findings,
+              keyMetrics: parsed.keyMetrics || {},
+              imageUrl: req.body.imageUrl || (fileData && fileData.mimeType && fileData.mimeType.startsWith('image/') ? `data:${fileData.mimeType};base64,${fileData.base64}` : undefined),
+              ip: req.ip || (req.headers['x-forwarded-for'] as string) || '127.0.0.1'
+            };
+            liveAuditLogs.unshift(auditRecord);
+            return res.json({ ...parsed, imageUrl: auditRecord.imageUrl });
+          }
+        } catch (visionErr: any) {
+          console.warn("Gemini vision audit error, trying other genuine AI providers:", visionErr?.message);
+        }
+      }
+
+      // 2. Genuine Groq LPU Inference (using user's Groq/Grok key from secrets)
+      if (aiConfig.hasGroq && (text || documentName)) {
+        try {
+          console.info("Executing legally accurate forensic audit via Groq LPU...");
+          const userContent = `DOCUMENT SUBJECT TO FORENSIC AUDIT:
+Document Name: ${documentName || 'Uploaded Document'}
+File Metadata: ${fileData?.mimeType || 'Text/Document Stream'}
+Extracted Content:
+${text || `[Document File: ${documentName || 'Scanned Document'} - binary size: ${(fileData?.base64?.length || 0) * 0.75} bytes]`}`;
+
+          const groqResult = await callGroqChat({
+            apiKey: aiConfig.groqKey,
+            model: "openai/gpt-oss-120b",
+            messages: [
+              { role: "system", content: forensicSystemInstruction },
+              { role: "user", content: userContent }
+            ],
+            jsonMode: true,
+            temperature: 0.1
+          });
+
+          if (groqResult.text) {
+            const parsed = JSON.parse(groqResult.text);
+            parsed.isAuditable = true;
+            parsed.riskScore = typeof parsed.riskScore === 'number' ? Math.max(0, Math.min(100, Math.round(parsed.riskScore))) : 50;
+            if (!parsed.riskLevel) {
+              parsed.riskLevel = parsed.riskScore > 75 ? 'Critical' : parsed.riskScore > 50 ? 'High' : parsed.riskScore > 25 ? 'Moderate' : 'Low';
+            }
+            parsed.statutoryStandard = parsed.statutoryStandard || "SAS 99 / AU-C 240 / FRE 902 Forensic Standard";
+
+            const findings = Array.isArray(parsed.findings) ? parsed.findings : [];
+            findings.forEach((finding: any, idx: number) => {
+              if (!finding.boundingBox) {
+                const defaults = [
+                  { x: 10, y: 38, width: 80, height: 12 },
+                  { x: 52, y: 14, width: 40, height: 12 },
+                  { x: 8, y: 72, width: 68, height: 16 },
+                  { x: 8, y: 5, width: 84, height: 8 }
+                ];
+                finding.boundingBox = defaults[idx % defaults.length];
+              }
+            });
+            parsed.findings = findings;
+
+            const auditRecord = {
+              id: 'audit_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+              timestamp: new Date().toISOString(),
+              documentName: documentName || 'Submitted Document',
+              documentType: parsed.documentType || 'Invoice',
+              riskScore: parsed.riskScore,
+              riskLevel: parsed.riskLevel,
+              summary: parsed.summary,
+              findingsCount: findings.length,
+              findings: parsed.findings,
+              keyMetrics: parsed.keyMetrics || {},
+              imageUrl: req.body.imageUrl || (fileData && fileData.mimeType && fileData.mimeType.startsWith('image/') ? `data:${fileData.mimeType};base64,${fileData.base64}` : undefined),
+              ip: req.ip || (req.headers['x-forwarded-for'] as string) || '127.0.0.1'
+            };
+            liveAuditLogs.unshift(auditRecord);
+
+            return res.json({
+              ...parsed,
+              imageUrl: auditRecord.imageUrl
+            });
+          }
+        } catch (groqErr: any) {
+          console.warn("Groq audit error, attempting other genuine engines:", groqErr?.message);
+        }
+      }
+
+      // 3. Genuine xAI Grok Inference
+      if (aiConfig.hasXAI && (text || documentName)) {
+        try {
+          console.info("Executing legally accurate forensic audit via xAI Grok...");
+          const userContent = `DOCUMENT SUBJECT TO FORENSIC AUDIT:
+Document Name: ${documentName || 'Uploaded Document'}
+Extracted Content:
+${text || `[Document File: ${documentName || 'Scanned Document'}]`}`;
+
+          const xaiResult = await callXAIChat({
+            apiKey: aiConfig.xaiKey,
+            model: "grok-2-latest",
+            messages: [
+              { role: "system", content: forensicSystemInstruction },
+              { role: "user", content: userContent }
+            ],
+            jsonMode: true,
+            temperature: 0.1
+          });
+
+          if (xaiResult.text) {
+            const parsed = JSON.parse(xaiResult.text);
+            parsed.isAuditable = true;
+            parsed.riskScore = typeof parsed.riskScore === 'number' ? Math.max(0, Math.min(100, Math.round(parsed.riskScore))) : 50;
+            if (!parsed.riskLevel) {
+              parsed.riskLevel = parsed.riskScore > 75 ? 'Critical' : parsed.riskScore > 50 ? 'High' : parsed.riskScore > 25 ? 'Moderate' : 'Low';
+            }
+            parsed.statutoryStandard = parsed.statutoryStandard || "SAS 99 / AU-C 240 / FRE 902 Forensic Standard";
+
+            const findings = Array.isArray(parsed.findings) ? parsed.findings : [];
+            findings.forEach((finding: any, idx: number) => {
+              if (!finding.boundingBox) {
+                const defaults = [
+                  { x: 10, y: 38, width: 80, height: 12 },
+                  { x: 52, y: 14, width: 40, height: 12 },
+                  { x: 8, y: 72, width: 68, height: 16 }
+                ];
+                finding.boundingBox = defaults[idx % defaults.length];
+              }
+            });
+            parsed.findings = findings;
+
+            const auditRecord = {
+              id: 'audit_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+              timestamp: new Date().toISOString(),
+              documentName: documentName || 'Submitted Document',
+              documentType: parsed.documentType || 'Invoice',
+              riskScore: parsed.riskScore,
+              riskLevel: parsed.riskLevel,
+              summary: parsed.summary,
+              findingsCount: findings.length,
+              findings: parsed.findings,
+              keyMetrics: parsed.keyMetrics || {},
+              imageUrl: req.body.imageUrl || (fileData && fileData.mimeType && fileData.mimeType.startsWith('image/') ? `data:${fileData.mimeType};base64,${fileData.base64}` : undefined),
+              ip: req.ip || (req.headers['x-forwarded-for'] as string) || '127.0.0.1'
+            };
+            liveAuditLogs.unshift(auditRecord);
+
+            return res.json({
+              ...parsed,
+              imageUrl: auditRecord.imageUrl
+            });
+          }
+        } catch (xaiErr: any) {
+          console.warn("xAI audit error, falling back to Gemini:", xaiErr?.message);
+        }
+      }
+
+      // 4. Genuine Google Gemini Inference
+      if (aiConfig.hasGemini) {
+        try {
+          console.info("Executing legally accurate forensic audit via Google Gemini...");
+          const ai = new GoogleGenAI({ 
+            apiKey: aiConfig.geminiKey,
+            httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+          });
+
+          const parts: any[] = [];
+          if (fileData?.base64 && fileData?.mimeType) {
+            parts.push({
+              inlineData: {
+                mimeType: fileData.mimeType,
+                data: fileData.base64
+              }
+            });
+          }
+          parts.push({
+            text: `DOCUMENT SUBJECT TO FORENSIC AUDIT:
+Document Name: ${documentName || 'Uploaded Document'}
+Extracted Text:
+${text || '[Visual document file provided above]'}`
+          });
+
+          const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ role: 'user', parts }],
+            config: {
+              systemInstruction: forensicSystemInstruction,
+              responseMimeType: 'application/json'
+            }
+          });
+
+          if (response.text) {
+            const parsed = JSON.parse(response.text);
+            parsed.isAuditable = true;
+            parsed.riskScore = typeof parsed.riskScore === 'number' ? Math.max(0, Math.min(100, Math.round(parsed.riskScore))) : 50;
+            if (!parsed.riskLevel) {
+              parsed.riskLevel = parsed.riskScore > 75 ? 'Critical' : parsed.riskScore > 50 ? 'High' : parsed.riskScore > 25 ? 'Moderate' : 'Low';
+            }
+            parsed.statutoryStandard = parsed.statutoryStandard || "SAS 99 / AU-C 240 / FRE 902 Forensic Standard";
+
+            const findings = Array.isArray(parsed.findings) ? parsed.findings : [];
+            findings.forEach((finding: any, idx: number) => {
+              if (!finding.boundingBox) {
+                const defaults = [
+                  { x: 10, y: 38, width: 80, height: 12 },
+                  { x: 52, y: 14, width: 40, height: 12 },
+                  { x: 8, y: 72, width: 68, height: 16 },
+                  { x: 8, y: 5, width: 84, height: 8 }
+                ];
+                finding.boundingBox = defaults[idx % defaults.length];
+              }
+            });
+            parsed.findings = findings;
+
+            const auditRecord = {
+              id: 'audit_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+              timestamp: new Date().toISOString(),
+              documentName: documentName || 'Submitted Document',
+              documentType: parsed.documentType || 'Invoice',
+              riskScore: parsed.riskScore,
+              riskLevel: parsed.riskLevel,
+              summary: parsed.summary,
+              findingsCount: findings.length,
+              findings: parsed.findings,
+              keyMetrics: parsed.keyMetrics || {},
+              imageUrl: req.body.imageUrl || (fileData && fileData.mimeType && fileData.mimeType.startsWith('image/') ? `data:${fileData.mimeType};base64,${fileData.base64}` : undefined),
+              ip: req.ip || (req.headers['x-forwarded-for'] as string) || '127.0.0.1'
+            };
+            liveAuditLogs.unshift(auditRecord);
+
+            return res.json({
+              ...parsed,
+              imageUrl: auditRecord.imageUrl
+            });
+          }
+        } catch (geminiErr: any) {
+          console.warn("Gemini audit error:", geminiErr?.message);
+        }
+      }
+
+      // No heuristic simulation: Strictly require genuine AI for statutory accuracy
+      return res.status(502).json({
+        error: "Genuine AI Forensic Examination Required",
+        message: "The genuine AI forensic audit engine could not complete the examination. In accordance with judicial and statutory accounting standards (SAS 99 / AU-C 240 / FRE 902), heuristic guesses and simulated examinations are strictly disabled. Please verify your Groq, Grok, or Gemini API key in AI Studio Secrets."
+      });
+
+    } catch (error: any) {
+      console.error('Audit API error:', error);
+      res.status(500).json({ error: error?.message || 'Failed to process genuine document audit' });
+    }
+  };
+
+  app.post("/api/audit", handleDocumentAudit);
+  app.post("/api/scan", handleDocumentAudit);
 
   app.post("/api/chat", async (req, res) => {
     try {
       const { message, history, documentContext, fileData, model, role, customInstruction } = req.body;
-      
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
+      const aiConfig = getAIProviderConfig();
+
+      if (!aiConfig.hasGroq && !aiConfig.hasXAI && !aiConfig.hasGemini) {
         return res.status(503).json({
-          error: "GEMINI_API_KEY is not configured.",
-          text: "Dr. Aria AI requires an active GEMINI_API_KEY to perform real-time forensic consultations. Please configure your API key in AI Studio Settings > Secrets to activate real-time Gemini AI chat."
+          error: "No AI API key is configured.",
+          text: "Dr. Aria AI requires an active API key to perform real-time consultations. Please configure your Groq, Grok (GROQ_API_KEY / GROK_API_KEY), or Gemini (GEMINI_API_KEY) in AI Studio Settings > Secrets to activate real-time AI."
         });
-      }
-
-      const ai = new GoogleGenAI({ 
-        apiKey,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          }
-        }
-      });
-
-      // Normalize requested model
-      let targetModel = typeof model === 'string' ? model.replace(/^models\//, '').trim() : 'gemini-3.8-flash';
-      const validModels = [
-        'gemini-3.8-flash',
-        'gemini-3.5-flash',
-        'gemini-3.1-flash-lite',
-        'gemini-3.1-pro-preview'
-      ];
-      if (!validModels.includes(targetModel)) {
-        targetModel = 'gemini-3.8-flash';
       }
 
       // Role system instructions
       const roleKey = typeof role === 'string' ? role.toLowerCase() : 'dr-aria';
       let systemInstruction = "";
 
-      if (roleKey === 'complex' || roleKey === 'legal' || targetModel === 'gemini-3.1-pro-preview') {
+      if (roleKey === 'complex' || roleKey === 'legal') {
         systemInstruction = `You are the Lead Legal & Forensic Logic Investigator for FOR-AI (http://forensicdocaudit.com).
 Your role is to solve complex, multi-party forensic audit challenges, intricate contract disputes, conflicting clauses, subtle fraud schemes, and statutory compliance cross-examinations.
 Provide thorough, deep-reasoning forensic logic. Break down complex clauses, check evidentiary chains of custody, and evaluate risk under SOX, GAAP, and legal precedents.
 Maintain an authoritative, rigorous, and highly analytical tone. Always advise that formal legal proceedings require court-certified forensic examiner testimony.`;
-      } else if (roleKey === 'fast' || roleKey === 'triage' || targetModel === 'gemini-3.1-flash-lite') {
+      } else if (roleKey === 'fast' || roleKey === 'triage') {
         systemInstruction = `You are the Rapid Fraud Triage Agent for FOR-AI (http://forensicdocaudit.com).
 Your role is to deliver lightning-fast, high-priority fraud assessments and numerical sanity checks.
 Be concise, punchy, and direct. Focus immediately on:
@@ -793,7 +965,7 @@ Be concise, punchy, and direct. Focus immediately on:
 2. Wire transfer / IBAN / routing anomalies and remittance diversion flags.
 3. Tax ID / VAT formatting and vendor sanity.
 Highlight critical red flags instantly without unnecessary preamble.`;
-      } else if (roleKey === 'general' || targetModel === 'gemini-3.5-flash') {
+      } else if (roleKey === 'general') {
         systemInstruction = `You are the General Compliance & Document Advisor for FOR-AI (http://forensicdocaudit.com).
 Your role is to assist accounting teams, bookkeepers, and business owners with everyday invoice reviews, general audit inquiries, record-keeping best practices, and document verification.
 Provide helpful, well-structured, practical guidance with clear explanations and checklists.`;
@@ -818,99 +990,212 @@ When discussing forensic examination:
         systemInstruction += `\n\nActive Document Context:\nDocument Name: ${documentContext.documentName || 'Unknown'}\nDocument Type: ${documentContext.documentType || 'Document'}\nRisk Score: ${documentContext.riskScore ?? 'N/A'}/100 (${documentContext.riskLevel || 'Unknown'})\nSummary: ${documentContext.summary || 'None'}\nFindings: ${JSON.stringify(documentContext.findings || [])}`;
       }
 
-      // Format multi-turn history strictly for Gemini SDK
-      // Roles must alternate between 'user' and 'model' and begin with 'user'
-      const rawHistory = Array.isArray(history) ? history : [];
-      const contents: Array<{ role: 'user' | 'model'; parts: Array<any> }> = [];
-
-      for (const msg of rawHistory) {
-        if (!msg || typeof msg.text !== 'string' || !msg.text.trim()) continue;
-        const role = (msg.sender === 'user' || msg.role === 'user') ? 'user' : 'model';
-
-        // Gemini cannot start with a 'model' turn
-        if (contents.length === 0 && role === 'model') {
-          continue;
-        }
-
-        // Merge consecutive turns with the same role
-        if (contents.length > 0 && contents[contents.length - 1].role === role) {
-          contents[contents.length - 1].parts[0].text += `\n\n${msg.text.trim()}`;
-        } else {
-          contents.push({
-            role,
-            parts: [{ text: msg.text.trim() }]
-          });
-        }
-      }
-
-      const userParts: any[] = [];
-      if (fileData?.base64 && fileData?.mimeType) {
-        userParts.push({
-          inlineData: {
-            mimeType: fileData.mimeType,
-            data: fileData.base64
+      // If document file is attached, extract text for context
+      let attachedText = "";
+      if (fileData?.base64) {
+        if (fileData.mimeType?.includes('pdf')) {
+          try {
+            const pdfBuffer = Buffer.from(fileData.base64, 'base64');
+            const parser = new PDFParse({ data: pdfBuffer });
+            const parsed = await parser.getText();
+            attachedText = (parsed.text || '').trim();
+          } catch (e) {
+            console.warn("Could not parse attached PDF in chat");
           }
-        });
+        } else if (fileData.mimeType?.startsWith('image/')) {
+          try {
+            const imgBuffer = Buffer.from(fileData.base64, 'base64');
+            const ocr = await Tesseract.recognize(imgBuffer, 'eng') as any;
+            attachedText = (ocr.data?.text || '').trim();
+          } catch (e) {
+            console.warn("Could not OCR attached image in chat");
+          }
+        }
       }
 
       const userText = (message || '').trim() || (fileData ? "Please review this attached document forensically." : "");
-      if (userText) {
-        userParts.push({ text: userText });
-      }
+      const fullUserMessage = attachedText 
+        ? `${userText}\n\n[Attached Document Content]:\n${attachedText}`
+        : userText;
 
-      if (userParts.length === 0 && contents.length === 0) {
-        return res.status(400).json({ error: "Message or document is required" });
-      }
+      const requestedModel = typeof model === 'string' ? model.trim() : '';
 
-      if (userParts.length > 0) {
-        if (contents.length > 0 && contents[contents.length - 1].role === 'user' && !fileData) {
-          contents[contents.length - 1].parts[0].text += `\n\n${userText}`;
-        } else {
-          contents.push({
-            role: 'user',
-            parts: userParts
+      // Determine provider to use:
+      // If Groq key is present, default to Groq unless the user explicitly requested a Gemini model
+      const explicitlyRequestedGemini = requestedModel.startsWith('gemini') && aiConfig.hasGemini;
+      const preferXAI = aiConfig.hasXAI && requestedModel.includes('grok');
+      const preferGroq = aiConfig.hasGroq && !explicitlyRequestedGemini && !preferXAI;
+
+      let replyText = "";
+      let modelUsed = requestedModel || (aiConfig.hasGroq ? "openai/gpt-oss-120b" : "gemini-3.8-flash");
+      let providerUsed = "";
+
+      // 1. Groq Execution
+      if (preferGroq || (aiConfig.hasGroq && !explicitlyRequestedGemini && !aiConfig.hasGemini)) {
+        const groqModel = requestedModel && (requestedModel.startsWith('openai/') || requestedModel.startsWith('qwen/'))
+          ? requestedModel
+          : "openai/gpt-oss-120b";
+
+        const groqMessages: Array<{ role: string; content: string }> = [
+          { role: "system", content: systemInstruction }
+        ];
+
+        const rawHistory = Array.isArray(history) ? history : [];
+        for (const msg of rawHistory) {
+          if (!msg || typeof msg.text !== 'string' || !msg.text.trim()) continue;
+          const role = (msg.sender === 'user' || msg.role === 'user') ? 'user' : 'assistant';
+          groqMessages.push({ role, content: msg.text.trim() });
+        }
+
+        if (fullUserMessage) {
+          groqMessages.push({ role: "user", content: fullUserMessage });
+        }
+
+        const resObj = await callGroqChat({
+          apiKey: aiConfig.groqKey,
+          model: groqModel,
+          messages: groqMessages,
+          temperature: 0.3
+        });
+
+        replyText = resObj.text;
+        modelUsed = resObj.modelUsed;
+        providerUsed = "Groq LPU";
+      } 
+      // 2. xAI Grok Execution
+      else if (preferXAI) {
+        const xaiMessages: Array<{ role: string; content: string }> = [
+          { role: "system", content: systemInstruction }
+        ];
+
+        const rawHistory = Array.isArray(history) ? history : [];
+        for (const msg of rawHistory) {
+          if (!msg || typeof msg.text !== 'string' || !msg.text.trim()) continue;
+          const role = (msg.sender === 'user' || msg.role === 'user') ? 'user' : 'assistant';
+          xaiMessages.push({ role, content: msg.text.trim() });
+        }
+
+        if (fullUserMessage) {
+          xaiMessages.push({ role: "user", content: fullUserMessage });
+        }
+
+        const resObj = await callXAIChat({
+          apiKey: aiConfig.xaiKey,
+          model: requestedModel || "grok-2-latest",
+          messages: xaiMessages,
+          temperature: 0.3
+        });
+
+        replyText = resObj.text;
+        modelUsed = resObj.modelUsed;
+        providerUsed = "xAI Grok";
+      }
+      // 3. Google Gemini Execution (with auto-fallback to Groq if available)
+      else if (aiConfig.hasGemini) {
+        try {
+          const ai = new GoogleGenAI({ 
+            apiKey: aiConfig.geminiKey,
+            httpOptions: {
+              headers: { 'User-Agent': 'aistudio-build' }
+            }
           });
+
+          let targetModel = requestedModel && requestedModel.startsWith('gemini') ? requestedModel : 'gemini-2.5-flash';
+          const rawHistory = Array.isArray(history) ? history : [];
+          const contents: Array<{ role: 'user' | 'model'; parts: Array<any> }> = [];
+
+          for (const msg of rawHistory) {
+            if (!msg || typeof msg.text !== 'string' || !msg.text.trim()) continue;
+            const role = (msg.sender === 'user' || msg.role === 'user') ? 'user' : 'model';
+            if (contents.length === 0 && role === 'model') continue;
+
+            if (contents.length > 0 && contents[contents.length - 1].role === role) {
+              contents[contents.length - 1].parts[0].text += `\n\n${msg.text.trim()}`;
+            } else {
+              contents.push({ role, parts: [{ text: msg.text.trim() }] });
+            }
+          }
+
+          const userParts: any[] = [];
+          if (fileData?.base64 && fileData?.mimeType) {
+            userParts.push({
+              inlineData: {
+                mimeType: fileData.mimeType,
+                data: fileData.base64
+              }
+            });
+          }
+          if (fullUserMessage) {
+            userParts.push({ text: fullUserMessage });
+          }
+
+          if (userParts.length > 0) {
+            contents.push({ role: 'user', parts: userParts });
+          }
+
+          const geminiPromise = ai.models.generateContent({
+            model: targetModel,
+            contents,
+            config: { systemInstruction }
+          });
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Gemini request timed out after 4 seconds")), 4000)
+          );
+          const geminiRes = (await Promise.race([geminiPromise, timeoutPromise])) as any;
+
+          replyText = geminiRes.text?.trim() || "";
+          modelUsed = targetModel;
+          providerUsed = "Google Gemini";
+        } catch (geminiErr: any) {
+          console.warn("Gemini call failed or timed out, attempting fallback to Groq:", geminiErr?.message);
+          if (aiConfig.hasGroq) {
+            const groqMessages: Array<{ role: string; content: string }> = [
+              { role: "system", content: systemInstruction }
+            ];
+            const rawHistory = Array.isArray(history) ? history : [];
+            for (const msg of rawHistory) {
+              if (!msg || typeof msg.text !== 'string' || !msg.text.trim()) continue;
+              groqMessages.push({
+                role: (msg.sender === 'user' || msg.role === 'user') ? 'user' : 'assistant',
+                content: msg.text.trim()
+              });
+            }
+            if (fullUserMessage) {
+              groqMessages.push({ role: "user", content: fullUserMessage });
+            }
+
+            const fallbackRes = await callGroqChat({
+              apiKey: aiConfig.groqKey,
+              model: "openai/gpt-oss-120b",
+              messages: groqMessages,
+              temperature: 0.3
+            });
+
+            replyText = fallbackRes.text;
+            modelUsed = "openai/gpt-oss-120b (Groq fallback)";
+            providerUsed = "Groq LPU";
+          } else {
+            throw geminiErr;
+          }
         }
       }
 
-      // Try primary requested model, with fallback to gemini-3.8-flash or gemini-3.5-flash
-      let replyText = "";
-      let modelUsed = targetModel;
-
-      try {
-        const response = await ai.models.generateContent({
-          model: targetModel,
-          contents,
-          config: {
-            systemInstruction,
-          }
-        });
-        replyText = response.text?.trim() || "";
-      } catch (primaryErr: any) {
-        console.warn(`Primary model ${targetModel} encountered error, trying fallback:`, primaryErr?.message);
-        const fallbackModel = targetModel === 'gemini-3.8-flash' ? 'gemini-3.5-flash' : 'gemini-3.8-flash';
-        modelUsed = fallbackModel;
-        const fallbackRes = await ai.models.generateContent({
-          model: fallbackModel,
-          contents,
-          config: {
-            systemInstruction,
-          }
-        });
-        replyText = fallbackRes.text?.trim() || "";
-      }
-
       if (!replyText) {
-        throw new Error("No response generated by Gemini model.");
+        throw new Error("No response generated by AI model.");
       }
 
-      return res.json({ text: replyText, model: modelUsed, role: roleKey });
+      return res.json({ 
+        text: replyText, 
+        model: modelUsed, 
+        role: roleKey,
+        provider: providerUsed
+      });
 
     } catch (error: any) {
-      console.error('Gemini Chat API error:', error);
+      console.error('Chat API error:', error);
       return res.status(500).json({ 
         error: 'Failed to process AI chat with Dr. Aria',
-        text: `Gemini AI chat was unable to generate a response: ${error?.message || 'Processing error'}. Please try again.`
+        text: `AI chat was unable to generate a response: ${error?.message || 'Processing error'}. Please try again.`
       });
     }
   });

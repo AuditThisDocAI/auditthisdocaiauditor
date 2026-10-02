@@ -73,7 +73,7 @@ export function DrAriaChatPopup() {
     return saved ? parseInt(saved, 10) || 0 : 0;
   });
 
-  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.8-flash');
+  const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-oss-120b');
   const [selectedRole, setSelectedRole] = useState<string>('dr-aria');
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -82,6 +82,25 @@ export function DrAriaChatPopup() {
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+
+  // Active AI Engine status
+  const [aiStatus, setAiStatus] = useState<{
+    connected: boolean;
+    providerName: string;
+    defaultModel: string;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/ai/status')
+      .then(res => res.json())
+      .then(data => {
+        setAiStatus(data);
+        if (data.defaultModel) {
+          setSelectedModel(data.defaultModel);
+        }
+      })
+      .catch(e => console.warn('Could not load AI status', e));
+  }, []);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -503,6 +522,23 @@ export function DrAriaChatPopup() {
     }
   };
 
+  const handleExportChat = () => {
+    const transcript = messages.map(m => {
+      const roleLabel = m.sender === 'user' ? 'YOU' : 'DR. ARIA (Lead AI Forensic Auditor)';
+      return `[${m.timestamp}] ${roleLabel}:\n${m.text}\n\n----------------------------------------\n`;
+    }).join('\n');
+
+    const blob = new Blob([transcript], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Dr_Aria_Forensic_Consultation_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const getRiskBadgeColor = (level: string) => {
     switch (level?.toLowerCase()) {
       case 'critical': return 'bg-red-500 text-white border-red-600';
@@ -706,6 +742,15 @@ export function DrAriaChatPopup() {
                   </button>
                 )}
 
+                {/* Download Transcript */}
+                <button
+                  onClick={handleExportChat}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                  title="Download consultation transcript"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+
                 {/* Reset Chat */}
                 <button
                   onClick={handleResetChat}
@@ -760,6 +805,11 @@ export function DrAriaChatPopup() {
                       onChange={(e) => setSelectedModel(e.target.value)}
                       className="bg-slate-800 text-purple-300 font-semibold rounded px-1.5 py-0.5 text-[11px] border border-slate-700 focus:outline-hidden cursor-pointer"
                     >
+                      <option value="openai/gpt-oss-120b">Groq 120B (Ultra-Fast Active)</option>
+                      <option value="openai/gpt-oss-20b">Groq 20B (Instant Triage)</option>
+                      <option value="qwen/qwen3.8-27b">Groq Qwen 27B (Math & Logic)</option>
+                      <option value="grok-2-latest">xAI Grok 2 (Complex)</option>
+                      <option value="gemini-2.5-flash">Gemini 2.5 Flash (Instant Vision)</option>
                       <option value="gemini-3.8-flash">Gemini 3.8 Flash (Default)</option>
                       <option value="gemini-3.5-flash">Gemini 3.5 Flash (General)</option>
                       <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Fast)</option>

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScanSearch, FileText, AlertTriangle, CheckCircle2, ShieldAlert, Loader2, Save, Camera, X, RefreshCw, Trash2, Eye, Download, FileDown, Bot } from 'lucide-react';
-import { analyzeDocumentLocally, AuditResult } from '../lib/auditEngine';
+import { AuditResult } from '../lib/auditEngine';
 import { appendAuditTrailEvent } from '../lib/auditTrailService';
 import { ExportPdfReportModal } from './ExportPdfReportModal';
 import { downloadImageFile } from '../lib/pdfReportGenerator';
@@ -17,6 +17,7 @@ export default function AuditScanner() {
   const [isFromCamera, setIsFromCamera] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -329,10 +330,112 @@ export default function AuditScanner() {
               </div>
             )}
             
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-slate-500">Quick Test Samples:</span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setText(`INVOICE #INV-8849-WIRE
+Vendor: Apex Offshore Capital Ltd.
+Invoice Date: October 1, 2026
+Due Date: IMMEDIATELY UPON RECEIPT (24hr mandate)
+Tax / VAT ID: [NOT PROVIDED / EXEMPT]
+
+Bill To: Corporate Treasury Division
+
+LINE ITEMS:
+1. Urgent Cross-Border Asset Liquidity Escrow - $48,500.00
+2. Expeditious Discretionary Processing Fee - $4,200.00
+Subtotal: $52,700.00
+Tax (0%): $0.00
+TOTAL DUE: $64,200.00 [ARITHMETIC DISCREPANCY: 52,700 != 64,200]
+
+REMITTANCE INSTRUCTIONS (URGENT):
+Bank: Cayman Horizon Private Bank
+Account: KY92-0041-8821-9901-002
+Routing / SWIFT: CAYMKY22
+Note: Do not call primary account manager; please release wire within 4 hours to avoid statutory freeze.`);
+                    setFile(null);
+                    if (previewUrl) URL.revokeObjectURL(previewUrl);
+                    setPreviewUrl(null);
+                    setIsFromCamera(false);
+                  }}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold transition-colors cursor-pointer flex items-center gap-1"
+                  title="Load high-risk wire fraud invoice sample"
+                >
+                  <span>🚨 Wire Fraud Sample</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setText(`INVOICE #9021-DEV
+Vendor: CloudTech Systems LLC
+Date: September 28, 2026
+Due Date: Net 15 Days
+Tax ID: MISSING
+EIN: [None on record]
+
+Bill To: Enterprise Solutions Inc.
+
+Description:
+1. Cloud Infrastructure Management - $12,400.00
+2. Penetration Testing Retainer - $6,000.00
+Subtotal: $18,400.00
+Sales Tax: $1,472.00
+Total Due: $21,472.00 (Math error: 18,400 + 1,472 = 19,872, not 21,472)
+
+Payment: ACH to routing 021000021 acct 88219904`);
+                    setFile(null);
+                    if (previewUrl) URL.revokeObjectURL(previewUrl);
+                    setPreviewUrl(null);
+                    setIsFromCamera(false);
+                  }}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold transition-colors cursor-pointer flex items-center gap-1"
+                  title="Load invoice with math discrepancy & missing tax ID"
+                >
+                  <span>⚠️ Math & Tax Anomaly</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setText(`COMMERCIAL INVOICE #PO-2026-4401
+Vendor: Dell Technologies Inc.
+VAT ID: US-74-1294810
+Address: 1 Dell Way, Round Rock, TX 78682
+Invoice Date: September 15, 2026
+Payment Terms: Net 30 Days
+
+Bill To: Global Financial Advisory
+PO Reference: PO-89214
+
+Line Items:
+1. Dell PowerEdge R750 Server Rack (Qty: 2) - $8,200.00
+2. Redundant Power Supply Units (Qty: 4) - $1,100.00
+3. 3-Year Enterprise ProSupport Support Pack - $2,400.00
+Subtotal: $11,700.00
+Sales Tax (8.25%): $965.25
+Total Amount Payable: $12,665.25
+
+Authorized Signature: M. Sterling, Enterprise Logistics Director
+Payment Method: Standard Corporate Lockbox ACH`);
+                    setFile(null);
+                    if (previewUrl) URL.revokeObjectURL(previewUrl);
+                    setPreviewUrl(null);
+                    setIsFromCamera(false);
+                  }}
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold transition-colors cursor-pointer flex items-center gap-1"
+                  title="Load clean, validated invoice"
+                >
+                  <span>✅ Clean Verified Invoice</span>
+                </button>
+              </div>
+            </div>
+            
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Optional: Paste raw text here if you want to scan text instead..."
+              placeholder="Optional: Paste raw invoice or document text here, or use one of the quick test samples above..."
               className="w-full h-32 p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent outline-none transition-all resize-none text-sm font-mono text-slate-600"
             />
           </div>
@@ -499,10 +602,10 @@ export default function AuditScanner() {
                     Export / Download PDF Report
                   </button>
 
-                  {file && (
+                  {(file || previewUrl) && (
                     <button
                       type="button"
-                      onClick={() => downloadImageFile(file, file.name)}
+                      onClick={() => downloadImageFile(file || previewUrl!, file?.name || 'scanned_document.png')}
                       className="px-4 py-3 rounded-xl font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center gap-2 transition-all text-xs sm:text-sm shadow-sm cursor-pointer"
                     >
                       <Download className="w-4 h-4 text-slate-500" />
