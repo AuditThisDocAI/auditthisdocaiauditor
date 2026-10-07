@@ -51,6 +51,7 @@ import {
 import { exportAuditAsSignedPdf, exportAuditAsCsv } from '../lib/pdfReportGenerator';
 import AuditScanner from './AuditScanner';
 import DocumentHeatmapOverlay from './DocumentHeatmapOverlay';
+import D3AnomalyTrendChart from './D3AnomalyTrendChart';
 
 export interface AuditLogItem {
   id: string;
@@ -469,8 +470,11 @@ export function AuditDashboard() {
                 : 'text-[#64748B] hover:text-[#1E293B] hover:bg-gray-100/80'
             }`}
           >
-            <TrendingUp className="w-4 h-4" />
-            Fraud Detection Trends
+            <TrendingUp className="w-4 h-4 text-[#7C3AED]" />
+            <span>D3 Anomaly Trends</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-700 font-extrabold border border-purple-200">
+              D3.js
+            </span>
           </button>
 
           <button
@@ -609,6 +613,41 @@ export function AuditDashboard() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Interactive D3 Anomaly Trend Chart on Summary Tab */}
+          <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-sm p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-2 border-b border-slate-100 gap-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#7C3AED] flex items-center justify-center border border-purple-100 shrink-0">
+                  <TrendingUp className="w-5 h-5 text-[#7C3AED]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-base text-[#1E293B]">
+                      Forensic Anomaly Trend Trajectory
+                    </h3>
+                    <span className="text-[10px] bg-purple-100 text-[#7C3AED] px-2 py-0.5 rounded-full font-bold border border-purple-200">
+                      D3.js Visualization
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#64748B]">
+                    Interactive timeline: hover over data points to inspect specific anomaly count, timestamp, and audit findings
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab('trends')}
+                className="text-xs font-bold text-[#7C3AED] hover:text-[#6D28D9] flex items-center gap-1.5 cursor-pointer bg-purple-50 hover:bg-purple-100 px-3.5 py-2 rounded-xl border border-purple-200 transition-colors shrink-0"
+              >
+                <span>Full Trends Lab</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <D3AnomalyTrendChart
+              audits={recentAudits}
+              onSelectAudit={(audit) => setSelectedAudit(audit)}
+            />
           </div>
 
           {/* Scans Table / Cards */}
@@ -754,22 +793,28 @@ export function AuditDashboard() {
       {/* TAB CONTENT: 2. FRAUD DETECTION TRENDS */}
       {activeTab === 'trends' && (
         <div className="space-y-6">
+          {/* Main Interactive D3-based Anomaly Trend Chart */}
+          <D3AnomalyTrendChart
+            audits={recentAudits}
+            onSelectAudit={(audit) => setSelectedAudit(audit)}
+          />
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Trend Chart */}
+            {/* Historical Area Trend Breakdown */}
             <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-[#E2E8F0] shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-extrabold text-[#1E293B] text-lg flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-[#7C3AED]" />
-                    Forensic Anomaly & Fraud Risk Trajectory
+                    Comparative Risk & Finding Density
                   </h3>
                   <p className="text-xs text-[#64748B] mt-0.5">
-                    Chronological progression of detected risk scores and anomaly volume across recent audits.
+                    Multi-band stream correlating average risk score with itemized anomaly frequency.
                   </p>
                 </div>
               </div>
 
-              <div className="h-72 w-full pt-4">
+              <div className="h-64 w-full pt-2">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={trendChartData}>
                     <defs>

@@ -31,6 +31,7 @@ export interface ChatMessageItem {
   timestamp: string;
   modelUsed?: string;
   roleUsed?: string;
+  providerUsed?: string;
   attachment?: {
     name: string;
     type: string;
@@ -42,27 +43,27 @@ export interface ChatMessageItem {
 export const AI_MODELS = [
   {
     id: 'openai/gpt-oss-120b',
-    name: 'Groq GPT-OSS 120B',
+    name: 'Grok / Groq 120B',
     tag: 'Ultra-Fast LPU (Active)',
     desc: 'High-speed forensic visual/text analysis and deep reasoning on Groq LPUs.',
     speed: 'Ultra Fast (1000+ T/s)',
-    tier: 'Groq High Precision'
+    tier: 'Grok / Groq High Precision'
   },
   {
     id: 'openai/gpt-oss-20b',
-    name: 'Groq GPT-OSS 20B',
+    name: 'Grok / Groq 20B',
     tag: 'Instantaneous',
     desc: 'Rapid arithmetic sanity checks, vendor verification, and quick triage.',
     speed: 'Instantaneous',
-    tier: 'Groq Fast Triage'
+    tier: 'Grok / Groq Fast Triage'
   },
   {
     id: 'qwen/qwen3.8-27b',
-    name: 'Groq Qwen 3.8 27B',
+    name: 'Grok / Groq Qwen 27B',
     tag: 'Math & Logic',
     desc: 'Structured reasoning, calculation checks, and contract cross-referencing.',
     speed: 'Ultra Fast',
-    tier: 'Groq Reasoning'
+    tier: 'Grok / Groq Reasoning'
   },
   {
     id: 'grok-2-latest',
@@ -221,7 +222,15 @@ export function GeminiChatView() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // If first message has outdated hardcoded Gemini text, upgrade it
+          if (parsed[0]?.id === 'init-1' && parsed[0]?.text?.includes('Welcome to the Gemini')) {
+            parsed[0].text = `### Welcome to the AI Forensic Chat Workspace\n\nI am Dr. Aria (Senior AI Forensic Auditor), powered by your active ultra-fast **Grok / Groq LPU engine** (GPT-OSS 120B / Grok LPU). You can engage in comprehensive, back-and-forth auditing discussions, ask targeted compliance questions, or upload documents and invoices for instant anomaly analysis.\n\n* **Active Forensic Engine:** \`Grok / Groq 120B\` (Ultra-Fast LPU Inference)\n* **Role Persona:** Dr. Aria (Chief Forensic Auditor)\n\nType your question below or click any of the prompt suggestions to begin.`;
+            parsed[0].modelUsed = 'openai/gpt-oss-120b';
+            parsed[0].providerUsed = 'Grok / Groq LPU';
+          }
+          return parsed;
+        }
       } catch (e) {
         console.error('Failed to parse full chat messages', e);
       }
@@ -230,10 +239,11 @@ export function GeminiChatView() {
       {
         id: 'init-1',
         sender: 'model',
-        text: `### Welcome to the Gemini AI Forensic Chat Workspace\n\nI am your multi-turn Gemini-powered forensic document intelligence assistant. You can engage in comprehensive, back-and-forth auditing discussions, ask targeted compliance questions, or upload documents and invoices for instant anomaly analysis.\n\n* **Current Active Model:** \`gemini-3.8-flash\` (Default for balanced forensic depth)\n* **Role Persona:** Dr. Aria (Chief Forensic Auditor)\n\nSelect any specialized model or role from the top toolbar, or select a prompt below to begin your audit session.`,
+        text: `### Welcome to the AI Forensic Chat Workspace\n\nI am Dr. Aria (Senior AI Forensic Auditor), powered by your active ultra-fast **Grok / Groq LPU engine** (GPT-OSS 120B / Grok LPU). You can engage in comprehensive, back-and-forth auditing discussions, ask targeted compliance questions, or upload documents and invoices for instant anomaly analysis.\n\n* **Active Forensic Engine:** \`Grok / Groq 120B\` (Ultra-Fast LPU Inference)\n* **Role Persona:** Dr. Aria (Chief Forensic Auditor)\n\nType your question below or click any of the prompt suggestions to begin.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        modelUsed: 'gemini-3.8-flash',
-        roleUsed: 'dr-aria'
+        modelUsed: 'openai/gpt-oss-120b',
+        roleUsed: 'dr-aria',
+        providerUsed: 'Grok / Groq LPU'
       }
     ];
   });
@@ -330,7 +340,15 @@ export function GeminiChatView() {
   // Send message
   const handleSendMessage = async (textOverride?: string) => {
     const textToSend = (textOverride !== undefined ? textOverride : inputMessage).trim();
-    if (!textToSend && !attachedFile) return;
+    if (!textToSend && !attachedFile) {
+      const inputEl = document.querySelector('input[placeholder*="Ask"]') as HTMLInputElement;
+      if (inputEl) {
+        inputEl.focus();
+        inputEl.classList.add('ring-2', 'ring-[#7C3AED]');
+        setTimeout(() => inputEl.classList.remove('ring-2', 'ring-[#7C3AED]'), 1500);
+      }
+      return;
+    }
 
     let fileDataPayload: { base64: string; mimeType: string; fileName: string } | undefined = undefined;
 
@@ -397,19 +415,21 @@ export function GeminiChatView() {
       let replyText = "";
       let modelUsed = selectedModel;
       let roleUsed = selectedRole;
+      let providerUsed = aiStatus?.hasGroq ? 'Grok / Groq LPU' : aiStatus?.hasXAI ? 'xAI Grok' : 'Google Gemini';
 
       if (res.ok) {
         const data = await res.json();
         replyText = data.text || "";
         if (data.model) modelUsed = data.model;
         if (data.role) roleUsed = data.role;
+        if (data.provider) providerUsed = data.provider;
       } else {
         const err = await res.json().catch(() => ({}));
-        replyText = err.text || err.error || "Gemini was unable to respond. Please check your network and try again.";
+        replyText = err.text || err.error || "The AI auditor was unable to respond. Please verify your connection or check your API key in AI Studio Secrets.";
       }
 
       if (!replyText) {
-        replyText = "Gemini completed the inference cycle without output. Please rephrase or try another model.";
+        replyText = "The AI forensic audit model completed the inference cycle without output. Please rephrase or select another model.";
       }
 
       const modelMsg: ChatMessageItem = {
@@ -418,7 +438,8 @@ export function GeminiChatView() {
         text: replyText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         modelUsed,
-        roleUsed
+        roleUsed,
+        providerUsed
       };
 
       setMessages(prev => [...prev, modelMsg]);
@@ -430,7 +451,7 @@ export function GeminiChatView() {
         {
           id: `err-${Date.now()}`,
           sender: 'model',
-          text: `An error occurred while communicating with Gemini: ${err?.message || 'Network connection failed'}. Please try again.`,
+          text: `An error occurred while communicating with the AI forensic engine: ${err?.message || 'Network connection failed'}. Please try again.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -481,7 +502,7 @@ export function GeminiChatView() {
   const currentModelObj = GEMINI_MODELS.find(m => m.id === selectedModel) || GEMINI_MODELS[0];
 
   return (
-    <div className="max-w-7xl mx-auto py-2">
+    <div className="w-full h-full flex flex-col flex-1 min-h-0 max-w-7xl mx-auto">
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -498,7 +519,7 @@ export function GeminiChatView() {
             <div className="flex items-center justify-between pb-3">
               <div className="flex items-center gap-2">
                 <Camera className="w-5 h-5 text-purple-400" />
-                <h4 className="font-bold text-sm">Snap Document for Gemini Audit</h4>
+                <h4 className="font-bold text-sm">Snap Document for Forensic AI Audit</h4>
               </div>
               <button
                 onClick={stopCamera}
@@ -533,10 +554,10 @@ export function GeminiChatView() {
       )}
 
       {/* Main Container */}
-      <div className="bg-white border border-[#E2E8F0] rounded-3xl shadow-xl overflow-hidden flex flex-col h-[calc(100vh-140px)] min-h-[640px]">
+      <div className="bg-white border border-[#E2E8F0] rounded-2xl sm:rounded-3xl shadow-xl flex flex-col flex-1 min-h-0 overflow-hidden">
         
         {/* Top Control Bar: Title, Model Selector & Role Selector */}
-        <div className="bg-[#0F172A] text-white px-6 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div className="bg-[#0F172A] text-white px-4 py-3 sm:px-6 sm:py-3.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
           
           {/* Header & Status */}
           <div className="flex items-center gap-3">
@@ -621,14 +642,14 @@ export function GeminiChatView() {
         </div>
 
         {/* Informative Sub-banner describing active model and role configuration */}
-        <div className="bg-slate-50 border-b border-[#E2E8F0] px-6 py-2 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
+        <div className="bg-slate-50 border-b border-[#E2E8F0] px-4 py-2 sm:px-6 sm:py-2 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2 shrink-0">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-900">Active Persona:</span>
             <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 font-bold text-[11px]">
               {currentRoleObj.name}
             </span>
             <span className="text-slate-400">&bull;</span>
-            <span className="text-slate-600">{currentRoleObj.desc}</span>
+            <span className="text-slate-600 hidden md:inline">{currentRoleObj.desc}</span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
             <span>Model:</span>
@@ -640,7 +661,7 @@ export function GeminiChatView() {
         </div>
 
         {/* Scrollable Message Thread */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#F8F9FC]">
+        <div className="flex-1 overflow-y-auto min-h-0 p-3 sm:p-6 space-y-4 sm:space-y-6 bg-[#F8F9FC]">
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -651,13 +672,13 @@ export function GeminiChatView() {
                 {msg.sender === 'user' ? (
                   <span className="text-xs font-bold text-slate-700">You</span>
                 ) : (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-xs font-extrabold text-[#7C3AED] flex items-center gap-1">
                       <Bot className="w-3.5 h-3.5 text-[#7C3AED]" />
-                      Gemini ({msg.roleUsed || selectedRole})
+                      {msg.providerUsed || (msg.modelUsed?.includes('oss') || msg.modelUsed?.includes('qwen') ? 'Grok / Groq LPU' : aiStatus?.hasGroq ? 'Grok LPU' : 'AI Assistant')} ({msg.roleUsed || selectedRole})
                     </span>
                     {msg.modelUsed && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 border border-purple-200">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200 font-semibold">
                         {msg.modelUsed}
                       </span>
                     )}
@@ -668,7 +689,7 @@ export function GeminiChatView() {
 
               {/* Message Bubble */}
               <div
-                className={`max-w-[85%] sm:max-w-[78%] rounded-2xl p-4 shadow-sm relative group ${
+                className={`max-w-[90%] sm:max-w-[78%] rounded-2xl p-3.5 sm:p-4 shadow-sm relative group ${
                   msg.sender === 'user'
                     ? 'bg-[#1E293B] text-white rounded-tr-xs'
                     : 'bg-white text-[#1E293B] border border-[#E2E8F0] rounded-tl-xs shadow-md shadow-slate-100'
@@ -696,7 +717,7 @@ export function GeminiChatView() {
                 )}
 
                 {/* Formatted Message Content */}
-                <div className="text-sm leading-relaxed whitespace-pre-wrap font-sans break-words selection:bg-purple-200 selection:text-purple-900">
+                <div className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-sans break-words selection:bg-purple-200 selection:text-purple-900">
                   {msg.text}
                 </div>
 
@@ -726,7 +747,7 @@ export function GeminiChatView() {
               <div className="flex items-center gap-2 mb-1 px-1">
                 <span className="text-xs font-extrabold text-[#7C3AED] flex items-center gap-1">
                   <Bot className="w-3.5 h-3.5 text-[#7C3AED] animate-spin" />
-                  Gemini ({selectedModel})
+                  {aiStatus?.hasGroq ? 'Grok / Groq LPU' : 'AI Forensic Engine'} ({selectedModel})
                 </span>
                 <span className="text-[11px] text-slate-400">Analyzing...</span>
               </div>
@@ -747,7 +768,7 @@ export function GeminiChatView() {
         </div>
 
         {/* Prompt Suggestions Pills */}
-        <div className="bg-white px-6 py-2 border-t border-[#E2E8F0] overflow-x-auto flex items-center gap-2 shrink-0">
+        <div className="bg-white px-3 sm:px-6 py-2 border-t border-[#E2E8F0] overflow-x-auto flex items-center gap-2 shrink-0">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-purple-500" />
             Audit Prompts:
@@ -769,7 +790,7 @@ export function GeminiChatView() {
 
         {/* File Attachment Staging Bar (if file selected) */}
         {attachedFile && (
-          <div className="bg-purple-50 border-t border-purple-200 px-6 py-2.5 flex items-center justify-between gap-3 shrink-0">
+          <div className="bg-purple-50 border-t border-purple-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3">
               {attachedPreview ? (
                 <img src={attachedPreview} alt="preview" className="w-10 h-10 rounded-lg object-cover border border-purple-300" />
@@ -785,7 +806,7 @@ export function GeminiChatView() {
             </div>
             <button
               onClick={removeAttachment}
-              className="p-1 rounded-full text-purple-700 hover:text-purple-950 hover:bg-purple-200"
+              className="p-1 rounded-full text-purple-700 hover:text-purple-950 hover:bg-purple-200 cursor-pointer"
               title="Remove attachment"
             >
               <X className="w-4 h-4" />
@@ -794,42 +815,48 @@ export function GeminiChatView() {
         )}
 
         {/* Input Bar */}
-        <div className="bg-white p-4 border-t border-[#E2E8F0] shrink-0">
+        <div className="bg-white p-2.5 sm:p-4 border-t border-[#E2E8F0] shrink-0">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSendMessage();
             }}
-            className="flex items-center gap-2 max-w-5xl mx-auto"
+            className="flex items-center gap-1.5 sm:gap-2 max-w-5xl mx-auto w-full"
           >
             {/* Attachment Button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors cursor-pointer border border-slate-200 hover:border-purple-300"
+              className="p-2 sm:p-2.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors cursor-pointer border border-slate-200 hover:border-purple-300 shrink-0"
               title="Attach document or image for audit"
             >
-              <Paperclip className="w-5 h-5" />
+              <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             {/* Camera Button */}
             <button
               type="button"
               onClick={startCamera}
-              className="p-2.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors cursor-pointer border border-slate-200 hover:border-purple-300"
+              className="p-2 sm:p-2.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors cursor-pointer border border-slate-200 hover:border-purple-300 shrink-0"
               title="Capture photo from camera"
             >
-              <Camera className="w-5 h-5" />
+              <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             {/* Text Input */}
-            <div className="flex-1 relative">
+            <div className="flex-1 relative min-w-0">
               <input
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
                 placeholder={`Ask ${currentRoleObj.name} anything about document auditing, fraud, or tax rules...`}
-                className="w-full bg-[#F8F9FC] border border-[#E2E8F0] focus:border-[#7C3AED] focus:bg-white rounded-xl px-4 py-3 text-sm text-[#1E293B] focus:outline-hidden transition-all pr-10"
+                className="w-full bg-[#F8F9FC] border border-[#E2E8F0] focus:border-[#7C3AED] focus:bg-white rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-[#1E293B] focus:outline-hidden transition-all pr-4 placeholder:text-slate-400"
                 disabled={isLoading}
               />
             </div>
@@ -837,16 +864,25 @@ export function GeminiChatView() {
             {/* Send Button */}
             <button
               type="submit"
-              disabled={isLoading || (!inputMessage.trim() && !attachedFile)}
-              className="bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all shadow-md shadow-purple-500/20 cursor-pointer shrink-0"
+              disabled={isLoading}
+              className={`bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all shadow-md shadow-purple-500/20 cursor-pointer shrink-0 min-w-[78px] sm:min-w-[92px] ${
+                !inputMessage.trim() && !attachedFile ? 'opacity-90' : 'opacity-100 hover:scale-[1.02]'
+              }`}
+              title="Send message (Enter)"
             >
-              <span>Send</span>
-              <Send className="w-4 h-4" />
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>Send</span>
+                  <Send className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2 max-w-5xl mx-auto px-1">
-            <span>Powered by official Google Gemini SDK ({selectedModel})</span>
-            <span>Multi-turn memory active &bull; Press Enter to send</span>
+          <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 mt-1.5 sm:mt-2 max-w-5xl mx-auto px-1">
+            <span>Powered by {aiStatus?.providerName || 'Authenticated AI Engine'} ({selectedModel})</span>
+            <span className="hidden sm:inline">Multi-turn memory active &bull; Press Enter to send</span>
           </div>
         </div>
 

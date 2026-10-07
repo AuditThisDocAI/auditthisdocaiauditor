@@ -107,7 +107,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] font-sans text-[#1E293B]">
+    <div className={`min-h-screen bg-[#F8F9FC] font-sans text-[#1E293B] flex flex-col ${currentView === 'chat' ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : ''}`}>
       <Navbar />
 
       <FreemiusCheckoutModal
@@ -125,7 +125,8 @@ export default function App() {
 
       <SessionTimeoutModal />
 
-      <DrAriaChatPopup />
+      {/* Hide floating Dr. Aria launcher when in full chat workspace to prevent overlap */}
+      {currentView !== 'chat' && <DrAriaChatPopup />}
 
       {showPaymentSuccess && (
         <div className="bg-[#10B981] text-white px-4 py-3 text-center font-bold text-sm flex items-center justify-center gap-3 shadow-md relative z-50">
@@ -139,7 +140,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="py-6 px-4 lg:px-8">
+      <main className={currentView === 'chat' ? 'flex-1 p-2 sm:p-4 flex flex-col min-h-0 overflow-hidden w-full max-w-7xl mx-auto' : 'py-6 px-4 lg:px-8'}>
         {currentView === 'landing' && (
           <>
             <div className="bg-[#1E293B] rounded-3xl p-8 md:p-16 text-center text-white shadow-2xl mb-12 relative overflow-hidden">
@@ -234,8 +235,9 @@ export default function App() {
         {currentView === 'chat' && <GeminiChatView />}
       </main>
       
-      {/* Footer */}
-      <footer className="bg-white text-[#1E293B] pt-12 pb-8 border-t border-[#E2E8F0]">
+      {/* Footer (hidden in chat view to prevent layout overlap and scrolling issues) */}
+      {currentView !== 'chat' && (
+        <footer className="bg-white text-[#1E293B] pt-12 pb-8 border-t border-[#E2E8F0]">
         <div className="max-w-[1400px] mx-auto px-4 lg:px-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
             {/* Brand column */}
@@ -388,6 +390,7 @@ export default function App() {
           </div>
         </div>
       </footer>
+      )}
     </div>
   );
 }

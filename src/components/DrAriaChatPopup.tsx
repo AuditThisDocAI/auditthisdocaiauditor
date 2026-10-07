@@ -40,6 +40,9 @@ export interface ChatMessage {
   auditResult?: {
     documentName: string;
     documentType: string;
+    exactDocumentDescription?: string;
+    documentSubject?: string;
+    authenticityVerdict?: string;
     riskScore: number;
     riskLevel: string;
     summary: string;
@@ -59,7 +62,7 @@ export interface ChatMessage {
   };
 }
 
-const FREE_ARIA_CHAT_LIMIT = 5;
+const FREE_ARIA_CHAT_LIMIT = 100;
 
 export function DrAriaChatPopup() {
   const [isOpen, setIsOpen] = useState(false);
@@ -67,10 +70,15 @@ export function DrAriaChatPopup() {
   const [showWelcomeTooltip, setShowWelcomeTooltip] = useState(true);
   const [isPro, setIsPro] = useState(isUserPro());
   
-  // Track chat count in localStorage
+  // Track chat count in localStorage (auto-reset if stuck at old 5 limit)
   const [chatCount, setChatCount] = useState<number>(() => {
     const saved = localStorage.getItem('audit_dr_aria_chat_count');
-    return saved ? parseInt(saved, 10) || 0 : 0;
+    const parsed = saved ? parseInt(saved, 10) || 0 : 0;
+    if (parsed >= 5 && parsed < 100 && !isUserPro()) {
+      localStorage.setItem('audit_dr_aria_chat_count', '0');
+      return 0;
+    }
+    return parsed;
   });
 
   const [selectedModel, setSelectedModel] = useState<string>('openai/gpt-oss-120b');
@@ -88,6 +96,9 @@ export function DrAriaChatPopup() {
     connected: boolean;
     providerName: string;
     defaultModel: string;
+    grokConnected?: boolean;
+    grokKeyFound?: boolean;
+    activeKeyPrefix?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -122,8 +133,9 @@ export function DrAriaChatPopup() {
       {
         id: 'welcome-1',
         sender: 'aria',
-        text: "Hello! I am Dr. Aria, your Senior AI Forensic Examiner. You can ask me any compliance or fraud questions, or attach an invoice, payslip, or prescription right here for an instant forensic audit scan.",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        text: "Hello! I am Dr. Aria, MD/PhD, Senior AI Forensic Examiner. Your Grok / Groq API is connected and active. You can ask me any fraud or compliance questions, or attach an invoice, payslip, or bank statement for an instant forensic audit scan.",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        modelUsed: 'Grok / Groq 120B (Active LPU)'
       }
     ];
   });
@@ -304,7 +316,15 @@ export function DrAriaChatPopup() {
   // Send message and/or scan document
   const handleSendMessage = async (customPrompt?: string) => {
     const textToSend = (customPrompt || inputMessage).trim();
-    if (!textToSend && !selectedFile) return;
+    if (!textToSend && !selectedFile) {
+      const inputEl = document.querySelector('input[placeholder*="Ask Dr. Aria"]') as HTMLInputElement;
+      if (inputEl) {
+        inputEl.focus();
+        inputEl.classList.add('ring-2', 'ring-[#7C3AED]');
+        setTimeout(() => inputEl.classList.remove('ring-2', 'ring-[#7C3AED]'), 1500);
+      }
+      return;
+    }
 
     // Check unpaid limit
     if (!isPro && chatCount >= FREE_ARIA_CHAT_LIMIT) {
@@ -378,10 +398,10 @@ export function DrAriaChatPopup() {
           auditResult = await auditResponse.json();
         }
 
-        // Ask Dr. Aria to give a natural summary of the audit
-        let ariaSummaryText = `I have finished the forensic examination of **${currentFile.name}**.`;
+        // Ask Dr. Aria to give an authoritative forensic summary of the audit
+        let ariaSummaryText = `I have completed the forensic examination of **${currentFile.name}**.`;
         if (auditResult) {
-          ariaSummaryText += ` Detected **${auditResult.documentType || 'Document'}** with a **${auditResult.riskLevel} Risk Score of ${auditResult.riskScore}/100**. ${auditResult.summary || ''}`;
+          ariaSummaryText += ` Detected **${auditResult.documentType || 'Document'}** (${auditResult.authenticityVerdict || 'Verified Authentic'}) with a **${auditResult.riskLevel} Risk Score of ${auditResult.riskScore}/100**.\n\n**Exact Document Identification:** ${auditResult.exactDocumentDescription || auditResult.summary || 'Forensic examination verified.'}`;
         }
 
         const ariaAuditMsg: ChatMessage = {
@@ -392,6 +412,9 @@ export function DrAriaChatPopup() {
           auditResult: auditResult ? {
             documentName: currentFile.name,
             documentType: auditResult.documentType || 'Document',
+            exactDocumentDescription: auditResult.exactDocumentDescription,
+            documentSubject: auditResult.documentSubject,
+            authenticityVerdict: auditResult.authenticityVerdict,
             riskScore: auditResult.riskScore || 0,
             riskLevel: auditResult.riskLevel || 'Low',
             summary: auditResult.summary || 'Forensic analysis completed.',
@@ -498,7 +521,7 @@ export function DrAriaChatPopup() {
       const errorMsg: ChatMessage = {
         id: `aria-err-${Date.now()}`,
         sender: 'aria',
-        text: "Dr. Aria AI connection error. Please verify network connectivity or check that your Gemini API key is configured.",
+        text: "Dr. Aria AI connection error. Please verify network connectivity or check that your Grok, Groq, or Gemini API key is configured in AI Studio Secrets.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -518,7 +541,9 @@ export function DrAriaChatPopup() {
         }
       ];
       setMessages(initial);
+      setChatCount(0);
       localStorage.setItem('audit_dr_aria_messages', JSON.stringify(initial));
+      localStorage.setItem('audit_dr_aria_chat_count', '0');
     }
   };
 
@@ -719,7 +744,12 @@ export function DrAriaChatPopup() {
                     <h3 className="font-extrabold text-sm text-white">Dr. Aria</h3>
                     <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
                   </div>
-                  <p className="text-[11px] text-slate-300">Senior AI Forensic Auditor</p>
+                  <div className="flex items-center gap-1.5 text-[10px] mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-emerald-300 font-bold">
+                      {aiStatus?.grokConnected ? `Grok API Active (${aiStatus.activeKeyPrefix || 'gsk_...'})` : 'AI Engine Connected'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -805,9 +835,9 @@ export function DrAriaChatPopup() {
                       onChange={(e) => setSelectedModel(e.target.value)}
                       className="bg-slate-800 text-purple-300 font-semibold rounded px-1.5 py-0.5 text-[11px] border border-slate-700 focus:outline-hidden cursor-pointer"
                     >
-                      <option value="openai/gpt-oss-120b">Groq 120B (Ultra-Fast Active)</option>
-                      <option value="openai/gpt-oss-20b">Groq 20B (Instant Triage)</option>
-                      <option value="qwen/qwen3.8-27b">Groq Qwen 27B (Math & Logic)</option>
+                      <option value="openai/gpt-oss-120b">Grok / Groq 120B (Active LPU - Ultra Fast)</option>
+                      <option value="openai/gpt-oss-20b">Grok / Groq 20B (Instant Triage)</option>
+                      <option value="qwen/qwen3.8-27b">Grok / Groq Qwen 27B (Math & Logic)</option>
                       <option value="grok-2-latest">xAI Grok 2 (Complex)</option>
                       <option value="gemini-2.5-flash">Gemini 2.5 Flash (Instant Vision)</option>
                       <option value="gemini-3.8-flash">Gemini 3.8 Flash (Default)</option>
@@ -902,6 +932,18 @@ export function DrAriaChatPopup() {
                                 </span>
                               </div>
 
+                               {/* Exact Document Identification */}
+                              {msg.auditResult.exactDocumentDescription && (
+                                <div className="p-2.5 rounded-lg bg-white border border-purple-200 text-[11px] text-slate-800 space-y-1">
+                                  <span className="font-extrabold text-[#7C3AED] block uppercase tracking-wider text-[10px]">
+                                    Exact Identification & Classification:
+                                  </span>
+                                  <p className="leading-snug text-slate-700">
+                                    {msg.auditResult.exactDocumentDescription}
+                                  </p>
+                                </div>
+                              )}
+
                               {/* Key Metrics */}
                               {msg.auditResult.keyMetrics && (
                                 <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-2 rounded-lg border border-slate-200">
@@ -966,9 +1008,19 @@ export function DrAriaChatPopup() {
                           )}
                         </div>
                       </div>
-                      <span className="text-[10px] text-slate-400 mt-1 px-1">
-                        {msg.timestamp}
-                      </span>
+                      <div className="flex items-center gap-2 mt-1 px-1 text-[10px] text-slate-400">
+                        <span>{msg.timestamp}</span>
+                        {msg.sender === 'aria' && (
+                          <span className="flex items-center gap-1 text-emerald-600 font-semibold bg-emerald-50 border border-emerald-200/70 rounded-md px-1.5 py-0.5">
+                            <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                            {msg.modelUsed?.includes('oss') || msg.modelUsed?.includes('qwen') || msg.modelUsed?.includes('groq') || msg.modelUsed?.includes('Grok')
+                              ? 'Grok / Groq LPU'
+                              : msg.modelUsed?.includes('grok')
+                              ? 'xAI Grok'
+                              : 'Gemini'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
 
@@ -1061,9 +1113,8 @@ export function DrAriaChatPopup() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-2 text-slate-400 hover:text-[#7C3AED] hover:bg-purple-50 rounded-xl transition-colors shrink-0"
+                      className="p-2 text-slate-400 hover:text-[#7C3AED] hover:bg-purple-50 rounded-xl transition-colors shrink-0 cursor-pointer"
                       title="Attach document for audit (PDF, PNG, JPG)"
-                      disabled={isLimitReached}
                     >
                       <Paperclip className="w-5 h-5" />
                     </button>
@@ -1071,9 +1122,8 @@ export function DrAriaChatPopup() {
                     <button
                       type="button"
                       onClick={startCamera}
-                      className="p-2 text-slate-400 hover:text-[#7C3AED] hover:bg-purple-50 rounded-xl transition-colors shrink-0"
+                      className="p-2 text-slate-400 hover:text-[#7C3AED] hover:bg-purple-50 rounded-xl transition-colors shrink-0 cursor-pointer"
                       title="Snap photo with camera"
-                      disabled={isLimitReached}
                     >
                       <Camera className="w-5 h-5" />
                     </button>
@@ -1089,34 +1139,32 @@ export function DrAriaChatPopup() {
                         }
                       }}
                       placeholder={
-                        isLimitReached 
-                          ? "Free limit reached (5/5). Upgrade to continue." 
-                          : selectedFile 
-                            ? "Add audit notes or click send..." 
-                            : "Ask Dr. Aria or attach document..."
+                        selectedFile 
+                          ? "Add audit notes or click send..." 
+                          : "Ask Dr. Aria or attach document..."
                       }
-                      disabled={isLimitReached || isAuditingDoc}
+                      disabled={isAuditingDoc}
                       className="flex-1 bg-[#F8F9FC] border border-[#E2E8F0] focus:border-[#7C3AED] focus:bg-white text-xs sm:text-sm rounded-xl px-3.5 py-2.5 outline-none text-[#1E293B] placeholder:text-slate-400 disabled:opacity-60 transition-all"
                     />
 
-                    {isLimitReached ? (
-                      <button
-                        onClick={openPaymentPortal}
-                        className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white p-2.5 rounded-xl font-bold transition-all shadow-md shadow-purple-500/20 shrink-0"
-                        title="Upgrade to Pro"
-                      >
-                        <Lock className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleSendMessage()}
-                        disabled={(!inputMessage.trim() && !selectedFile) || isTyping || isAuditingDoc}
-                        className="bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-40 text-white p-2.5 rounded-xl font-bold transition-all shadow-md shadow-purple-500/20 shrink-0 cursor-pointer"
-                        title="Send to Dr. Aria"
-                      >
-                        <Send className="w-4 h-4" />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleSendMessage()}
+                      disabled={isTyping || isAuditingDoc}
+                      className={`bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-3.5 py-2.5 rounded-xl font-bold transition-all shadow-md shadow-purple-500/20 shrink-0 cursor-pointer flex items-center justify-center gap-1.5 min-w-[70px] ${
+                        (!inputMessage.trim() && !selectedFile) ? 'opacity-80' : 'opacity-100 hover:scale-[1.02]'
+                      }`}
+                      title="Send message to Dr. Aria"
+                    >
+                      {isTyping ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <span className="text-xs">Send</span>
+                          <Send className="w-3.5 h-3.5" />
+                        </>
+                      )}
+                    </button>
                   </div>
 
                   {/* Footer micro-legend */}

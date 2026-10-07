@@ -1,5 +1,5 @@
 export interface AuditFinding {
-  category: 'Amount Analysis' | 'Compliance' | 'Vendor Verification' | 'Formatting & Dates' | 'Red Flags';
+  category: 'Amount Analysis' | 'Compliance' | 'Vendor Verification' | 'Formatting & Dates' | 'Red Flags' | 'Statutory Compliance' | 'Arithmetic & Ledger Reconciliation' | 'Wire / Remittance Diversion' | 'Entity & Identity Authentication' | 'Typography & Physical Integrity' | string;
   title: string;
   description: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
@@ -16,14 +16,29 @@ export interface AuditResult {
   riskScore: number;
   riskLevel: 'Low' | 'Moderate' | 'High' | 'Critical';
   summary: string;
-  documentType: 'Invoice' | 'Contract' | 'Receipt' | 'Financial Statement' | 'General Document';
+  documentType: string;
+  exactDocumentDescription?: string;
+  documentSubject?: string;
+  authenticityVerdict?: 'Verified Authentic' | 'Suspected Manipulation' | 'High Fraud Risk' | 'Inconclusive' | string;
+  statutoryStandard?: string;
+  isAuditable?: boolean;
   findings: AuditFinding[];
   keyMetrics: {
     detectedVendor: string;
+    detectedRecipient?: string;
     detectedAmount: string;
+    totalAmount?: string;
+    detectedSubtotal?: string;
+    detectedTax?: string;
+    taxAmount?: string;
     detectedDate: string;
+    detectedDueDate?: string;
+    detectedReferenceNumbers?: string[];
+    lineItems?: Array<{ description: string; quantity?: string; amount?: string }>;
     missingFields: string[];
   };
+  imageUrl?: string;
+  isPdf?: boolean;
 }
 
 /**

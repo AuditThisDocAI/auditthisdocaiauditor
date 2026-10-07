@@ -903,28 +903,52 @@ export function buildReportHtml(data: AuditReportData): string {
 </html>`;
 }
 
-export function downloadImageFile(fileOrBlobOrUrl: File | Blob | string, defaultName = 'scanned_document.png') {
+function dataUriToBlob(dataUri: string): Blob {
+  try {
+    const parts = dataUri.split(',');
+    const mime = parts[0].match(/:(.*?);/)?.[1] || 'application/octet-stream';
+    const byteString = atob(parts[1]);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mime });
+  } catch (e) {
+    return new Blob([dataUri], { type: 'text/plain' });
+  }
+}
+
+export function downloadDocumentFile(fileOrBlobOrUrl: File | Blob | string, defaultName = 'scanned_document.pdf') {
   try {
     if (fileOrBlobOrUrl instanceof File || fileOrBlobOrUrl instanceof Blob) {
+      const isPdf = fileOrBlobOrUrl.type.includes('pdf') || (fileOrBlobOrUrl instanceof File && fileOrBlobOrUrl.name.toLowerCase().endsWith('.pdf'));
+      let resolvedName = fileOrBlobOrUrl instanceof File ? fileOrBlobOrUrl.name : defaultName;
+      if (isPdf && !resolvedName.toLowerCase().endsWith('.pdf')) {
+        resolvedName += '.pdf';
+      }
       const url = URL.createObjectURL(fileOrBlobOrUrl);
       const a = document.createElement('a');
       a.href = url;
-      a.download = (fileOrBlobOrUrl instanceof File ? fileOrBlobOrUrl.name : defaultName) || defaultName;
+      a.download = resolvedName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
       return;
     } 
     
     if (typeof fileOrBlobOrUrl === 'string') {
       if (fileOrBlobOrUrl.startsWith('data:')) {
+        const blob = dataUriToBlob(fileOrBlobOrUrl);
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = fileOrBlobOrUrl;
+        a.href = url;
         a.download = defaultName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
         return;
       }
 
@@ -939,7 +963,7 @@ export function downloadImageFile(fileOrBlobOrUrl: File | Blob | string, default
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
         })
         .catch(() => {
           const a = document.createElement('a');
@@ -952,8 +976,12 @@ export function downloadImageFile(fileOrBlobOrUrl: File | Blob | string, default
         });
     }
   } catch (e) {
-    console.info('Image download notice:', e);
+    console.info('Document download notice:', e);
   }
+}
+
+export function downloadImageFile(fileOrBlobOrUrl: File | Blob | string, defaultName = 'scanned_document.png') {
+  return downloadDocumentFile(fileOrBlobOrUrl, defaultName);
 }
 
 export function exportAuditAsCsv(audit: {
@@ -1304,7 +1332,13 @@ export function downloadAuditReportPdf(data: AuditReportData, customFilename?: s
     doc.text('Cryptographically signed and timestamped. For judicial proceedings, an expert witness affidavit can be requested.', margin, currentY);
 
     // Save actual PDF file directly to browser downloads
-    doc.save(filename);
+    try {
+      doc.save(filename);
+    } catch (saveErr) {
+      console.info('Direct doc.save notice, using blob download fallback:', saveErr);
+      const pdfBlob = doc.output('blob');
+      downloadDocumentFile(pdfBlob, filename);
+    }
   } catch (error) {
     console.error('PDF generation error, using fallback:', error);
     downloadAuditReportHtml(data);

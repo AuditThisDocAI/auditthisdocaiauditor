@@ -50,16 +50,20 @@ export function Navbar() {
       }
     });
 
+    const handleNavClose = () => setMobileMenuOpen(false);
+
     window.addEventListener('admin-auth-changed', checkAuthStatus);
     window.addEventListener('pro-status-changed', checkAuthStatus);
     window.addEventListener('whitelabel-updated', checkAuthStatus);
     window.addEventListener('storage', checkAuthStatus);
+    window.addEventListener('navigate', handleNavClose);
     return () => {
       unsubscribe();
       window.removeEventListener('admin-auth-changed', checkAuthStatus);
       window.removeEventListener('pro-status-changed', checkAuthStatus);
       window.removeEventListener('whitelabel-updated', checkAuthStatus);
       window.removeEventListener('storage', checkAuthStatus);
+      window.removeEventListener('navigate', handleNavClose);
     };
   }, []);
 
@@ -76,7 +80,7 @@ export function Navbar() {
   const linksToShow = [
     { name: 'Dashboard', href: '#dashboard' },
     { name: 'AI Auditor', href: '#document-auditor' },
-    { name: 'Gemini Chat', href: '#chat' },
+    { name: 'AI Chat Workspace', href: '#chat' },
     ...(isPro ? [{ name: 'Audit Trail', href: '#audittrail' }] : []), // Audit Trail - strictly visible to paying subscribers
     { name: 'Bookkeeping', href: '#bookkeeping' },
     { name: 'Features', href: '#features' },
@@ -145,7 +149,7 @@ export function Navbar() {
                           setTimeout(() => {
                             document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
                           }, 100);
-                        } else if (link.name === 'Gemini Chat') {
+                        } else if (link.name === 'AI Chat Workspace' || link.name === 'Gemini Chat') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'chat' } }));
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         } else if (link.name === 'Audit Trail') {
@@ -325,7 +329,7 @@ export function Navbar() {
                         setTimeout(() => {
                           document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
                         }, 100);
-                      } else if (link.name === 'Gemini Chat') {
+                      } else if (link.name === 'AI Chat Workspace' || link.name === 'Gemini Chat') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'chat' } }));
                         window.scrollTo({ top: 0, behavior: 'smooth' });
