@@ -18,11 +18,12 @@ import { SessionTimeoutModal } from './components/SessionTimeoutModal';
 import { AuditTrail } from './components/AuditTrail';
 import AuditScanner from './components/AuditScanner';
 import { DrAriaChatPopup } from './components/DrAriaChatPopup';
-import { GeminiChatView } from './components/GeminiChatView';
+import { GrokChatView } from './components/GrokChatView';
+import { FinancialTools } from './components/FinancialTools';
 import { isUserPro } from './lib/authUtils';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'auditor' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients' | 'forms' | 'contacts' | 'tasks' | 'audittrail' | 'chat'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'auditor' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients' | 'forms' | 'contacts' | 'tasks' | 'audittrail' | 'chat' | 'currency'>('landing');
   const [isPro, setIsPro] = useState(isUserPro());
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [freemiusCheckoutOpen, setFreemiusCheckoutOpen] = useState(false);
@@ -168,10 +169,10 @@ export default function App() {
                       setCurrentView('chat');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-7 py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-indigo-500/20 w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2"
+                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-7 py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-purple-500/20 w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <Bot className="w-5 h-5" />
-                    <span>Gemini AI Chat</span>
+                    <Bot className="w-5 h-5 text-purple-200" />
+                    <span>Grok AI Chat</span>
                   </button>
                   <button 
                     onClick={() => {
@@ -211,6 +212,12 @@ export default function App() {
             </div>
 
             <Features />
+
+            {/* Currency Converter & Global Financial Tools Section */}
+            <div id="currency-tools" className="mb-14 scroll-mt-24 max-w-7xl mx-auto">
+              <FinancialTools />
+            </div>
+
             <Pricing />
             <FAQ />
             <Contact />
@@ -232,7 +239,12 @@ export default function App() {
             <AuditTrail />
           </div>
         )}
-        {currentView === 'chat' && <GeminiChatView />}
+        {currentView === 'chat' && <GrokChatView />}
+        {currentView === 'currency' && (
+          <div className="max-w-7xl mx-auto py-6">
+            <FinancialTools />
+          </div>
+        )}
       </main>
       
       {/* Footer (hidden in chat view to prevent layout overlap and scrolling issues) */}

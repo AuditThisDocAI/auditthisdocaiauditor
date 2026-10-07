@@ -790,7 +790,7 @@ export function DrAriaChatPopup() {
                   <RotateCcw className="w-4 h-4" />
                 </button>
 
-                {/* Expand to Full Page Gemini Chat View */}
+                {/* Expand to Full Page Grok AI Chat View */}
                 <button
                   onClick={() => {
                     setIsOpen(false);
@@ -798,7 +798,7 @@ export function DrAriaChatPopup() {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   className="p-1.5 text-purple-400 hover:text-white rounded-lg hover:bg-purple-950/60 transition-colors"
-                  title="Open Full Page Gemini Workspace"
+                  title="Open Full Grok AI Chat Workspace"
                 >
                   <ExternalLink className="w-4 h-4" />
                 </button>

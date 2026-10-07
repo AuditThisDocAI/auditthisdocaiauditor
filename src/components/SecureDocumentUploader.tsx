@@ -446,7 +446,7 @@ export function SecureDocumentUploader({ onScanComplete, onViewHeatmap }: Secure
                   <ShieldCheck className="w-4 h-4 text-[#7C3AED]" />
                   Active Forensic Heuristics & Verification Modules
                 </span>
-                <span className="text-[11px] text-purple-700 font-semibold">Gemini 3.8 Flash Neural Pipeline</span>
+                <span className="text-[11px] text-purple-700 font-semibold">Grok AI & Neural Pipeline</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -673,7 +673,7 @@ export function SecureDocumentUploader({ onScanComplete, onViewHeatmap }: Secure
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
           <div className="text-xs text-slate-500 flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-[#7C3AED]" />
-            <span>Multi-modal OCR & Anomaly Verification running through Gemini 3.8 Flash.</span>
+            <span>Multi-modal OCR & Anomaly Verification running through Grok AI.</span>
           </div>
 
           <button
@@ -689,7 +689,7 @@ export function SecureDocumentUploader({ onScanComplete, onViewHeatmap }: Secure
                 <span>
                   {scanStep === 1 && 'Verifying SHA-256 Checksum...'}
                   {scanStep === 2 && 'Transmitting Encrypted Payload...'}
-                  {scanStep === 3 && 'Analyzing with Gemini 3.8 Flash...'}
+                  {scanStep === 3 && 'Analyzing with Grok AI...'}
                   {scanStep === 4 && 'Compiling Forensic Findings...'}
                 </span>
               </>

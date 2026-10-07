@@ -98,15 +98,49 @@ export function CurrencyConverter() {
           </div>
         </div>
         
-        <div className="mt-8 bg-emerald-50 rounded-2xl p-6 text-center border border-emerald-100">
-          <div className="text-sm font-semibold text-emerald-600 mb-1">
+        <div className="mt-6 bg-emerald-50 rounded-2xl p-5 text-center border border-emerald-100">
+          <div className="text-xs font-semibold text-emerald-600 mb-1">
             {parsedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {fromCurrency} =
           </div>
-          <div className="text-3xl font-black text-emerald-900">
+          <div className="text-3xl font-black text-emerald-900 tracking-tight">
             {CURRENCIES[toCurrency].symbol}{convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xl font-bold text-emerald-700">{toCurrency}</span>
           </div>
-          <div className="text-xs text-emerald-600/70 font-medium mt-2">
-            1 {fromCurrency} = {(toRate / fromRate).toFixed(4)} {toCurrency}
+          <div className="text-xs text-emerald-600/80 font-medium mt-1">
+            Exchange Baseline: 1 {fromCurrency} = {(toRate / fromRate).toFixed(4)} {toCurrency}
+          </div>
+
+          {/* Quick Apply as Global Audit Currency */}
+          <div className="mt-4 pt-3 border-t border-emerald-200/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span className="text-[11px] text-emerald-800 font-medium text-left">
+              Apply <span className="font-bold">{CURRENCIES[toCurrency].code} ({CURRENCIES[toCurrency].symbol})</span> to all page scans & audits:
+            </span>
+            <button
+              onClick={() => {
+                import('../lib/currency').then(m => m.setActiveCurrency(toCurrency));
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all hover:scale-[1.02] cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <span>{CURRENCIES[toCurrency].flag}</span>
+              <span>Set as Global Page Currency</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Audit Presets */}
+        <div className="mt-4 pt-3 border-t border-slate-100">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+            Quick Audit Presets:
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {[150, 500, 1500, 5000, 25000].map((preset) => (
+              <button
+                key={preset}
+                onClick={() => setAmount(String(preset))}
+                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                {CURRENCIES[fromCurrency].symbol}{preset.toLocaleString()}
+              </button>
+            ))}
           </div>
         </div>
       </div>

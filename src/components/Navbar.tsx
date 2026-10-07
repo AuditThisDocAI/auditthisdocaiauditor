@@ -80,7 +80,8 @@ export function Navbar() {
   const linksToShow = [
     { name: 'Dashboard', href: '#dashboard' },
     { name: 'AI Auditor', href: '#document-auditor' },
-    { name: 'AI Chat Workspace', href: '#chat' },
+    { name: 'Grok AI Chat', href: '#chat' },
+    { name: 'Currency & Forex', href: '#currency-tools' },
     ...(isPro ? [{ name: 'Audit Trail', href: '#audittrail' }] : []), // Audit Trail - strictly visible to paying subscribers
     { name: 'Bookkeeping', href: '#bookkeeping' },
     { name: 'Features', href: '#features' },
@@ -149,7 +150,7 @@ export function Navbar() {
                           setTimeout(() => {
                             document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
                           }, 100);
-                        } else if (link.name === 'AI Chat Workspace' || link.name === 'Gemini Chat') {
+                        } else if (link.name === 'Grok AI Chat' || link.name === 'AI Chat Workspace' || link.name === 'Gemini Chat') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'chat' } }));
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         } else if (link.name === 'Audit Trail') {
@@ -168,6 +169,11 @@ export function Navbar() {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));
                         } else if (link.name === 'Staff Team') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'staff' } }));
+                        } else if (link.name === 'Currency & Forex' || link.name === 'Currency Tools') {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'currency' } }));
+                          setTimeout(() => {
+                            document.getElementById('currency-tools')?.scrollIntoView({ behavior: 'smooth' });
+                          }, 100);
                         } else if (link.name === 'Firm Clients') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'clients' } }));
                         } else if (link.name === 'Pricing') {
@@ -211,8 +217,10 @@ export function Navbar() {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               </button>
 
-              {/* Currency Converter Toggle - ONLY shown after user signed up */}
-              {isLoggedIn && <CurrencySelector />}
+              {/* Global Currency Selector - ALWAYS visible for document auditing & entire site */}
+              <div className="flex items-center" title="Global Currency Selector - choose currency for document auditing, invoices, and reports">
+                <CurrencySelector />
+              </div>
 
               {/* White Label Button - ONLY shown after user paid and signed up */}
               {isPaidAndSignedUp && (
@@ -307,12 +315,14 @@ export function Navbar() {
                   </span>
                 </button>
 
-                {isLoggedIn && (
-                  <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 px-2">
-                    <span className="text-xs font-bold text-slate-500">Currency Preference:</span>
-                    <CurrencySelector compact />
+                {/* Global Page Currency Selector - ALWAYS visible on mobile */}
+                <div className="flex items-center justify-between p-2.5 my-1 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-extrabold text-slate-800">Global Currency:</span>
+                    <span className="text-[10px] text-slate-500">Document auditing & reports</span>
                   </div>
-                )}
+                  <CurrencySelector compact />
+                </div>
 
                 {linksToShow.map((link) => (
                   <a
@@ -329,10 +339,17 @@ export function Navbar() {
                         setTimeout(() => {
                           document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
                         }, 100);
-                      } else if (link.name === 'AI Chat Workspace' || link.name === 'Gemini Chat') {
+                      } else if (link.name === 'Grok AI Chat' || link.name === 'AI Chat Workspace' || link.name === 'Gemini Chat') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'chat' } }));
                         window.scrollTo({ top: 0, behavior: 'smooth' });
+                      } else if (link.name === 'Currency & Forex' || link.name === 'Currency Tools') {
+                        e.preventDefault();
+                        setMobileMenuOpen(false);
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'currency' } }));
+                        setTimeout(() => {
+                          document.getElementById('currency-tools')?.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
                       } else if (link.name === 'Audit Trail') {
                         e.preventDefault();
                         const el = document.getElementById('audittrail');

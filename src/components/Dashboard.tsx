@@ -472,7 +472,7 @@ export function Dashboard() {
 
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Real-time Gemini 3.8 Flash Neural Engine Active</span>
+            <span>Real-time Grok AI & Forensic Engine Active</span>
           </div>
         </div>
 

@@ -33,8 +33,11 @@ import { AuditResult } from '../lib/auditEngine';
 import { appendAuditTrailEvent } from '../lib/auditTrailService';
 import { ExportPdfReportModal } from './ExportPdfReportModal';
 import { downloadDocumentFile, downloadImageFile } from '../lib/pdfReportGenerator';
+import { useCurrency, formatAuditAmount } from '../lib/currency';
+import { CurrencySelector } from './CurrencySelector';
 
 export default function AuditScanner() {
+  const { currency, currencyConfig } = useCurrency();
   const [text, setText] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [result, setResult] = useState<AuditResult | null>(null);
@@ -420,7 +423,13 @@ export default function AuditScanner() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {/* Global Audit Currency Selector */}
+          <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-xl border border-white/20">
+            <span className="text-[11px] text-purple-200 font-bold hidden sm:inline">Audit Currency:</span>
+            <CurrencySelector compact />
+          </div>
+
           <div className="px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5 tracking-wide shadow-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>{aiStatus?.grokConnected ? `Grok LPU Active (${aiStatus.activeKeyPrefix || 'gsk_...'})` : (aiStatus?.providerName || 'Multimodal AI Active')}</span>
@@ -886,13 +895,21 @@ Payment Method: Standard Corporate Lockbox ACH`);
                   </div>
 
                   <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-[10px] uppercase tracking-wider font-bold text-purple-300 flex items-center gap-1">
-                      <DollarSign className="w-3 h-3" />
-                      Total Audited Value
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-purple-300 flex items-center justify-between gap-1">
+                      <span className="flex items-center gap-1">
+                        <DollarSign className="w-3 h-3" />
+                        Audited Value ({currencyConfig.code})
+                      </span>
+                      <span className="text-[10px] text-purple-300 font-mono">{currencyConfig.flag}</span>
                     </span>
                     <p className="font-black text-sm text-emerald-400 mt-1">
-                      {result.keyMetrics.detectedAmount || result.keyMetrics.totalAmount || '$0.00'}
+                      {formatAuditAmount(result.keyMetrics.detectedAmount || result.keyMetrics.totalAmount, currency).formatted}
                     </p>
+                    {result.keyMetrics.detectedAmount && (
+                      <span className="text-[10px] text-slate-300 block truncate font-mono mt-0.5" title={`Original detected on document: ${result.keyMetrics.detectedAmount}`}>
+                        Doc: {result.keyMetrics.detectedAmount}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -908,7 +925,7 @@ Payment Method: Standard Corporate Lockbox ACH`);
                           <tr className="border-b border-white/10 text-purple-200">
                             <th className="py-2 px-3 font-bold">Line Description</th>
                             <th className="py-2 px-3 font-bold w-16 text-center">Qty</th>
-                            <th className="py-2 px-3 font-bold w-28 text-right">Amount</th>
+                            <th className="py-2 px-3 font-bold w-36 text-right">Amount ({currencyConfig.code})</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -916,7 +933,14 @@ Payment Method: Standard Corporate Lockbox ACH`);
                             <tr key={idx} className="text-slate-200">
                               <td className="py-2 px-3 font-medium">{item.description}</td>
                               <td className="py-2 px-3 text-center text-slate-300">{item.quantity || '1'}</td>
-                              <td className="py-2 px-3 text-right font-bold text-white">{item.amount}</td>
+                              <td className="py-2 px-3 text-right font-bold text-white">
+                                {formatAuditAmount(item.amount, currency).formatted}
+                                {item.amount && !item.amount.includes(currencyConfig.symbol) && (
+                                  <span className="block text-[10px] text-slate-400 font-normal">
+                                    {item.amount}
+                                  </span>
+                                )}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
