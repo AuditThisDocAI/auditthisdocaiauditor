@@ -24,6 +24,7 @@ import {
 import { ExportPdfReportModal } from './ExportPdfReportModal';
 import { downloadImageFile } from '../lib/pdfReportGenerator';
 import { appendAuditTrailEvent } from '../lib/auditTrailService';
+import { getTrialStatus } from '../lib/trialManager';
 
 export interface SecureUploadResult {
   isAuditable?: boolean;
@@ -229,6 +230,13 @@ export function SecureDocumentUploader({ onScanComplete, onViewHeatmap }: Secure
   }, []);
 
   const handleExecuteScan = async () => {
+    const { isTrialExpired, isPro } = getTrialStatus();
+    if (isTrialExpired && !isPro) {
+      window.dispatchEvent(new CustomEvent('open-trial-expired-modal'));
+      setErrorMsg('Your 7-day free trial has concluded. Please upgrade to the Pro plan to continue auditing documents.');
+      return;
+    }
+
     if (!file && !manualText.trim()) {
       setErrorMsg('Please attach a document or paste document text before initiating forensic scanning.');
       return;

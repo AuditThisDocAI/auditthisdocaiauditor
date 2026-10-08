@@ -93,8 +93,10 @@ import { isCurrentAdmin, isUserPro, isSuperAdminEmail, FREE_AUDIT_LIMIT } from '
 import AuditScanner from './AuditScanner';
 import { SecureDocumentUploader } from './SecureDocumentUploader';
 import { FinancialTools } from './FinancialTools';
+import { useTrial } from '../lib/trialManager';
 
 export function Dashboard() {
+  const { isTrialExpired, remainingFormatted } = useTrial();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -546,15 +548,34 @@ export function Dashboard() {
                   <ShieldCheck className="w-4 h-4" />
                   1,000 Audits / Month
                 </span>
+              ) : isTrialExpired ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold">
+                    7-Day Trial Expired
+                  </span>
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-trial-expired-modal'))}
+                    className="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-rose-500/30 flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                  >
+                    <Crown className="w-4 h-4 text-amber-300" />
+                    Upgrade to Pro
+                    <ArrowUpRight className="w-4 h-4" />
+                  </button>
+                </div>
               ) : (
-                <button
-                  onClick={handleUpgrade}
-                  className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-purple-500/30 flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <Crown className="w-4 h-4 text-amber-300" />
-                  Upgrade to Pro (1,000 Audits)
-                  <ArrowUpRight className="w-4 h-4" />
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold">
+                    7-Day Trial: {remainingFormatted}
+                  </span>
+                  <button
+                    onClick={handleUpgrade}
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-purple-500/30 flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                  >
+                    <Crown className="w-4 h-4 text-amber-300" />
+                    Upgrade to Pro (1,000 Audits)
+                    <ArrowUpRight className="w-4 h-4" />
+                  </button>
+                </div>
               )}
             </div>
           </div>

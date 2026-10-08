@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, ShieldAlert, Bot, ChevronDown, ArrowRight, CreditCard, ShieldCheck } from 'lucide-react';
+import { Check, ShieldAlert, Bot, ChevronDown, ArrowRight, CreditCard, ShieldCheck, Clock, Hourglass } from 'lucide-react';
 import { useCurrency } from '../lib/currency';
+import { useTrial } from '../lib/trialManager';
 
 const tiers = [
   {
@@ -10,20 +11,20 @@ const tiers = [
     usdMonthly: 0,
     usdYearly: 0,
     period: {
-      monthly: 'forever',
-      yearly: 'forever'
+      monthly: '7 days',
+      yearly: '7 days'
     },
-    description: 'Try FOR-AI directly with a 1-day free trial on your device.',
+    description: 'Try FOR-AI directly with a full 7-day free trial on your device.',
     featuresHeader: 'Free Tier Includes:',
     features: [
-      '1-Day Free Trial',
+      '7-Day Free Trial',
       'FOR-AI PhD Forensic Engine',
       'Fraud & Compliance Risk Score (0-100)',
       'Line-Item & Tax ID Verification',
       'Detailed Discrepancy Observation Log',
     ],
     mostPopular: false,
-    buttonText: 'Start 1-day free trial'
+    buttonText: 'Start 7-day free trial'
   },
   {
     name: 'Business White Label Plan',
@@ -57,6 +58,7 @@ export function Pricing() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { format, currencyConfig } = useCurrency();
+  const { isPro, isTrialExpired, remainingFormatted } = useTrial();
 
   const handleAction = (intervalOverride?: 'monthly' | 'yearly') => {
     const selectedInterval = intervalOverride || billingPeriod;
@@ -75,7 +77,7 @@ export function Pricing() {
             Plans & Pricing for Document Auditing
           </h2>
           <p className="text-[#64748B] text-base sm:text-lg leading-relaxed mb-6">
-            Get started with a 1-day free trial directly on your device. Upgrade to Pro for 1,000 monthly audits, firm white-label branding, and client portals.
+            Get started with a 7-day free trial directly on your device. Upgrade to Pro for 1,000 monthly audits, firm white-label branding, and client portals.
           </p>
         </div>
 
@@ -137,7 +139,32 @@ export function Pricing() {
               )}
               
               <div className="mb-6">
-                <h3 className="text-xl font-bold text-[#1E293B] mb-2">{tier.name}</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xl font-bold text-[#1E293B]">{tier.name}</h3>
+                  {tier.id === 'tier-free' && (
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                      isPro 
+                        ? 'bg-emerald-100 text-emerald-800' 
+                        : isTrialExpired 
+                          ? 'bg-rose-100 text-rose-800' 
+                          : 'bg-purple-100 text-purple-800'
+                    }`}>
+                      {isPro ? (
+                        'Pro Active'
+                      ) : isTrialExpired ? (
+                        <>
+                          <Hourglass className="w-3 h-3 text-rose-600" />
+                          Time Up: Expired
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-3 h-3 text-purple-600" />
+                          {remainingFormatted}
+                        </>
+                      )}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-[#64748B] min-h-[36px]">{tier.description}</p>
               </div>
 
@@ -155,15 +182,25 @@ export function Pricing() {
               </div>
 
               {tier.id === 'tier-free' ? (
-                <button
-                  onClick={() => {
-                    const el = document.getElementById('document-auditor');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="w-full text-center py-3.5 rounded-xl font-bold transition-all mb-8 text-sm bg-white text-[#1E293B] border-2 border-[#E2E8F0] hover:border-[#7C3AED] hover:bg-[#F8F9FC] cursor-pointer"
-                >
-                  Start 1-day free trial
-                </button>
+                isTrialExpired ? (
+                  <button
+                    onClick={() => handleAction('monthly')}
+                    className="w-full text-center py-3.5 rounded-xl font-black transition-all mb-8 text-sm bg-rose-50 text-rose-700 border-2 border-rose-300 hover:bg-rose-100 cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                  >
+                    <Hourglass className="w-4 h-4 text-rose-600" />
+                    <span>Trial Expired — Upgrade to Pro</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('document-auditor');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="w-full text-center py-3.5 rounded-xl font-bold transition-all mb-8 text-sm bg-white text-[#1E293B] border-2 border-[#E2E8F0] hover:border-[#7C3AED] hover:bg-[#F8F9FC] cursor-pointer"
+                  >
+                    Start 7-day free trial ({remainingFormatted})
+                  </button>
+                )
               ) : (
                 <div className="space-y-2 mb-8">
                   <button
@@ -247,7 +284,7 @@ export function Pricing() {
           <div className="space-y-3">
             {[
               { q: 'What is your Refund and Cancellation policy?', a: 'All subscriptions come with a 14-Day Money-Back Guarantee. You can request a 100% refund within 14 days of subscribing by contacting Auditthisdoc@zohomail.com or clicking Manage Subscription in your Freemius receipt. You can also cancel your plan at any time with zero cancellation fees.' },
-              { q: 'How does the 1-day free trial work?', a: 'Every user and device receives a 1-day free trial automatically. You can test any invoice, receipt, or agreement for 24 hours. Once your trial is over, subscribe to Pro for 1,000 audits/month and full white label features.' },
+              { q: 'How does the 7-day free trial work?', a: 'Every user and device receives a full 7-day free trial automatically. You can test and inspect any invoice, receipt, or agreement with PhD-level AI forensic analysis for 7 complete days. Once your 7 days are up, the system detects trial completion and prompts you to subscribe to the Business White Label Plan for 1,000 audits/month and full white label features.' },
               { q: 'Who is FOR-AI?', a: 'FOR-AI is our specialized AI system fine-tuned on forensic accounting principles, tax rules, invoice fraud indicators, and contract verification.' },
               { q: 'Is my financial text data secure?', a: 'Yes. All text and documents are processed securely in memory for the duration of the audit and are never stored or shared with external third parties. We are fully compliant with GDPR and bank-grade AES-256 standards.' }
             ].map((faq, i) => (

@@ -51,15 +51,31 @@ export function getSafeUserDisplayName(email?: string | null): string {
 
 /**
  * Free audit limit configuration
- * Simple policy: Exactly 5 free document audits per user
+ * 7-Day Free Trial policy with standard free document quota
  */
 export const FREE_AUDIT_LIMIT = 5;
 
 /**
- * Checks whether user has exceeded the free audit limit
+ * Checks whether user has exceeded the free audit limit or trial time has expired
  */
-export function hasExceededFreeLimit(currentCount: number): boolean {
+export function hasExceededFreeLimit(currentCount?: number): boolean {
   if (isUserPro()) return false;
-  return currentCount >= FREE_AUDIT_LIMIT;
+  try {
+    const expired = localStorage.getItem('audit_this_doc_trial_forced_expired') === 'true';
+    if (expired) return true;
+    const startStr = localStorage.getItem('audit_this_doc_trial_start');
+    if (startStr) {
+      const start = parseInt(startStr, 10);
+      if (!isNaN(start) && Date.now() >= start + 7 * 24 * 60 * 60 * 1000) {
+        return true;
+      }
+    }
+  } catch (e) {
+    // Ignore storage errors
+  }
+  if (typeof currentCount === 'number') {
+    return currentCount >= FREE_AUDIT_LIMIT;
+  }
+  return false;
 }
 

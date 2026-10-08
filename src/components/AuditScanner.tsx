@@ -26,7 +26,10 @@ import {
   ShieldCheck,
   Sparkles,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Clock,
+  Hourglass,
+  Crown
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { AuditResult } from '../lib/auditEngine';
@@ -35,8 +38,10 @@ import { ExportPdfReportModal } from './ExportPdfReportModal';
 import { downloadDocumentFile, downloadImageFile } from '../lib/pdfReportGenerator';
 import { useCurrency, formatAuditAmount } from '../lib/currency';
 import { CurrencySelector } from './CurrencySelector';
+import { useTrial } from '../lib/trialManager';
 
 export default function AuditScanner() {
+  const { isPro, isTrialExpired, remainingFormatted } = useTrial();
   const { currency, currencyConfig } = useCurrency();
   const [text, setText] = useState('');
   const [isScanning, setIsScanning] = useState(false);
@@ -266,6 +271,12 @@ export default function AuditScanner() {
   };
 
   const handleScan = async () => {
+    // Check if 7-day free trial has expired and user is not Pro/admin
+    if (isTrialExpired && !isPro) {
+      window.dispatchEvent(new CustomEvent('open-trial-expired-modal'));
+      return;
+    }
+
     if (!text.trim() && !file) return;
     
     setIsScanning(true);
@@ -424,6 +435,41 @@ export default function AuditScanner() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {/* 7-Day Free Trial or Pro Status Pill */}
+          <button
+            type="button"
+            onClick={() => {
+              if (isTrialExpired && !isPro) {
+                window.dispatchEvent(new CustomEvent('open-trial-expired-modal'));
+              }
+            }}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              isPro
+                ? 'bg-purple-500/20 border-purple-400/30 text-purple-200'
+                : isTrialExpired
+                  ? 'bg-rose-500/30 border-rose-400/50 text-rose-200 animate-pulse'
+                  : 'bg-white/10 border-white/20 text-purple-200 hover:bg-white/15'
+            }`}
+            title={isPro ? 'Pro Subscription Active' : isTrialExpired ? '7-Day Free Trial has expired. Click to subscribe.' : `7-Day Free Trial Active (${remainingFormatted})`}
+          >
+            {isPro ? (
+              <>
+                <Crown className="w-3.5 h-3.5 text-amber-300" />
+                <span>Pro Active</span>
+              </>
+            ) : isTrialExpired ? (
+              <>
+                <Hourglass className="w-3.5 h-3.5 text-rose-300" />
+                <span>Trial Expired</span>
+              </>
+            ) : (
+              <>
+                <Clock className="w-3.5 h-3.5 text-purple-300" />
+                <span>7-Day Trial: {remainingFormatted}</span>
+              </>
+            )}
+          </button>
+
           {/* Global Audit Currency Selector */}
           <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-xl border border-white/20">
             <span className="text-[11px] text-purple-200 font-bold hidden sm:inline">Audit Currency:</span>
@@ -438,6 +484,27 @@ export default function AuditScanner() {
       </div>
 
       <div className="p-6 sm:p-8 space-y-6">
+        {/* Trial Expired Warning Card if 7 days completed */}
+        {isTrialExpired && !isPro && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                <Hourglass className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <p className="font-extrabold text-rose-950 text-sm">7-Day Free Trial Concluded</p>
+                <p className="text-rose-700 mt-0.5">Your 7-day evaluation time is up. To scan new documents, upgrade to the Business White Label Plan.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-trial-expired-modal'))}
+              className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-xs transition-all cursor-pointer whitespace-nowrap hover:scale-[1.02]"
+            >
+              Upgrade to Pro Plan
+            </button>
+          </div>
+        )}
         {/* Document Ingestion Zone */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -793,19 +860,28 @@ Payment Method: Standard Corporate Lockbox ACH`);
           </div>
           <button
             type="button"
-            onClick={handleScan}
-            disabled={isScanning || (!text.trim() && !file)}
-            className="w-full sm:w-auto bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 disabled:cursor-not-allowed text-white px-7 py-3 rounded-2xl font-black transition-all shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2 cursor-pointer text-sm"
+            onClick={isTrialExpired && !isPro ? () => window.dispatchEvent(new CustomEvent('open-trial-expired-modal')) : handleScan}
+            disabled={!isTrialExpired && (isScanning || (!text.trim() && !file))}
+            className={`w-full sm:w-auto ${
+              isTrialExpired && !isPro
+                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/20'
+                : 'bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-purple-500/20'
+            } px-7 py-3 rounded-2xl font-black transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer text-sm`}
           >
-            {isScanning ? (
+            {isTrialExpired && !isPro ? (
+              <>
+                <Hourglass className="w-5 h-5 text-white animate-pulse" />
+                <span>7-Day Trial Expired — Upgrade to Run Audit</span>
+              </>
+            ) : isScanning ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Executing CFE Multimodal Examination...
+                <span>Executing CFE Multimodal Examination...</span>
               </>
             ) : (
               <>
                 <ScanSearch className="w-5 h-5" />
-                Run Forensic Examination
+                <span>Run Forensic Examination</span>
               </>
             )}
           </button>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Bot, LogOut, User, Crown, Building2, ShieldCheck } from 'lucide-react';
+import { Menu, X, Bot, LogOut, User, Crown, Building2, ShieldCheck, Clock, Hourglass } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getWhiteLabelConfig, WhiteLabelConfig } from '../lib/whitelabel';
 import { WhiteLabelModal } from './WhiteLabelModal';
@@ -8,8 +8,10 @@ import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { performLogout } from '../lib/sessionManager';
 import { isSuperAdminEmail, getSafeUserDisplayName } from '../lib/authUtils';
+import { useTrial } from '../lib/trialManager';
 
 export function Navbar() {
+  const { isTrialExpired, isTrialActive, remainingFormatted } = useTrial();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isPro, setIsPro] = useState(false);
@@ -255,6 +257,30 @@ export function Navbar() {
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
+                  {!isPro && (
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('open-trial-expired-modal'))}
+                      className={`hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        isTrialExpired
+                          ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 animate-pulse'
+                          : 'bg-purple-50 hover:bg-purple-100 text-[#7C3AED] border border-purple-200'
+                      }`}
+                      title={isTrialExpired ? '7-Day Free Trial has ended. Click to view subscription options.' : `7-Day Free Trial active (${remainingFormatted})`}
+                    >
+                      {isTrialExpired ? (
+                        <>
+                          <Hourglass className="w-3.5 h-3.5 text-rose-600" />
+                          <span>7-Day Trial Expired</span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-3.5 h-3.5 text-purple-600" />
+                          <span>7-Day Trial ({remainingFormatted})</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
                   <button 
                     onClick={() => {
                       window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
@@ -266,12 +292,27 @@ export function Navbar() {
                   </button>
                   <button 
                     onClick={() => {
-                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      if (isTrialExpired) {
+                        window.dispatchEvent(new CustomEvent('open-trial-expired-modal'));
+                      } else {
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
                     }}
-                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] cursor-pointer"
+                    className={`${
+                      isTrialExpired
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/20'
+                        : 'bg-[#7C3AED] hover:bg-[#6D28D9] text-white shadow-purple-500/20'
+                    } px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all hover:scale-[1.02] cursor-pointer flex items-center gap-1.5`}
                   >
-                    Get Started - 1 Day Free Trial
+                    {isTrialExpired ? (
+                      <>
+                        <Hourglass className="w-4 h-4 text-white" />
+                        <span>Trial Expired — Upgrade</span>
+                      </>
+                    ) : (
+                      <span>Get Started - 7-Day Free Trial</span>
+                    )}
                   </button>
                 </div>
               )}
@@ -432,6 +473,17 @@ export function Navbar() {
                   </div>
                 ) : (
                   <div className="pt-1 space-y-2">
+                    {!isPro && (
+                      <div className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-between ${
+                        isTrialExpired ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-purple-50 border-purple-200 text-purple-900'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          {isTrialExpired ? <Hourglass className="w-4 h-4 text-rose-600" /> : <Clock className="w-4 h-4 text-purple-600" />}
+                          <span>{isTrialExpired ? '7-Day Free Trial Expired' : '7-Day Free Trial Active'}</span>
+                        </div>
+                        <span className="font-mono text-[11px]">{remainingFormatted}</span>
+                      </div>
+                    )}
                     <button 
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
@@ -444,13 +496,26 @@ export function Navbar() {
                     </button>
                     <button 
                       onClick={() => {
-                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        if (isTrialExpired) {
+                          window.dispatchEvent(new CustomEvent('open-trial-expired-modal'));
+                        } else {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
                         setMobileMenuOpen(false);
                       }}
-                      className="w-full text-center font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] px-4 py-3 rounded-xl shadow-md transition-colors cursor-pointer"
+                      className={`w-full text-center font-bold text-white ${
+                        isTrialExpired ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[#7C3AED] hover:bg-[#6D28D9]'
+                      } px-4 py-3 rounded-xl shadow-md transition-colors cursor-pointer flex items-center justify-center gap-2`}
                     >
-                      Get Started - 1 Day Free Trial
+                      {isTrialExpired ? (
+                        <>
+                          <Hourglass className="w-4 h-4" />
+                          <span>Trial Expired — Upgrade to Pro</span>
+                        </>
+                      ) : (
+                        <span>Get Started - 7-Day Free Trial</span>
+                      )}
                     </button>
                   </div>
                 )}

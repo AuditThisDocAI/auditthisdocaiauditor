@@ -4,6 +4,10 @@ import { ChevronDown } from 'lucide-react';
 
 const faqs = [
   {
+    question: "How does the 7-Day Free Trial work?",
+    answer: "Every user and device receives an automatic 7-day free trial. You can test and inspect invoices, receipts, and contracts with PhD-level AI forensic analysis for 7 complete days. Once your 7 days are up, the system detects trial completion and prompts you to subscribe to the Business White Label Plan for 1,000 audits/month and full white label features."
+  },
+  {
     question: "What is your Refund & Cancellation Policy?",
     answer: "We offer an unconditional 14-Day Money-Back Guarantee on all subscription tiers. If you are not completely satisfied, email Auditthisdoc@zohomail.com within 14 days of subscribing for a full refund back to your original payment method. You can also cancel your recurring subscription at any time directly through your account or Freemius receipt with zero cancellation fees."
   },

@@ -20,9 +20,12 @@ import AuditScanner from './components/AuditScanner';
 import { DrAriaChatPopup } from './components/DrAriaChatPopup';
 import { GrokChatView } from './components/GrokChatView';
 import { FinancialTools } from './components/FinancialTools';
+import { TrialExpiredModal } from './components/TrialExpiredModal';
 import { isUserPro } from './lib/authUtils';
+import { useTrial } from './lib/trialManager';
 
 export default function App() {
+  const { isTrialExpired, remainingFormatted } = useTrial();
   const [currentView, setCurrentView] = useState<'landing' | 'auditor' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients' | 'forms' | 'contacts' | 'tasks' | 'audittrail' | 'chat' | 'currency'>('landing');
   const [isPro, setIsPro] = useState(isUserPro());
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
@@ -125,9 +128,26 @@ export default function App() {
       />
 
       <SessionTimeoutModal />
+      <TrialExpiredModal />
 
       {/* Hide floating Dr. Aria launcher when in full chat workspace to prevent overlap */}
       {currentView !== 'chat' && <DrAriaChatPopup />}
+
+      {/* Trial Expired Warning Banner */}
+      {isTrialExpired && !isPro && (
+        <div className="bg-gradient-to-r from-rose-600 via-rose-700 to-amber-600 text-white px-4 py-2.5 text-center font-bold text-xs sm:text-sm flex flex-wrap items-center justify-center gap-3 shadow-md relative z-40">
+          <span className="flex items-center gap-1.5">
+            <span>⏳</span>
+            <span>Your 7-day free trial has concluded. Document audits require an active subscription.</span>
+          </span>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-trial-expired-modal'))}
+            className="bg-white text-rose-700 hover:bg-slate-100 px-3 py-1 rounded-lg text-xs font-black shadow-xs transition-colors cursor-pointer"
+          >
+            Upgrade to Pro Plan
+          </button>
+        </div>
+      )}
 
       {showPaymentSuccess && (
         <div className="bg-[#10B981] text-white px-4 py-3 text-center font-bold text-sm flex items-center justify-center gap-3 shadow-md relative z-50">
@@ -186,12 +206,20 @@ export default function App() {
                   </button>
                   <button 
                     onClick={() => {
-                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      if (isTrialExpired && !isPro) {
+                        window.dispatchEvent(new CustomEvent('open-trial-expired-modal'));
+                      } else {
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }));
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
                     }}
-                    className="bg-white/10 hover:bg-white/20 text-white px-7 py-4 rounded-xl font-bold text-lg transition-all border border-white/20 w-full sm:w-auto cursor-pointer"
+                    className={`${
+                      isTrialExpired && !isPro
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white border border-rose-400/40'
+                        : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+                    } px-7 py-4 rounded-xl font-bold text-lg transition-all w-full sm:w-auto cursor-pointer`}
                   >
-                    Start Free Trial
+                    {isTrialExpired && !isPro ? '7-Day Trial Expired' : 'Start 7-Day Free Trial'}
                   </button>
                   <button 
                     onClick={() => {
