@@ -426,7 +426,7 @@ export default function AuditScanner() {
             </div>
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                FOR-AI Forensic Document Auditor
+                Forensic Document Auditor
               </h2>
               <p className="text-slate-300 text-xs sm:text-sm mt-0.5">
                 Multimodal inspection of PDFs, images, and contracts under SAS 99 / AU-C 240 / FRE 902 standards.

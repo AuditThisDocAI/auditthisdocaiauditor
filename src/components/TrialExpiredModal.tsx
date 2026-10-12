@@ -73,7 +73,7 @@ export function TrialExpiredModal({ isOpen: manualOpen, onClose: manualClose }: 
             </div>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed mt-2">
-            Your 7-day evaluation period for FOR-AI Forensic Document Auditor has ended.
+            Your 7-day evaluation period for Forensic Document Auditor has ended.
           </p>
         </div>
 

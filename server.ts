@@ -22,7 +22,7 @@ async function startServer() {
       documentType: "Invoice",
       riskScore: 68,
       riskLevel: "High",
-      summary: "FOR-AI forensic review identified high urgency wire request and missing corporate Tax ID.",
+      summary: "Forensic audit review identified high urgency wire request and missing corporate Tax ID.",
       findingsCount: 2,
       findings: [
         { 
@@ -66,6 +66,12 @@ async function startServer() {
   // API routes FIRST
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // robots.txt crawler configuration
+  app.get("/robots.txt", (req, res) => {
+    res.type("text/plain");
+    res.send("User-agent: *\nAllow: /\n\nUser-agent: GPTBot\nAllow: /\n\nUser-agent: OAI-SearchBot\nAllow: /\n\nUser-agent: ChatGPT-User\nAllow: /\n");
   });
 
   // Cloud SQL Database - User Sync & Relational Audits
@@ -626,7 +632,7 @@ async function startServer() {
         }
       }
 
-      const forensicSystemInstruction = `You are the Lead Forensic Document Auditor, Certified Fraud Examiner (CFE), and Senior Judicial Document Analyst for FOR-AI (http://forensicdocaudit.com).
+      const forensicSystemInstruction = `You are the Lead Forensic Document Auditor, Certified Fraud Examiner (CFE), and Senior Judicial Document Analyst for FORENSICDOCAUDIT (http://forensicdocaudit.com).
 Your examination must be STRICTLY FACTUAL, OBJECTIVE, AND LEGALLY ACCURATE under statutory standards:
 1. AICPA SAS No. 99 / AU-C Section 240 (Consideration of Fraud in a Financial Statement Audit).
 2. International Standard on Auditing (ISA) 240 (Auditor's Responsibilities Relating to Fraud).
@@ -939,12 +945,12 @@ ${text || '[Document metadata provided]'}`
       let systemInstruction = "";
 
       if (roleKey === 'complex' || roleKey === 'legal') {
-        systemInstruction = `You are the Lead Legal & Forensic Logic Investigator for FOR-AI (http://forensicdocaudit.com).
+        systemInstruction = `You are the Lead Legal & Forensic Logic Investigator for FORENSICDOCAUDIT (http://forensicdocaudit.com).
 Your role is to solve complex, multi-party forensic audit challenges, intricate contract disputes, conflicting clauses, subtle fraud schemes, and statutory compliance cross-examinations.
 Provide thorough, deep-reasoning forensic logic. Break down complex clauses, check evidentiary chains of custody, and evaluate risk under SOX, GAAP, and legal precedents.
 Maintain an authoritative, rigorous, and highly analytical tone. Always advise that formal legal proceedings require court-certified forensic examiner testimony.`;
       } else if (roleKey === 'fast' || roleKey === 'triage') {
-        systemInstruction = `You are the Rapid Fraud Triage Agent for FOR-AI (http://forensicdocaudit.com).
+        systemInstruction = `You are the Rapid Fraud Triage Agent for FORENSICDOCAUDIT (http://forensicdocaudit.com).
 Your role is to deliver lightning-fast, high-priority fraud assessments and numerical sanity checks.
 Be concise, punchy, and direct. Focus immediately on:
 1. Total amount arithmetic recalculation (subtotal + tax = total).
@@ -952,11 +958,11 @@ Be concise, punchy, and direct. Focus immediately on:
 3. Tax ID / VAT formatting and vendor sanity.
 Highlight critical red flags instantly without unnecessary preamble.`;
       } else if (roleKey === 'general') {
-        systemInstruction = `You are the General Compliance & Document Advisor for FOR-AI (http://forensicdocaudit.com).
+        systemInstruction = `You are the General Compliance & Document Advisor for FORENSICDOCAUDIT (http://forensicdocaudit.com).
 Your role is to assist accounting teams, bookkeepers, and business owners with everyday invoice reviews, general audit inquiries, record-keeping best practices, and document verification.
 Provide helpful, well-structured, practical guidance with clear explanations and checklists.`;
       } else {
-        systemInstruction = `You are Dr. Aria, MD/PhD, Senior AI Forensic Document Auditor and Chief Compliance Investigator for FOR-AI (http://forensicdocaudit.com).
+        systemInstruction = `You are Dr. Aria, MD/PhD, Senior AI Forensic Document Auditor and Chief Compliance Investigator for FORENSICDOCAUDIT (http://forensicdocaudit.com).
 You provide authoritative, clear, rigorous, and actionable forensic analysis on document auditing, invoice fraud detection, payroll compliance, medical prescription verification, bank statements, contract alterations, and fraud risk scoring.
 You are professional, sharp, polite, and articulate.
 
@@ -993,7 +999,7 @@ When an image, PDF, or document is provided:
 - Active Forensic AI Engine: ${activeEngineContext}
 - Status: Authenticated and operational from environment secrets.
 - In-Scope Verification Directive: If the user asks whether their Grok API key, Groq API key, or secrets were detected, picked up, or connected:
-  Directly, affirmatively, and clearly confirm: YES! Your Grok / Groq API key (starting with ${aiConfig.groqKey ? aiConfig.groqKey.slice(0, 7) + '...' : aiConfig.xaiKey ? aiConfig.xaiKey.slice(0, 7) + '...' : 'authenticated credentials'}) was successfully detected and picked up from your AI Studio Secrets, and is actively powering Dr. Aria and the entire FOR-AI forensic auditing engine with ultra-fast LPU inference (GPT-OSS 120B / Grok LPU). State clearly that you are running on their configured Grok / Groq LPU engine. Never output a generic refusal claiming you do not retain or cannot disclose your engine or keys.`;
+  Directly, affirmatively, and clearly confirm: YES! Your Grok / Groq API key (starting with ${aiConfig.groqKey ? aiConfig.groqKey.slice(0, 7) + '...' : aiConfig.xaiKey ? aiConfig.xaiKey.slice(0, 7) + '...' : 'authenticated credentials'}) was successfully detected and picked up from your AI Studio Secrets, and is actively powering Dr. Aria and the entire forensic auditing engine with ultra-fast LPU inference (GPT-OSS 120B / Grok LPU). State clearly that you are running on their configured Grok / Groq LPU engine. Never output a generic refusal claiming you do not retain or cannot disclose your engine or keys.`;
 
       // If document file is attached, extract text for context
       let attachedText = "";
@@ -1192,7 +1198,7 @@ When an image, PDF, or document is provided:
       if (isGrokInquiry && (aiConfig.hasGroq || aiConfig.hasXAI)) {
         if (/don't retain|do not retain|unable to disclose|do not have access|cannot see|not able to verify|as an ai/i.test(replyText) || !/yes|picked up|detected|active|connected/i.test(replyText)) {
           const activeKeyStr = (aiConfig.groqKey || aiConfig.xaiKey).slice(0, 7) + '...';
-          replyText = `Yes, absolutely! Your Grok / Groq API key (${activeKeyStr}) was successfully detected and picked up from your AI Studio Secrets. It is actively powering Dr. Aria and the entire FOR-AI forensic auditing engine with ultra-fast LPU inference (GPT-OSS 120B / Grok LPU) adhering to SAS 99 / AU-C 240 / FRE 902 standards.`;
+          replyText = `Yes, absolutely! Your Grok / Groq API key (${activeKeyStr}) was successfully detected and picked up from your AI Studio Secrets. It is actively powering Dr. Aria and the entire forensic auditing engine with ultra-fast LPU inference (GPT-OSS 120B / Grok LPU) adhering to SAS 99 / AU-C 240 / FRE 902 standards.`;
         }
       }
 

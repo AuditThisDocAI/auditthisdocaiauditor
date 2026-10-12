@@ -14,11 +14,11 @@ const tiers = [
       monthly: '7 days',
       yearly: '7 days'
     },
-    description: 'Try FOR-AI directly with a full 7-day free trial on your device.',
+    description: 'Evaluate every document with a full 7-day free trial on your device.',
     featuresHeader: 'Free Tier Includes:',
     features: [
       '7-Day Free Trial',
-      'FOR-AI PhD Forensic Engine',
+      'PhD Forensic AI Engine',
       'Fraud & Compliance Risk Score (0-100)',
       'Line-Item & Tax ID Verification',
       'Detailed Discrepancy Observation Log',
@@ -285,7 +285,7 @@ export function Pricing() {
             {[
               { q: 'What is your Refund and Cancellation policy?', a: 'All subscriptions come with a 14-Day Money-Back Guarantee. You can request a 100% refund within 14 days of subscribing by contacting Auditthisdoc@zohomail.com or clicking Manage Subscription in your Freemius receipt. You can also cancel your plan at any time with zero cancellation fees.' },
               { q: 'How does the 7-day free trial work?', a: 'Every user and device receives a full 7-day free trial automatically. You can test and inspect any invoice, receipt, or agreement with PhD-level AI forensic analysis for 7 complete days. Once your 7 days are up, the system detects trial completion and prompts you to subscribe to the Business White Label Plan for 1,000 audits/month and full white label features.' },
-              { q: 'Who is FOR-AI?', a: 'FOR-AI is our specialized AI system fine-tuned on forensic accounting principles, tax rules, invoice fraud indicators, and contract verification.' },
+              { q: 'How does the Forensic AI Engine work?', a: 'Our specialized AI engine is fine-tuned on forensic accounting principles, tax rules, invoice fraud indicators, and contract verification under SAS 99 and AU-C 240 standards.' },
               { q: 'Is my financial text data secure?', a: 'Yes. All text and documents are processed securely in memory for the duration of the audit and are never stored or shared with external third parties. We are fully compliant with GDPR and bank-grade AES-256 standards.' }
             ].map((faq, i) => (
               <div key={i} className="bg-[#F8F9FC] border border-[#E2E8F0] rounded-2xl overflow-hidden transition-colors hover:border-[#7C3AED]/30">

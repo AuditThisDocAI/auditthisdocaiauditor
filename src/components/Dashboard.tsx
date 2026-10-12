@@ -301,7 +301,7 @@ export function Dashboard() {
             Real-Time Audit Tracking Dashboard
           </h2>
           <p className="text-[#64748B] text-sm mt-1">
-            Live stream of documents scanned by FOR-AI AI across all user sessions and devices.
+            Live stream of documents scanned by Forensic AI across all user sessions and devices.
           </p>
         </div>
 
@@ -646,7 +646,7 @@ export function Dashboard() {
           </div>
           <h3 className="text-[#64748B] font-bold text-xs uppercase tracking-wider">Total Audits Tracked</h3>
           <p className="text-3xl font-black text-[#1E293B] mt-1">{loading ? '...' : data?.totalAudits || 0}</p>
-          <p className="text-xs text-[#64748B] mt-2 font-medium">Scanned by FOR-AI AI</p>
+          <p className="text-xs text-[#64748B] mt-2 font-medium">Scanned by Forensic AI</p>
         </div>
 
         <div className="bg-white p-6 rounded-3xl border border-[#E2E8F0] shadow-sm">
@@ -1034,7 +1034,7 @@ export function Dashboard() {
               </button>
 
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#7C3AED]">FOR-AI Forensic Report & Heatmap</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-[#7C3AED]">Forensic Audit Report & Heatmap</span>
                 <span className="text-xs text-[#94A3B8]">• {new Date(selectedAudit.timestamp).toLocaleString()}</span>
               </div>
 

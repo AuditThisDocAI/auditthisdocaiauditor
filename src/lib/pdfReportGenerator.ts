@@ -71,7 +71,7 @@ export function generateBrandedReportWindow(data: AuditReportData): void {
   });
 
   const engagementRef = data.engagementRef || `ENG-AUD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-  const auditorName = data.auditorName || 'FOR-AI Sterling, CPA / CFE';
+  const auditorName = data.auditorName || 'Senior Forensic Auditor, CPA / CFE';
   const auditorTitle = data.auditorTitle || 'Lead Forensic Auditor';
   const clientName = data.clientName || 'Valued Corporate Client';
   const clientCompany = data.clientCompany || 'Corporate Advisory Division';
@@ -830,7 +830,7 @@ export function buildReportHtml(data: AuditReportData): string {
     day: 'numeric'
   });
   const engagementRef = data.engagementRef || `ENG-AUD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-  const auditorName = data.auditorName || 'FOR-AI Sterling, CPA / CFE';
+  const auditorName = data.auditorName || 'Senior Forensic Auditor, CPA / CFE';
   const auditorTitle = data.auditorTitle || 'Lead Forensic Auditor';
   const clientName = data.clientName || 'Valued Corporate Client';
   const docType = data.documentType || 'Financial & Accounting Ledger';
@@ -1200,7 +1200,7 @@ export function downloadAuditReportPdf(data: AuditReportData, customFilename?: s
     doc.text('Forensic Lead:', col2X, currentY + 14);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(15, 23, 42);
-    doc.text(data.auditorName || 'Dr. Aria AI / FOR-AI Forensic Lead', col2X + 26, currentY + 14);
+    doc.text(data.auditorName || 'Dr. Aria AI / Senior Forensic Lead', col2X + 26, currentY + 14);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(71, 85, 105);
@@ -1380,7 +1380,7 @@ export function exportAuditAsSignedPdf(audit: {
     documentType: audit.documentType || 'Financial Document',
     executiveSummary: audit.summary || 'Forensic examination completed under statutory verification standards.',
     clientName: options?.clientName || 'Valued Corporate Client',
-    auditorName: options?.auditorName || 'Dr. Aria AI / FOR-AI Forensic Lead',
+    auditorName: options?.auditorName || 'Dr. Aria AI / Senior Forensic Lead',
     auditorTitle: options?.auditorTitle || 'Lead Forensic Auditor (CPA/CFE)',
     engagementRef: options?.engagementRef || `AUD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}-S`,
     findings: (audit.findings || []).map(f => ({

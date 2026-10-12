@@ -937,7 +937,7 @@ export function AuditDashboard() {
                 Detection Velocity
               </div>
               <p className="text-xs text-[#64748B] leading-relaxed">
-                FOR-AI heuristics examine over 40+ forensic surface checks within ~1.2s per document, cross-referencing glyph shifts, raster compression, and tax databases.
+                Forensic heuristics examine over 40+ forensic surface checks within ~1.2s per document, cross-referencing glyph shifts, raster compression, and tax databases.
               </p>
             </div>
 
@@ -979,7 +979,7 @@ export function AuditDashboard() {
                 Common Invoice Anomalies & Tampering Vectors
               </h3>
               <p className="text-xs sm:text-sm text-[#64748B] mt-1 max-w-xl">
-                Taxonomic breakdown of the primary fraud mechanisms identified by FOR-AI in corporate AP workflows, along with statutory risk indicators and automated defense playbooks.
+                Taxonomic breakdown of the primary fraud mechanisms identified by the forensic audit engine in corporate AP workflows, along with statutory risk indicators and automated defense playbooks.
               </p>
             </div>
 
