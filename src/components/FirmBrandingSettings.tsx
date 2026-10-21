@@ -34,9 +34,11 @@ import { getActiveFirm, saveActiveFirm, exportAllFirmDataAsJson, FirmProfile } f
 import { generateBrandedReportWindow } from '../lib/pdfReportGenerator';
 import { PaywallModal } from './PaywallModal';
 import { isSuperAdminEmail } from '../lib/authUtils';
+import { getWhiteLabelConfig, saveWhiteLabelConfig, DEFAULT_WHITELABEL_CONFIG, WhiteLabelConfig } from '../lib/whitelabel';
 
 export function FirmBrandingSettings() {
   const [firm, setFirm] = useState<FirmProfile>(getActiveFirm());
+  const [whiteLabelConfig, setWhiteLabelConfig] = useState<WhiteLabelConfig>(getWhiteLabelConfig());
   const [activeSubTab, setActiveSubTab] = useState<'profile' | 'colors' | 'preview' | 'email' | 'domain' | 'export'>('profile');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [testEmailSent, setTestEmailSent] = useState(false);
@@ -54,6 +56,7 @@ export function FirmBrandingSettings() {
 
     setIsLoggedIn(authed);
     setIsPro(pro);
+    setWhiteLabelConfig(getWhiteLabelConfig());
   };
 
   useEffect(() => {
@@ -61,17 +64,47 @@ export function FirmBrandingSettings() {
     checkAccess();
     window.addEventListener('admin-auth-changed', checkAccess);
     window.addEventListener('pro-status-changed', checkAccess);
+    window.addEventListener('whitelabel-updated', checkAccess);
     window.addEventListener('storage', checkAccess);
     return () => {
       window.removeEventListener('admin-auth-changed', checkAccess);
       window.removeEventListener('pro-status-changed', checkAccess);
+      window.removeEventListener('whitelabel-updated', checkAccess);
       window.removeEventListener('storage', checkAccess);
     };
   }, []);
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!isLoggedIn || !isPro) {
+      setShowPaywallModal(true);
+      return;
+    }
     saveActiveFirm(firm);
+    saveWhiteLabelConfig({
+      enabled: true,
+      businessName: firm.name,
+      logoUrl: firm.logoUrl || '',
+      primaryColor: firm.primaryColor || '#7C3AED',
+      customDomain: firm.customDomain || 'audit.yourbusiness.com',
+      domainRegion: firm.domainRegion || 'europe-west1',
+      portalTitle: `${firm.name} Client Portal`,
+      watermarkText: `Audited & Verified by ${firm.name}`,
+      hidePoweredBy: true,
+    });
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 2500);
+  };
+
+  const handleDisableWhiteLabel = () => {
+    if (!isLoggedIn || !isPro) {
+      setShowPaywallModal(true);
+      return;
+    }
+    saveWhiteLabelConfig({
+      ...DEFAULT_WHITELABEL_CONFIG,
+      enabled: false,
+    });
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
@@ -182,83 +215,45 @@ export function FirmBrandingSettings() {
     { name: 'Crimson Risk Advisory', primary: '#7F1D1D', secondary: '#DC2626', bg: '#FEF2F2' },
   ];
 
-  if (!isLoggedIn || !isPro) {
-    return (
-      <div className="max-w-4xl mx-auto py-12 px-4">
-        <div className="bg-white rounded-3xl border-2 border-amber-200 p-8 sm:p-12 shadow-xl text-center relative overflow-hidden">
-          <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-6 shadow-md">
-            <Crown className="w-8 h-8" />
-          </div>
-
-          <span className="text-xs font-extrabold uppercase tracking-widest text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-            Paid Business Plan Required
-          </span>
-
-          <h2 className="text-3xl font-black text-slate-900 mt-4 tracking-tight">
-            White Label Settings Unavailable on Free Tier
-          </h2>
-
-          <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto mt-3 leading-relaxed">
-            Custom white label portal branding, custom domain configuration, firm logo watermarks, and white-labeled client PDF reports are available exclusively to paid subscribers who have signed up.
-          </p>
-
-          <div className="my-8 max-w-md mx-auto bg-slate-50 p-5 rounded-2xl border border-slate-200 text-left space-y-2.5">
-            <div className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Included in Paid Pro / Business:</div>
-            <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Custom Logo, Brand Colors, and Custom Domain</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Firm Branded PDF Audit Certificates & Dispatches</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>White-Labeled Email Dispatches & Custom SMTP</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>1,000 Monthly Document Forensic Audits</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            {!isLoggedIn ? (
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }))}
-                className="w-full sm:w-auto px-8 py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold rounded-2xl text-sm shadow-lg shadow-purple-500/20 transition-all cursor-pointer"
-              >
-                Sign Up / Sign In
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowPaywallModal(true)}
-                className="w-full sm:w-auto px-8 py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-2xl text-sm shadow-lg shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Crown className="w-4 h-4" />
-                Upgrade to Paid Pro
-              </button>
-            )}
-
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }))}
-              className="w-full sm:w-auto px-6 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-sm transition-colors cursor-pointer"
-            >
-              Back to Home
-            </button>
-          </div>
-
-          <PaywallModal
-            isOpen={showPaywallModal}
-            onClose={() => setShowPaywallModal(false)}
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
+      {/* Sandbox / Access Banner for unpaid users */}
+      {!isPro && (
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-purple-600 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="bg-white/20 text-white text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-white/30 flex items-center gap-1">
+                <Crown className="w-3.5 h-3.5 text-amber-200" />
+                White Label Interactive Studio
+              </span>
+              <span className="text-xs text-amber-100 font-semibold">Live Sandbox Mode</span>
+            </div>
+            <h3 className="text-xl font-black text-white">Preview & Customize Your Firm's White Label</h3>
+            <p className="text-xs sm:text-sm text-amber-100 max-w-2xl leading-relaxed">
+              Test custom logos, hex palettes, email dispatches, and preview live client portals and unbranded PDF certificates. Upgrade to Pro/Business to publish changes live and issue certified reports.
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            {!isLoggedIn ? (
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'auth' } }))}
+                className="px-5 py-2.5 bg-white text-purple-900 font-extrabold rounded-xl text-xs shadow-md hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                Sign Up / Log In
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setShowPaywallModal(true)}
+              className="px-5 py-2.5 bg-slate-900 hover:bg-black text-amber-300 font-extrabold rounded-xl text-xs shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Crown className="w-4 h-4 text-amber-400" />
+              <span>Unlock White Label (Pro)</span>
+            </button>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
@@ -276,10 +271,30 @@ export function FirmBrandingSettings() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {whiteLabelConfig.enabled && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Active: {whiteLabelConfig.businessName}</span>
+            </div>
+          )}
+
+          {whiteLabelConfig.enabled && isPro && (
+            <button
+              type="button"
+              onClick={handleDisableWhiteLabel}
+              className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Revert back to default Forensic Doc Audit branding"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Reset to Default
+            </button>
+          )}
+
           <button
+            type="button"
             onClick={() => exportAllFirmDataAsJson(firm.id)}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all flex items-center gap-2"
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all flex items-center gap-2 cursor-pointer"
           >
             <Download className="w-4 h-4 text-slate-500" />
             Export All Firm Data
@@ -288,10 +303,10 @@ export function FirmBrandingSettings() {
           <button
             type="button"
             onClick={handleSave}
-            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-md shadow-purple-500/20 transition-all flex items-center gap-2"
+            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-md shadow-purple-500/20 transition-all flex items-center gap-2 cursor-pointer"
           >
             <Save className="w-4 h-4" />
-            {savedSuccess ? 'Saved Changes!' : 'Save Branding Config'}
+            {savedSuccess ? 'Saved Changes!' : isPro ? 'Deploy White Label' : 'Preview & Save (Pro)'}
           </button>
         </div>
       </div>
@@ -1141,6 +1156,12 @@ export function FirmBrandingSettings() {
           </div>
         </div>
       </div>
+
+      {/* Paywall Upgrade Modal for Free Tier Users */}
+      <PaywallModal
+        isOpen={showPaywallModal}
+        onClose={() => setShowPaywallModal(false)}
+      />
     </div>
   );
 }

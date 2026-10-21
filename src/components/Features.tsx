@@ -7,7 +7,10 @@ import {
   AlertTriangle,
   Lock,
   Sparkles,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Users,
+  Receipt,
+  Crown
 } from "lucide-react";
 
 const auditFeatures = [
@@ -24,6 +27,20 @@ const auditFeatures = [
     icon: Bot,
     color: "text-[#7C3AED]",
     bg: "bg-[#7C3AED]/10"
+  },
+  {
+    title: "Forensic Payroll & Ghost Employee Audit",
+    description: "Screen employee registers for duplicate bank accounts, salary inflation, and statutory PAYE withholding discrepancies.",
+    icon: Users,
+    color: "text-purple-600",
+    bg: "bg-purple-100/50"
+  },
+  {
+    title: "VAT Return Reconciliation & Fraud Shield",
+    description: "Reconcile Output vs Input tax, verify statutory SARS/HMRC/VIES VAT registration numbers, and prevent carousel fraud.",
+    icon: Receipt,
+    color: "text-blue-600",
+    bg: "bg-blue-100/50"
   },
   {
     title: "Wire & Fraud Risk Scoring",
@@ -52,6 +69,13 @@ const auditFeatures = [
     icon: FileSpreadsheet,
     color: "text-blue-500",
     bg: "bg-blue-500/10"
+  },
+  {
+    title: "Firm White Label & Client Portals",
+    description: "Rebrand the entire forensic auditor with your firm's logo, primary color palettes, custom subdomains, and unbranded PDF audit certificates.",
+    icon: Crown,
+    color: "text-amber-600",
+    bg: "bg-amber-100/50"
   }
 ];
 

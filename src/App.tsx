@@ -21,12 +21,14 @@ import { DrAriaChatPopup } from './components/DrAriaChatPopup';
 import { GrokChatView } from './components/GrokChatView';
 import { FinancialTools } from './components/FinancialTools';
 import { TrialExpiredModal } from './components/TrialExpiredModal';
+import { PayrollAudit } from './components/PayrollAudit';
+import { VATAudit } from './components/VATAudit';
 import { isUserPro } from './lib/authUtils';
 import { useTrial } from './lib/trialManager';
 
 export default function App() {
   const { isTrialExpired, remainingFormatted } = useTrial();
-  const [currentView, setCurrentView] = useState<'landing' | 'auditor' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients' | 'forms' | 'contacts' | 'tasks' | 'audittrail' | 'chat' | 'currency'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'auditor' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients' | 'forms' | 'contacts' | 'tasks' | 'audittrail' | 'chat' | 'currency' | 'payroll' | 'vat'>('landing');
   const [isPro, setIsPro] = useState(isUserPro());
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [freemiusCheckoutOpen, setFreemiusCheckoutOpen] = useState(false);
@@ -272,6 +274,8 @@ export default function App() {
             <FinancialTools />
           </div>
         )}
+        {currentView === 'payroll' && <PayrollAudit />}
+        {currentView === 'vat' && <VATAudit />}
       </main>
       
       {/* Footer (hidden in chat view to prevent layout overlap and scrolling issues) */}
@@ -335,6 +339,24 @@ export default function App() {
                 </li>
                 <li>
                   <a href="#bookkeeping" className="hover:text-[#7C3AED] transition-colors">Ledger & Bookkeeping</a>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'payroll' } }))}
+                    className="hover:text-[#7C3AED] transition-colors cursor-pointer text-left flex items-center gap-1.5"
+                  >
+                    <span>Payroll & Compensation Audit</span>
+                    <span className="bg-purple-100 text-purple-800 text-[10px] px-1.5 py-0.2 rounded font-bold">PRO</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'vat' } }))}
+                    className="hover:text-[#7C3AED] transition-colors cursor-pointer text-left flex items-center gap-1.5"
+                  >
+                    <span>VAT & Sales Tax Reconciliation</span>
+                    <span className="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.2 rounded font-bold">PRO</span>
+                  </button>
                 </li>
                 <li>
                   <button 

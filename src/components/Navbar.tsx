@@ -83,11 +83,13 @@ export function Navbar() {
     { name: 'Dashboard', href: '#dashboard' },
     { name: 'AI Auditor', href: '#document-auditor' },
     { name: 'Grok AI Chat', href: '#chat' },
+    { name: 'Payroll', href: '#payroll', badge: isPro ? undefined : 'PRO' },
+    { name: 'VAT & Tax', href: '#vat', badge: isPro ? undefined : 'PRO' },
     { name: 'Currency & Forex', href: '#currency-tools' },
     ...(isPro ? [{ name: 'Audit Trail', href: '#audittrail' }] : []), // Audit Trail - strictly visible to paying subscribers
+    { name: 'White Label', href: '#whitelabel', badge: isPro ? undefined : 'PRO' },
     { name: 'Bookkeeping', href: '#bookkeeping' },
     { name: 'Features', href: '#features' },
-    ...(isPaidAndSignedUp ? [{ name: 'Branding', href: '#whitelabel' }] : []),
     ...(isLoggedIn ? [{ name: 'Staff Team', href: '#staff' }, { name: 'Firm Clients', href: '#clients' }] : []),
     { name: 'Pricing', href: '#pricing' },
     { name: 'FAQ', href: '#faq' },
@@ -165,9 +167,13 @@ export function Navbar() {
                               document.getElementById('audittrail')?.scrollIntoView({ behavior: 'smooth' });
                             }, 100);
                           }
+                        } else if (link.name === 'Payroll') {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'payroll' } }));
+                        } else if (link.name === 'VAT & Tax' || link.name === 'VAT') {
+                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'vat' } }));
                         } else if (link.name === 'Bookkeeping') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'bookkeeping' } }));
-                        } else if (link.name === 'Branding') {
+                        } else if (link.name === 'Branding' || link.name === 'White Label') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));
                         } else if (link.name === 'Staff Team') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'staff' } }));
@@ -198,9 +204,14 @@ export function Navbar() {
                           }
                         }
                       }}
-                      className="hover:text-[#7C3AED] transition-colors"
+                      className="hover:text-[#7C3AED] transition-colors inline-flex items-center gap-1"
                     >
-                      {link.name}
+                      <span>{link.name}</span>
+                      {link.badge && (
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 tracking-wider">
+                          {link.badge}
+                        </span>
+                      )}
                     </a>
                   </li>
                 ))}
@@ -224,17 +235,20 @@ export function Navbar() {
                 <CurrencySelector />
               </div>
 
-              {/* White Label Button - ONLY shown after user paid and signed up */}
-              {isPaidAndSignedUp && (
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }))}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer"
-                  title="Business White Label Branding"
-                >
-                  <Crown className="w-3.5 h-3.5 text-amber-600" />
-                  <span>White Label Settings</span>
-                </button>
-              )}
+              {/* White Label Button */}
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }))}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer"
+                title="Business White Label Branding & Client Portal"
+              >
+                <Crown className="w-3.5 h-3.5 text-amber-600" />
+                <span>White Label</span>
+                {!isPro && (
+                  <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-200 text-amber-900">
+                    PRO
+                  </span>
+                )}
+              </button>
 
               {isLoggedIn ? (
                 <div className="flex items-center gap-3">
@@ -402,10 +416,16 @@ export function Navbar() {
                             document.getElementById('audittrail')?.scrollIntoView({ behavior: 'smooth' });
                           }, 100);
                         }
+                      } else if (link.name === 'Payroll') {
+                        e.preventDefault();
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'payroll' } }));
+                      } else if (link.name === 'VAT & Tax' || link.name === 'VAT') {
+                        e.preventDefault();
+                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'vat' } }));
                       } else if (link.name === 'Bookkeeping') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'bookkeeping' } }));
-                      } else if (link.name === 'Branding') {
+                      } else if (link.name === 'Branding' || link.name === 'White Label') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));
                       } else if (link.name === 'Staff Team') {
@@ -438,22 +458,34 @@ export function Navbar() {
                       setMobileMenuOpen(false);
                     }}
                   >
-                    <span>{link.name}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span>{link.name}</span>
+                      {link.badge && (
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 tracking-wider">
+                          {link.badge}
+                        </span>
+                      )}
+                    </span>
                   </a>
                 ))}
                 
-                {isPaidAndSignedUp && (
-                  <button
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full text-left font-bold text-amber-800 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 cursor-pointer my-1"
-                  >
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left font-bold text-amber-900 bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl text-xs flex items-center justify-between cursor-pointer my-1"
+                >
+                  <span className="flex items-center gap-2">
                     <Crown className="w-4 h-4 text-amber-600" />
-                    Configure Business White Label
-                  </button>
-                )}
+                    <span>Configure White Label Branding</span>
+                  </span>
+                  {!isPro && (
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-200 text-amber-900">
+                      PRO
+                    </span>
+                  )}
+                </button>
 
                 <div className="h-px bg-[#E2E8F0] my-1" />
 

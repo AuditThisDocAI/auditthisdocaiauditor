@@ -32,7 +32,10 @@ import {
   Flame,
   FileDown,
   Building,
-  Info
+  Info,
+  Users,
+  Receipt,
+  Crown
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -499,6 +502,34 @@ export function AuditDashboard() {
           >
             <Zap className="w-4 h-4" />
             Document Scanner
+          </button>
+
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'payroll' } }))}
+            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer text-slate-700 bg-slate-100 hover:bg-slate-200"
+          >
+            <Users className="w-4 h-4 text-purple-600" />
+            <span>Payroll Audit</span>
+            <span className="px-1.5 py-0.2 rounded text-[9px] bg-purple-100 text-purple-800 font-black">PRO</span>
+          </button>
+
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'vat' } }))}
+            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer text-slate-700 bg-slate-100 hover:bg-slate-200"
+          >
+            <Receipt className="w-4 h-4 text-blue-600" />
+            <span>VAT & Tax</span>
+            <span className="px-1.5 py-0.2 rounded text-[9px] bg-blue-100 text-blue-800 font-black">PRO</span>
+          </button>
+
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }))}
+            className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200"
+            title="Firm White Label Branding & Client Portal Settings"
+          >
+            <Crown className="w-4 h-4 text-amber-600" />
+            <span>White Label</span>
+            <span className="px-1.5 py-0.2 rounded text-[9px] bg-amber-200 text-amber-900 font-black">PRO</span>
           </button>
         </div>
       </div>

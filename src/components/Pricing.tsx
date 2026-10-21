@@ -40,6 +40,8 @@ const tiers = [
     features: [
       'Full White Label Portal & Custom Logo',
       '1,000 Document & Invoice Audits / Month',
+      'Forensic Payroll Audit & Ghost Employee Screening',
+      'Automated VAT Return Reconciliation & MTIC Fraud Shield',
       'Custom Brand Colors & Subdomain Setup',
       'Firm Client Portals & Directory',
       'Staff Team Roster & Permission Management',

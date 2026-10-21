@@ -349,6 +349,8 @@ export function FreemiusCheckoutModal({
                     {[
                       '1,000 Document & Invoice Audits / Month',
                       'Full Access to Audit Trail with SHA-256 Logs',
+                      'Forensic Payroll Audit & Ghost Employee Detection',
+                      'VAT & Sales Tax Return Reconciliation Engine',
                       'PhD Forensic AI Engine',
                       'Full White Label Portal & Custom Subdomain',
                       'Branded PDF Reports with Firm Header',
