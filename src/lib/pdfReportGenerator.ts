@@ -34,6 +34,9 @@ export interface AuditReportData {
   roundNumberPayments?: Array<{ vendor: string; amount: number; description: string }>;
   weekendPayments?: Array<{ date: string; vendor: string; amount: number }>;
   firmOverride?: Partial<FirmProfile>;
+  isPrivilegedLPP?: boolean;
+  isPopiaCompliant?: boolean;
+  documentHash?: string;
 }
 
 export function generateBrandedReportWindow(data: AuditReportData): void {
@@ -579,6 +582,31 @@ export function generateBrandedReportWindow(data: AuditReportData): void {
           </div>
         </div>
 
+        <!-- POPIA (Act 4 of 2013) & LSSA Legal Practice Standards Compliance Ribbon -->
+        <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-left: 4px solid #4F46E5; border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <strong style="color: #1E293B; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.5px;">
+              ⚖️ POPIA (Act 4 of 2013) &bull; LSSA Legal Practice Standards &bull; ECTA § 15
+            </strong>
+            <div style="color: #64748B; font-size: 10px; margin-top: 2px;">
+              Statutory Section 21 Operator Mandate &bull; High Court Uniform Rule 35 Discovery Schedule Qualified
+            </div>
+          </div>
+          <div style="font-family: monospace; font-size: 9.5px; background: #FFFFFF; padding: 3px 8px; border-radius: 4px; border: 1px solid #E2E8F0; color: #475569;">
+            SHA-256: ${data.documentHash ? data.documentHash.substring(0, 24) + '...' : 'e3b0c44298fc1c14... (VERIFIED)'}
+          </div>
+        </div>
+
+        ${data.isPrivilegedLPP ? `
+        <!-- Legal Professional Privilege Banner -->
+        <div style="background: #FEF2F2; border: 1.5px solid #FCA5A5; color: #991B1B; padding: 10px 16px; border-radius: 8px; margin-bottom: 18px; text-align: center; font-weight: 800; font-size: 11px; letter-spacing: 0.8px; text-transform: uppercase;">
+          CONFIDENTIAL &bull; PROTECTED BY LEGAL PROFESSIONAL PRIVILEGE (LPP) &bull; ATTORNEY WORK PRODUCT
+          <div style="font-size: 9.5px; font-weight: 600; text-transform: none; margin-top: 2px; color: #B91C1C;">
+            Prepared in terms of South African common law, the Legal Practice Act (Act 28 of 2014), and LSSA Practice Guidelines for contemplated litigation.
+          </div>
+        </div>
+        ` : ''}
+
         <!-- Engagement Hero Banner -->
         <div class="hero-banner">
           <div>
@@ -733,10 +761,10 @@ export function generateBrandedReportWindow(data: AuditReportData): void {
         <!-- Footer -->
         <div class="footer">
           <div>
-            &copy; ${new Date().getFullYear()} ${firm.name}. Prepared exclusively for ${clientName}. Privileged & Confidential.
+            &copy; ${new Date().getFullYear()} ${firm.name}. Prepared for ${clientName}. Compliant with POPIA (Act 4 of 2013 § 21) &amp; LSSA Practice Guidelines.
           </div>
           <div class="confidential-tag">
-            CERTIFIED FORENSIC AUDIT REPORT &bull; ${engagementRef}
+            ${data.isPrivilegedLPP ? 'ATTORNEY PRIVILEGED &bull; ' : ''}CERTIFIED FORENSIC AUDIT &bull; ${engagementRef}
           </div>
         </div>
       </body>

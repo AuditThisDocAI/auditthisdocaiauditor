@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Bot, LogOut, User, Crown, Building2, ShieldCheck, Clock, Hourglass } from 'lucide-react';
+import { Menu, X, Bot, LogOut, User, Crown, Building2, ShieldCheck, Clock, Hourglass, Scale } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getWhiteLabelConfig, WhiteLabelConfig } from '../lib/whitelabel';
 import { WhiteLabelModal } from './WhiteLabelModal';
@@ -82,7 +82,6 @@ export function Navbar() {
   const linksToShow = [
     { name: 'Dashboard', href: '#dashboard' },
     { name: 'AI Auditor', href: '#document-auditor' },
-    { name: 'Grok AI Chat', href: '#chat' },
     { name: 'Payroll', href: '#payroll', badge: isPro ? undefined : 'PRO' },
     { name: 'VAT & Tax', href: '#vat', badge: isPro ? undefined : 'PRO' },
     { name: 'Currency & Forex', href: '#currency-tools' },
@@ -154,9 +153,6 @@ export function Navbar() {
                           setTimeout(() => {
                             document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
                           }, 100);
-                        } else if (link.name === 'Grok AI Chat' || link.name === 'AI Chat Workspace' || link.name === 'Gemini Chat') {
-                          window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'chat' } }));
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
                         } else if (link.name === 'Audit Trail') {
                           const el = document.getElementById('audittrail');
                           if (el) {
@@ -230,6 +226,16 @@ export function Navbar() {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               </button>
 
+              {/* POPIA & LSSA Statutory Compliance Badge */}
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'popia' } }))}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer shadow-2xs"
+                title="POPIA (Act 4/2013) & LSSA Legal Practice Standards Compliance"
+              >
+                <span className="text-xs">🇿🇦</span>
+                <span>POPIA &bull; LSSA</span>
+              </button>
+
               {/* Global Currency Selector - ALWAYS visible for document auditing & entire site */}
               <div className="flex items-center" title="Global Currency Selector - choose currency for document auditing, invoices, and reports">
                 <CurrencySelector />
@@ -238,16 +244,14 @@ export function Navbar() {
               {/* White Label Button */}
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }))}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer"
-                title="Business White Label Branding & Client Portal"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-xs font-black transition-all hover:scale-[1.02] cursor-pointer shadow-sm shadow-amber-500/20"
+                title="Business White Label Branding & Client Portal Studio"
               >
-                <Crown className="w-3.5 h-3.5 text-amber-600" />
+                <Crown className="w-3.5 h-3.5 text-slate-950" />
                 <span>White Label</span>
-                {!isPro && (
-                  <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-200 text-amber-900">
-                    PRO
-                  </span>
-                )}
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-slate-950 text-amber-300">
+                  {isPro ? 'PRO' : 'BUSINESS'}
+                </span>
               </button>
 
               {isLoggedIn ? (
@@ -332,13 +336,24 @@ export function Navbar() {
               )}
             </div>
 
-            {/* Mobile Menu Toggle */}
-            <button
-              className="lg:hidden p-2 text-[#1E293B]"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+            {/* Mobile Actions: Quick White Label + Hamburger */}
+            <div className="flex items-center gap-2 lg:hidden">
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }))}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-xs font-black shadow-xs cursor-pointer hover:from-amber-400 hover:to-amber-500"
+                title="Business White Label Branding"
+              >
+                <Crown className="w-3.5 h-3.5 text-slate-950" />
+                <span className="text-[11px]">White Label</span>
+              </button>
+              <button
+                className="p-2 text-[#1E293B]"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Toggle navigation menu"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -379,6 +394,28 @@ export function Navbar() {
                   <CurrencySelector compact />
                 </div>
 
+                {/* Prominent Business White Label Studio card */}
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left font-black text-amber-950 bg-gradient-to-r from-amber-100 via-amber-50 to-amber-100 border-2 border-amber-300 px-4 py-3 rounded-2xl text-xs flex items-center justify-between cursor-pointer shadow-xs my-1"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0">
+                      <Crown className="w-4 h-4 text-slate-950" />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-slate-950 text-xs">🏢 Business White Label Studio</div>
+                      <div className="text-[10px] text-amber-900 font-semibold">Custom Logo, Palettes &amp; Client Portals</div>
+                    </div>
+                  </span>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-300 text-amber-950 border border-amber-400">
+                    OPEN &rarr;
+                  </span>
+                </button>
+
                 {linksToShow.map((link) => (
                   <a
                     key={link.name}
@@ -394,10 +431,6 @@ export function Navbar() {
                         setTimeout(() => {
                           document.getElementById('document-auditor')?.scrollIntoView({ behavior: 'smooth' });
                         }, 100);
-                      } else if (link.name === 'Grok AI Chat' || link.name === 'AI Chat Workspace' || link.name === 'Gemini Chat') {
-                        e.preventDefault();
-                        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'chat' } }));
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
                       } else if (link.name === 'Currency & Forex' || link.name === 'Currency Tools') {
                         e.preventDefault();
                         setMobileMenuOpen(false);
@@ -469,6 +502,23 @@ export function Navbar() {
                   </a>
                 ))}
                 
+                {/* POPIA & LSSA Statutory Standards in Mobile Menu */}
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'popia' } }));
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-4 py-2.5 rounded-xl text-xs flex items-center justify-between cursor-pointer my-1"
+                >
+                  <span className="flex items-center gap-2">
+                    <Scale className="w-4 h-4 text-emerald-700" />
+                    <span>🇿🇦 POPIA (Act 4/2013) &amp; LSSA Compliance</span>
+                  </span>
+                  <span className="text-[10px] font-black uppercase bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded">
+                    Verified
+                  </span>
+                </button>
+
                 <button
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));

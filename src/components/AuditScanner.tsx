@@ -29,7 +29,9 @@ import {
   ArrowRight,
   Clock,
   Hourglass,
-  Crown
+  Crown,
+  Scale,
+  Award
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { AuditResult } from '../lib/auditEngine';
@@ -47,6 +49,7 @@ export default function AuditScanner() {
   const [isScanning, setIsScanning] = useState(false);
   const [result, setResult] = useState<AuditResult | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [isPrivilegedLPP, setIsPrivilegedLPP] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -505,6 +508,57 @@ export default function AuditScanner() {
             </button>
           </div>
         )}
+        {/* POPIA & LSSA Statutory Compliance Assurance Bar */}
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-50/90 via-indigo-50/90 to-purple-50/90 border border-slate-200 text-xs text-slate-700 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-start sm:items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 font-black text-xs shadow-2xs">
+              🇿🇦
+            </div>
+            <div>
+              <div className="font-extrabold text-slate-900 flex flex-wrap items-center gap-1.5">
+                <span>POPIA (Act 4 of 2013) &amp; LSSA Legal Practice Standards</span>
+                <span className="px-1.5 py-0.2 rounded bg-amber-200 text-amber-900 text-[10px] font-black uppercase tracking-wider">
+                  Operator § 21
+                </span>
+                <span className="px-1.5 py-0.2 rounded bg-indigo-200 text-indigo-900 text-[10px] font-black uppercase tracking-wider">
+                  ECTA § 15
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Ephemeral OCR parsing &bull; SHA-256 chain-of-custody fingerprint &bull; High Court Rule 35 Discovery Qualified
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <label className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 hover:border-indigo-300 transition-colors cursor-pointer" title="Mark this audit report with Attorney-Client Legal Professional Privilege (LPP)">
+              <input
+                type="checkbox"
+                checked={isPrivilegedLPP}
+                onChange={e => setIsPrivilegedLPP(e.target.checked)}
+                className="w-3.5 h-3.5 accent-indigo-600 rounded cursor-pointer"
+              />
+              <Scale className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Legal Privilege (LPP)</span>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'popia' } }))}
+              className="text-[11px] font-bold text-amber-800 hover:text-amber-900 hover:underline px-2 py-1 cursor-pointer"
+            >
+              POPIA Info
+            </button>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'lssa' } }))}
+              className="text-[11px] font-bold text-indigo-800 hover:text-indigo-900 hover:underline px-2 py-1 cursor-pointer"
+            >
+              LSSA Standards
+            </button>
+          </div>
+        </div>
+
         {/* Document Ingestion Zone */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -1291,6 +1345,7 @@ Payment Method: Standard Corporate Lockbox ACH`);
           onClose={() => setShowReportModal(false)}
           auditResult={result}
           documentName={file?.name || 'Document Scan'}
+          initialIsPrivileged={isPrivilegedLPP}
         />
       )}
     </div>

@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { ScanSearch, Bot, LayoutDashboard } from 'lucide-react';
+import { 
+  ScanSearch, 
+  Bot, 
+  LayoutDashboard, 
+  Crown, 
+  Building2, 
+  Palette, 
+  Globe, 
+  FileCheck, 
+  ArrowRight 
+} from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { Features } from './components/Features';
 import { Pricing } from './components/Pricing';
@@ -18,9 +28,9 @@ import { SessionTimeoutModal } from './components/SessionTimeoutModal';
 import { AuditTrail } from './components/AuditTrail';
 import AuditScanner from './components/AuditScanner';
 import { DrAriaChatPopup } from './components/DrAriaChatPopup';
-import { GrokChatView } from './components/GrokChatView';
 import { FinancialTools } from './components/FinancialTools';
 import { TrialExpiredModal } from './components/TrialExpiredModal';
+import { PopiaConsentBanner } from './components/PopiaConsentBanner';
 import { PayrollAudit } from './components/PayrollAudit';
 import { VATAudit } from './components/VATAudit';
 import { isUserPro } from './lib/authUtils';
@@ -28,7 +38,7 @@ import { useTrial } from './lib/trialManager';
 
 export default function App() {
   const { isTrialExpired, remainingFormatted } = useTrial();
-  const [currentView, setCurrentView] = useState<'landing' | 'auditor' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients' | 'forms' | 'contacts' | 'tasks' | 'audittrail' | 'chat' | 'currency' | 'payroll' | 'vat'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'auditor' | 'auth' | 'dashboard' | 'bookkeeping' | 'whitelabel' | 'staff' | 'clients' | 'forms' | 'contacts' | 'tasks' | 'audittrail' | 'currency' | 'payroll' | 'vat'>('landing');
   const [isPro, setIsPro] = useState(isUserPro());
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [freemiusCheckoutOpen, setFreemiusCheckoutOpen] = useState(false);
@@ -131,9 +141,8 @@ export default function App() {
 
       <SessionTimeoutModal />
       <TrialExpiredModal />
-
-      {/* Hide floating Dr. Aria launcher when in full chat workspace to prevent overlap */}
-      {currentView !== 'chat' && <DrAriaChatPopup />}
+      <PopiaConsentBanner />
+      <DrAriaChatPopup />
 
       {/* Trial Expired Warning Banner */}
       {isTrialExpired && !isPro && (
@@ -163,7 +172,7 @@ export default function App() {
         </div>
       )}
 
-      <main className={currentView === 'chat' ? 'flex-1 p-2 sm:p-4 flex flex-col min-h-0 overflow-hidden w-full max-w-7xl mx-auto' : 'py-6 px-4 lg:px-8'}>
+      <main className="py-6 px-4 lg:px-8">
         {currentView === 'landing' && (
           <>
             <div className="bg-[#1E293B] rounded-3xl p-8 md:p-16 text-center text-white shadow-2xl mb-12 relative overflow-hidden">
@@ -187,13 +196,14 @@ export default function App() {
                   </button>
                   <button 
                     onClick={() => {
-                      setCurrentView('chat');
+                      setCurrentView('whitelabel');
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-7 py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-purple-500/20 w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2"
+                    className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-7 py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-amber-500/25 w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2 border border-amber-400/40"
+                    title="Configure White Label Branding, Firm Logo, and Client Portals"
                   >
-                    <Bot className="w-5 h-5 text-purple-200" />
-                    <span>Grok AI Chat</span>
+                    <Crown className="w-5 h-5 text-amber-200" />
+                    <span>Business White Label</span>
                   </button>
                   <button 
                     onClick={() => {
@@ -240,6 +250,151 @@ export default function App() {
               <AuditScanner />
             </div>
 
+            {/* Business White Label & Client Portals Showcase Banner */}
+            <div id="whitelabel-showcase" className="mb-14 max-w-7xl mx-auto scroll-mt-24">
+              <div className="bg-gradient-to-br from-slate-900 via-[#1E1B4B] to-slate-900 rounded-3xl p-8 sm:p-12 text-white border border-amber-500/30 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-amber-500/10 via-purple-500/10 to-transparent rounded-bl-full pointer-events-none" />
+                
+                <div className="relative z-10">
+                  <div className="flex flex-wrap items-center gap-2.5 mb-4">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs font-black tracking-wider uppercase">
+                      <Crown className="w-3.5 h-3.5 text-amber-300" />
+                      White Label Option for Businesses &amp; Accounting Firms
+                    </span>
+                    <span className="text-xs text-slate-400 font-semibold">
+                      Included with Business Plan ($59/mo) &bull; Live Interactive Studio
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    <div className="lg:col-span-7 space-y-4">
+                      <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight">
+                        Brand This Entire Platform As Your Own Firm
+                      </h2>
+                      <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                        Eliminate third-party branding. Deliver forensic document audits, invoice fraud reports, and client portals completely branded with your company's logo, colors, custom domain, and letterhead.
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                          <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
+                            <Palette className="w-4 h-4 text-amber-400" />
+                            <span>Custom Logo &amp; Palettes</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300">
+                            Upload your firm's SVG/PNG logo and choose from 5 preset corporate themes or custom hex codes.
+                          </p>
+                        </div>
+
+                        <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                          <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
+                            <Globe className="w-4 h-4 text-amber-400" />
+                            <span>Custom Subdomain &amp; CNAME</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300">
+                            Map your audits to your firm's domain (e.g. <code>audit.yourfirm.co.za</code> or <code>portal.yourfirm.com</code>).
+                          </p>
+                        </div>
+
+                        <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                          <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
+                            <FileCheck className="w-4 h-4 text-amber-400" />
+                            <span>Unbranded PDF Certificates</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300">
+                            Export court-admissible forensic certificates with your firm letterhead and cryptographic SHA-256 seal.
+                          </p>
+                        </div>
+
+                        <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1">
+                          <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
+                            <Building2 className="w-4 h-4 text-amber-400" />
+                            <span>Client Portals &amp; Staff Roles</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300">
+                            Invite staff auditors and give clients isolated access to their historical audit ledgers.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 flex flex-wrap items-center gap-3">
+                        <button
+                          onClick={() => {
+                            setCurrentView('whitelabel');
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="px-6 py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black rounded-xl text-sm shadow-xl transition-all cursor-pointer flex items-center gap-2 hover:scale-[1.02]"
+                        >
+                          <Crown className="w-4 h-4 text-slate-950" />
+                          <span>Open White Label Studio</span>
+                          <ArrowRight className="w-4 h-4 text-slate-950" />
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            window.dispatchEvent(new CustomEvent('open-freemius-checkout', { detail: { plan: 'pro_monthly', interval: 'monthly' } }));
+                          }}
+                          className="px-5 py-3.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-sm border border-white/20 transition-all cursor-pointer flex items-center gap-2"
+                        >
+                          <span>Get Business Plan ($59/mo)</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="lg:col-span-5">
+                      <div className="bg-slate-950/80 rounded-2xl p-5 border border-amber-500/20 shadow-xl space-y-3">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center">
+                              WL
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-white">Interactive Firm Preview</div>
+                              <div className="text-[10px] text-amber-400 font-mono">audit.yourfirm.co.za</div>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">
+                            Live Sandbox
+                          </span>
+                        </div>
+
+                        <div className="space-y-2 text-xs">
+                          <div className="bg-slate-900/90 p-3 rounded-xl border border-slate-800">
+                            <div className="text-[11px] text-slate-400">Firm Display Name</div>
+                            <div className="text-white font-bold mt-0.5">Apex Forensic Accounting &amp; Advisory LLP</div>
+                          </div>
+                          <div className="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+                            <div>
+                              <div className="text-[11px] text-slate-400">PDF Report Header</div>
+                              <div className="text-white font-semibold mt-0.5">Certified Forensic Audit Examination</div>
+                            </div>
+                            <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-bold">No FDA Badge</span>
+                          </div>
+                          <div className="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+                            <div>
+                              <div className="text-[11px] text-slate-400">Client Portal Status</div>
+                              <div className="text-white font-semibold mt-0.5">Isolated Multi-Tenant Access</div>
+                            </div>
+                            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-bold">Active</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setCurrentView('whitelabel');
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="w-full py-2.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded-xl text-xs font-bold text-center transition-colors cursor-pointer"
+                        >
+                          Customize Your Logo &amp; Colors in Studio &rarr;
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <Features />
 
             {/* Currency Converter & Global Financial Tools Section */}
@@ -268,7 +423,6 @@ export default function App() {
             <AuditTrail />
           </div>
         )}
-        {currentView === 'chat' && <GrokChatView />}
         {currentView === 'currency' && (
           <div className="max-w-7xl mx-auto py-6">
             <FinancialTools />
@@ -278,9 +432,7 @@ export default function App() {
         {currentView === 'vat' && <VATAudit />}
       </main>
       
-      {/* Footer (hidden in chat view to prevent layout overlap and scrolling issues) */}
-      {currentView !== 'chat' && (
-        <footer className="bg-white text-[#1E293B] pt-12 pb-8 border-t border-[#E2E8F0]">
+      <footer className="bg-white text-[#1E293B] pt-12 pb-8 border-t border-[#E2E8F0]">
         <div className="max-w-[1400px] mx-auto px-4 lg:px-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
             {/* Brand column */}
@@ -301,9 +453,19 @@ export default function App() {
               <p className="text-xs text-[#64748B] leading-relaxed max-w-md">
                 AI-powered document fraud detection, automated financial discrepancy auditing, and white-label client portal for modern accounting firms.
               </p>
-              <div className="flex items-center gap-2 text-[11px] text-[#64748B] pt-1">
-                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span>Authorized Freemius Merchant &bull; Product ID: 33243</span>
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-[#64748B] pt-1">
+                <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-md font-semibold">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                  POPIA (Act 4/2013) &bull; Information Regulator IRSA
+                </span>
+                <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-900 border border-indigo-200 px-2 py-0.5 rounded-md font-semibold">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                  LSSA Legal Practice Standards &bull; ECTA § 15
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Freemius Merchant ID: 33243
+                </span>
               </div>
             </div>
 
@@ -339,6 +501,19 @@ export default function App() {
                 </li>
                 <li>
                   <a href="#bookkeeping" className="hover:text-[#7C3AED] transition-colors">Ledger & Bookkeeping</a>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => {
+                      setCurrentView('whitelabel');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="hover:text-[#7C3AED] transition-colors cursor-pointer text-left flex items-center gap-1.5 font-bold text-amber-900"
+                  >
+                    <Crown className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Business White Label &amp; Branding</span>
+                    <span className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.2 rounded font-bold">PRO</span>
+                  </button>
                 </li>
                 <li>
                   <button 
@@ -381,9 +556,27 @@ export default function App() {
             {/* Legal & Policies column */}
             <div>
               <h4 className="text-xs font-extrabold text-[#1E293B] uppercase tracking-wider mb-3">
-                Legal & Policies
+                Compliance &amp; Legal
               </h4>
               <ul className="space-y-2 text-xs text-[#64748B]">
+                <li>
+                  <button 
+                    onClick={() => openLegalTab('popia')}
+                    className="text-left hover:text-[#7C3AED] transition-colors font-bold text-amber-900 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>🇿🇦 POPIA (Act 4/2013) &amp; PAIA</span>
+                    <span className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.2 rounded font-extrabold">IRSA</span>
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => openLegalTab('lssa')}
+                    className="text-left hover:text-[#7C3AED] transition-colors font-bold text-indigo-900 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>⚖️ LSSA Legal Practice Standards</span>
+                    <span className="bg-indigo-100 text-indigo-800 text-[10px] px-1.5 py-0.2 rounded font-extrabold">ECTA §15</span>
+                  </button>
+                </li>
                 <li>
                   <button 
                     onClick={() => openLegalTab('terms')}
@@ -425,17 +618,23 @@ export default function App() {
 
           <div className="pt-6 border-t border-[#E2E8F0] flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-[#64748B]">
             <div>
-              &copy; {new Date().getFullYear()} FORENSICDOCAUDIT. All rights reserved. Subscriptions powered by Freemius (Product 33243).
+              &copy; {new Date().getFullYear()} FORENSICDOCAUDIT. Compliant with POPIA (Act 4 of 2013) &amp; LSSA Practice Guidelines.
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <button onClick={() => openLegalTab('popia')} className="hover:text-[#1E293B] underline cursor-pointer font-bold text-amber-900">
+                POPIA Compliance
+              </button>
+              <button onClick={() => openLegalTab('lssa')} className="hover:text-[#1E293B] underline cursor-pointer font-bold text-indigo-900">
+                LSSA Standards
+              </button>
               <button onClick={() => openLegalTab('terms')} className="hover:text-[#1E293B] underline cursor-pointer">
-                Terms of Service
+                Terms
               </button>
               <button onClick={() => openLegalTab('refund')} className="hover:text-[#1E293B] underline cursor-pointer">
                 Refund Policy
               </button>
               <button onClick={() => openLegalTab('privacy')} className="hover:text-[#1E293B] underline cursor-pointer">
-                Privacy Policy
+                Privacy
               </button>
               <button 
                 onClick={() => {
@@ -451,7 +650,6 @@ export default function App() {
           </div>
         </div>
       </footer>
-      )}
     </div>
   );
 }

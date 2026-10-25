@@ -96,24 +96,48 @@ export function Features() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {auditFeatures.map((feature, index) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
-              className="bg-white rounded-2xl p-8 border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:border-[#7C3AED]/30 transition-all group"
-            >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform ${feature.bg} ${feature.color}`}>
-                <feature.icon className="w-6 h-6" />
-              </div>
-              <h4 className="text-lg font-bold text-[#1E293B] mb-2">{feature.title}</h4>
-              <p className="text-sm text-[#64748B] leading-relaxed">
-                {feature.description}
-              </p>
-            </motion.div>
-          ))}
+          {auditFeatures.map((feature, index) => {
+            const isWhiteLabel = feature.title.includes("White Label");
+            return (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1, duration: 0.5 }}
+                onClick={() => {
+                  if (isWhiteLabel) {
+                    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));
+                  }
+                }}
+                className={`bg-white rounded-2xl p-8 border shadow-sm transition-all group ${
+                  isWhiteLabel
+                    ? 'border-amber-300 hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-500/10 cursor-pointer relative ring-1 ring-amber-200/50'
+                    : 'border-[#E2E8F0] hover:shadow-xl hover:border-[#7C3AED]/30'
+                }`}
+              >
+                {isWhiteLabel && (
+                  <span className="absolute top-4 right-4 text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Crown className="w-3 h-3 text-amber-600" />
+                    Open Studio &rarr;
+                  </span>
+                )}
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform ${feature.bg} ${feature.color}`}>
+                  <feature.icon className="w-6 h-6" />
+                </div>
+                <h4 className="text-lg font-bold text-[#1E293B] mb-2">{feature.title}</h4>
+                <p className="text-sm text-[#64748B] leading-relaxed">
+                  {feature.description}
+                </p>
+                {isWhiteLabel && (
+                  <div className="mt-4 pt-3 border-t border-amber-100 flex items-center gap-1.5 text-xs font-bold text-amber-800">
+                    <span>Configure Firm Branding &amp; Portals</span>
+                    <span>&rarr;</span>
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>

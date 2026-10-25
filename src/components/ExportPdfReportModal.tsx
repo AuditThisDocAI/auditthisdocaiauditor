@@ -39,13 +39,15 @@ interface ExportPdfReportModalProps {
       missingFields?: string[];
     };
   };
+  initialIsPrivileged?: boolean;
 }
 
 export function ExportPdfReportModal({
   isOpen,
   onClose,
   documentName,
-  auditResult
+  auditResult,
+  initialIsPrivileged = false
 }: ExportPdfReportModalProps) {
   const firm = getActiveFirm();
 
@@ -59,6 +61,8 @@ export function ExportPdfReportModal({
   const [auditorNotes, setAuditorNotes] = useState(
     'Audit conducted under forensic accounting verification protocols. All flagged discrepancies require counterparty corroboration.'
   );
+  const [isPrivilegedLPP, setIsPrivilegedLPP] = useState(initialIsPrivileged);
+  const [isPopiaCompliant, setIsPopiaCompliant] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
 
@@ -85,7 +89,9 @@ export function ExportPdfReportModal({
       engagementRef: engagementRef.trim() || `AUD-${new Date().getFullYear()}-001`,
       auditorNotes: auditorNotes.trim(),
       findings: auditResult.findings || [],
-      keyMetrics: auditResult.keyMetrics
+      keyMetrics: auditResult.keyMetrics,
+      isPrivilegedLPP,
+      isPopiaCompliant
     };
 
     // Directly download genuine PDF file using jsPDF
@@ -230,6 +236,39 @@ export function ExportPdfReportModal({
             />
           </div>
 
+          {/* Statutory POPIA & LSSA Endorsements */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+            <div className="font-extrabold text-slate-900 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Statutory Compliance &amp; Legal Privilege Endorsements</span>
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono">South Africa</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer text-[11px] font-bold text-slate-700 hover:border-amber-300 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={isPopiaCompliant}
+                  onChange={(e) => setIsPopiaCompliant(e.target.checked)}
+                  className="accent-amber-600 w-3.5 h-3.5 rounded"
+                />
+                <span>POPIA (Act 4/2013) § 21 Operator Certificate</span>
+              </label>
+
+              <label className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-slate-200 cursor-pointer text-[11px] font-bold text-slate-700 hover:border-indigo-300 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={isPrivilegedLPP}
+                  onChange={(e) => setIsPrivilegedLPP(e.target.checked)}
+                  className="accent-indigo-600 w-3.5 h-3.5 rounded"
+                />
+                <span>LSSA Legal Professional Privilege (LPP) Work Product</span>
+              </label>
+            </div>
+          </div>
+
           {/* Delivery Inclusions summary */}
           <div className="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-200/80 text-xs space-y-1.5">
             <span className="font-extrabold text-purple-900 flex items-center gap-1.5">
@@ -240,7 +279,7 @@ export function ExportPdfReportModal({
               <div>✓ Executive summary & scope</div>
               <div>✓ Itemized forensic findings table</div>
               <div>✓ Digital signature & certified seal</div>
-              <div>✓ Full {firm.name} branding & contact</div>
+              <div>✓ POPIA (Act 4/2013) &amp; LSSA endorsements</div>
             </div>
           </div>
         </div>

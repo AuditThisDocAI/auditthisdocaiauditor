@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShieldCheck, FileText, RotateCcw, Lock, X, 
   CheckCircle2, AlertTriangle, Scale, Mail, HelpCircle, 
-  Calendar, Building2, CreditCard, ChevronRight, Download
+  Calendar, Building2, CreditCard, ChevronRight, Download,
+  Award, Globe, BookOpen, ShieldAlert, Hash, ExternalLink, Check
 } from 'lucide-react';
 
-export type LegalPolicyTab = 'terms' | 'refund' | 'privacy';
+export type LegalPolicyTab = 'terms' | 'refund' | 'privacy' | 'popia' | 'lssa';
 
 interface LegalModalProps {
   isOpen: boolean;
@@ -50,13 +51,13 @@ export function LegalModal({
               </div>
               <div>
                 <h3 className="font-extrabold text-lg text-white tracking-tight flex items-center gap-2">
-                  <span>Legal & Compliance Policies</span>
+                  <span>Legal & Regulatory Compliance Policies</span>
                   <span className="text-[11px] font-bold bg-purple-900/60 text-purple-300 border border-purple-700/50 px-2 py-0.5 rounded-md uppercase">
-                    Official
+                    POPIA &bull; LSSA
                   </span>
                 </h3>
                 <p className="text-xs text-slate-400">
-                  ForensicDocAudit &bull; Powered by Freemius (Product ID: 33243)
+                  ForensicDocAudit &bull; South Africa (POPIA Act 4 of 2013 &amp; LSSA Legal Practice Standards)
                 </p>
               </div>
             </div>
@@ -91,19 +92,31 @@ export function LegalModal({
               }`}
             >
               <FileText className="w-4 h-4 text-purple-600" />
-              <span>Terms & Conditions (T&Cs)</span>
+              <span>Terms & Conditions</span>
             </button>
 
             <button
-              onClick={() => setActiveTab('refund')}
+              onClick={() => setActiveTab('popia')}
               className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
-                activeTab === 'refund'
-                  ? 'bg-white text-slate-900 shadow-xs border border-slate-300 text-emerald-700'
+                activeTab === 'popia'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-300 text-amber-800 font-extrabold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
               }`}
             >
-              <RotateCcw className="w-4 h-4 text-emerald-600" />
-              <span>Refund & Cancellation Policy</span>
+              <Award className="w-4 h-4 text-amber-600" />
+              <span>POPIA (Act 4/2013) & PAIA Manual</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('lssa')}
+              className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+                activeTab === 'lssa'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-300 text-indigo-800 font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <Scale className="w-4 h-4 text-indigo-600" />
+              <span>LSSA & Legal Practice Standards</span>
             </button>
 
             <button
@@ -116,6 +129,18 @@ export function LegalModal({
             >
               <Lock className="w-4 h-4 text-blue-600" />
               <span>Privacy & Security</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('refund')}
+              className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+                activeTab === 'refund'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-300 text-emerald-700'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <RotateCcw className="w-4 h-4 text-emerald-600" />
+              <span>Refund Policy</span>
             </button>
           </div>
 
@@ -353,26 +378,321 @@ export function LegalModal({
                     <p className="text-[11px] text-slate-500">Client files and team audits are strictly sandboxed to your firm.</p>
                   </div>
                 </div>
+              </div>
+            )}
 
-                <div className="space-y-2">
-                  <h5 className="font-extrabold text-slate-900 text-base">1. Document Processing & Confidentiality</h5>
-                  <p className="text-xs text-slate-600">
-                    Uploaded PDF documents, OCR image scans, and bookkeeping entries are processed in secure ephemeral memory to extract text and calculate forensic risk scores. Data is strictly processed for the audit requested by the user and is never shared with third-party advertising networks.
+            {/* POPIA (Act 4 of 2013) & PAIA Section 51 Compliance Panel */}
+            {activeTab === 'popia' && (
+              <div className="space-y-6">
+                <div className="border-b border-slate-200 pb-4">
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">
+                    <span className="flex items-center gap-1.5 bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full border border-amber-300">
+                      <Award className="w-3.5 h-3.5 text-amber-700" />
+                      Statutory Republic of South Africa Compliance
+                    </span>
+                    <span className="text-slate-500 font-mono text-[11px]">
+                      POPIA (Act No. 4 of 2013) &bull; PAIA (Act No. 2 of 2000)
+                    </span>
+                  </div>
+                  <h4 className="text-2xl font-black text-slate-900">
+                    Protection of Personal Information Act (POPIA) &amp; PAIA Manual
+                  </h4>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Statutory data protection framework, Section 21 Operator Agreement, and lawful processing conditions for South African accounting, audit, and legal practices.
                   </p>
                 </div>
 
+                {/* Statutory Quick Pillars */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-1">
+                    <div className="w-7 h-7 rounded-lg bg-amber-200 text-amber-900 flex items-center justify-center font-bold text-xs">
+                      § 55
+                    </div>
+                    <div className="font-extrabold text-xs text-slate-900">Information Officer</div>
+                    <p className="text-[11px] text-slate-600 leading-snug">
+                      Registered with the Information Regulator of South Africa (IRSA).
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-1">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-200 text-emerald-900 flex items-center justify-center font-bold text-xs">
+                      § 21
+                    </div>
+                    <div className="font-extrabold text-xs text-slate-900">Operator Mandate</div>
+                    <p className="text-[11px] text-slate-600 leading-snug">
+                      Processes records strictly as an Operator for Responsible Parties.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-1">
+                    <div className="w-7 h-7 rounded-lg bg-blue-200 text-blue-900 flex items-center justify-center font-bold text-xs">
+                      § 19
+                    </div>
+                    <div className="font-extrabold text-xs text-slate-900">Security Safeguards</div>
+                    <p className="text-[11px] text-slate-600 leading-snug">
+                      AES-256 at rest, TLS 1.3 in transit, and ephemeral memory OCR.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-1">
+                    <div className="w-7 h-7 rounded-lg bg-purple-200 text-purple-900 flex items-center justify-center font-bold text-xs">
+                      § 22
+                    </div>
+                    <div className="font-extrabold text-xs text-slate-900">Breach Protocol</div>
+                    <p className="text-[11px] text-slate-600 leading-snug">
+                      Statutory 72-hour notice protocol to IRSA &amp; affected data subjects.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Section 1: Role Definitions */}
                 <div className="space-y-2">
-                  <h5 className="font-extrabold text-slate-900 text-base">2. Payment Data Privacy</h5>
-                  <p className="text-xs text-slate-600">
-                    Payment information is securely tokenized and handled directly by <strong>Freemius</strong> in compliance with <strong>PCI-DSS Level 1</strong> standards. ForensicDocAudit servers do not store or capture full credit card numbers or banking security codes.
+                  <h5 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-amber-100 text-amber-800 text-xs flex items-center justify-center font-bold">1</span>
+                    <span>Operator vs. Responsible Party Distinction (Sections 20 &amp; 21 POPIA)</span>
+                  </h5>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    Under POPIA, when an accounting firm, auditing practice, or corporate entity uploads client invoices, employee registers, or tax documents to <strong>ForensicDocAudit</strong>, the customer operates as the <strong>Responsible Party</strong> (determining the purpose and means of processing). ForensicDocAudit acts exclusively as an <strong>Operator</strong> (processing personal information on behalf of and under the explicit mandate of the Responsible Party in terms of Section 21 of POPIA).
+                  </p>
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 space-y-1">
+                    <div className="font-bold text-slate-900">Statutory Operator Commitments:</div>
+                    <ul className="list-disc pl-5 space-y-1 text-slate-600">
+                      <li>We process personal information solely with the knowledge and authorization of the Responsible Party.</li>
+                      <li>We maintain strict statutory confidentiality and ensure staff/personnel are bound by confidentiality covenants.</li>
+                      <li>We establish and maintain technical and organizational measures under Section 19 to safeguard integrity and confidentiality.</li>
+                      <li>We notify the Responsible Party immediately if there are reasonable grounds to believe personal information has been accessed by an unauthorized person (Section 22).</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Section 2: 8 Conditions */}
+                <div className="space-y-3">
+                  <h5 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-amber-100 text-amber-800 text-xs flex items-center justify-center font-bold">2</span>
+                    <span>The Eight (8) Statutory Conditions for Lawful Processing (Sections 8 - 25)</span>
+                  </h5>
+                  <div className="space-y-2 text-xs text-slate-700">
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                      <strong className="text-slate-900 block mb-0.5">Condition 1: Accountability (Section 8)</strong>
+                      <span>The designated Information Officer ensures internal governance, statutory employee vetting, and compliance records.</span>
+                    </div>
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                      <strong className="text-slate-900 block mb-0.5">Condition 2: Processing Limitation (Sections 9 - 12)</strong>
+                      <span>Lawful processing with legitimate justification (fraud risk mitigation under Section 11(1)(f)), minimality of extracted financial fields, and direct intake from the Responsible Party.</span>
+                    </div>
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                      <strong className="text-slate-900 block mb-0.5">Condition 3: Purpose Specification (Sections 13 - 14)</strong>
+                      <span>Data is collected strictly for document discrepancy auditing, fraud detection, and litigation support. Files are purged upon user request or expiration of audit retention periods.</span>
+                    </div>
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                      <strong className="text-slate-900 block mb-0.5">Condition 4: Further Processing Limitation (Section 15)</strong>
+                      <span>Data processed is never repurposed for marketing, behavioral profiling, or public foundation model training.</span>
+                    </div>
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                      <strong className="text-slate-900 block mb-0.5">Condition 5: Information Quality (Section 16)</strong>
+                      <span>OCR extracts and anomaly calculations include confidence metrics and prompt human auditors for manual confirmation before report sign-off.</span>
+                    </div>
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                      <strong className="text-slate-900 block mb-0.5">Condition 6: Openness (Sections 17 - 18) &amp; PAIA Section 51 Manual</strong>
+                      <span>Detailed transparency regarding data categories, processing logic, and our PAIA Section 51 manual filed in accordance with the Promotion of Access to Information Act.</span>
+                    </div>
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                      <strong className="text-slate-900 block mb-0.5">Condition 7: Security Safeguards (Sections 19 - 22)</strong>
+                      <span>End-to-end TLS 1.3 in transit, AES-256 rest encryption, SHA-256 document hashing for chain-of-custody integrity, and statutory breach reporting.</span>
+                    </div>
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl">
+                      <strong className="text-slate-900 block mb-0.5">Condition 8: Data Subject Participation (Sections 23 - 25)</strong>
+                      <span>Direct facility for data subjects to confirm records held, request correction (Form 2), or object to processing (Form 1).</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 3: Special Personal Information */}
+                <div className="space-y-2">
+                  <h5 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-amber-100 text-amber-800 text-xs flex items-center justify-center font-bold">3</span>
+                    <span>Processing of Special Personal Information &amp; Account Numbers (Sections 26 &amp; 105)</span>
+                  </h5>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    Financial audits often involve banking account details, South African Revenue Service (SARS) Tax/VAT identifiers, and litigation discovery documents. Processing of special personal information is strictly justified under <strong>Section 27(1)(b) of POPIA</strong> (necessary for the establishment, exercise, or defense of a right or obligation in law) and Section 32 (health/vital records for medical billing forensic verification).
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <h5 className="font-extrabold text-slate-900 text-base">3. Data Deletion & Right to be Forgotten</h5>
-                  <p className="text-xs text-slate-600">
-                    In compliance with GDPR and international data rights, users can export or permanently purge their audit logs, team members, and client records at any time from the account settings or by contacting our data protection officer.
+                {/* Section 4: Data Subject Rights & Information Officer */}
+                <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-2xl space-y-3">
+                  <div className="font-extrabold text-xs uppercase tracking-wider text-amber-900 flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-amber-700" />
+                    <span>Statutory Information Officer Contact Details (Section 51 PAIA &amp; Section 55 POPIA)</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700">
+                    <div>
+                      <strong>Designated Information Officer:</strong>
+                      <div className="text-slate-600">Legal &amp; Compliance Directorate</div>
+                      <div className="text-slate-600">ForensicDocAudit (Pty) Ltd</div>
+                      <div className="font-medium text-amber-900 mt-1">Email: popia@forensicdocaudit.co.za</div>
+                    </div>
+                    <div>
+                      <strong>Information Regulator of South Africa (IRSA):</strong>
+                      <div className="text-slate-600">JD House, 27 Stiemens Street, Braamfontein</div>
+                      <div className="text-slate-600">Johannesburg, 2001</div>
+                      <div className="font-medium text-amber-900 mt-1">Complaints: complaints.IR@justice.gov.za</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* LSSA (Law Society of South Africa) Legal Practice Standards Panel */}
+            {activeTab === 'lssa' && (
+              <div className="space-y-6">
+                <div className="border-b border-slate-200 pb-4">
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-indigo-800 uppercase tracking-wider mb-1">
+                    <span className="flex items-center gap-1.5 bg-indigo-100 text-indigo-900 px-2.5 py-0.5 rounded-full border border-indigo-300">
+                      <Scale className="w-3.5 h-3.5 text-indigo-700" />
+                      Law Society of South Africa (LSSA) Standards
+                    </span>
+                    <span className="text-slate-500 font-mono text-[11px]">
+                      Legal Practice Act (Act 28 of 2014) &bull; ECTA (Act 25 of 2002 § 15)
+                    </span>
+                  </div>
+                  <h4 className="text-2xl font-black text-slate-900">
+                    LSSA Practice Guidelines &amp; Evidential Litigation Support
+                  </h4>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Framework for legal practitioners, litigation support teams, and forensic accountants operating under South African High Court discovery and attorney-client privilege rules.
                   </p>
+                </div>
+
+                {/* LSSA Key Pillars */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl space-y-1">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-200 text-indigo-900 flex items-center justify-center font-bold text-xs">
+                      LPP
+                    </div>
+                    <div className="font-extrabold text-xs text-slate-900">Legal Privilege</div>
+                    <p className="text-[11px] text-slate-600 leading-snug">
+                      Common law Attorney-Client Privilege protection on litigation files.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-1">
+                    <div className="w-7 h-7 rounded-lg bg-purple-200 text-purple-900 flex items-center justify-center font-bold text-xs">
+                      § 15
+                    </div>
+                    <div className="font-extrabold text-xs text-slate-900">ECTA Admissibility</div>
+                    <p className="text-[11px] text-slate-600 leading-snug">
+                      Data message evidential weight verified via SHA-256 digital hashes.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-1">
+                    <div className="w-7 h-7 rounded-lg bg-slate-200 text-slate-900 flex items-center justify-center font-bold text-xs">
+                      R 35
+                    </div>
+                    <div className="font-extrabold text-xs text-slate-900">High Court Rule 35</div>
+                    <p className="text-[11px] text-slate-600 leading-snug">
+                      Structured certificates prepared for Discovery &amp; Inspection schedules.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-2xl space-y-1">
+                    <div className="w-7 h-7 rounded-lg bg-blue-200 text-blue-900 flex items-center justify-center font-bold text-xs">
+                      R 54
+                    </div>
+                    <div className="font-extrabold text-xs text-slate-900">LPC Rule 54 Trust</div>
+                    <p className="text-[11px] text-slate-600 leading-snug">
+                      Strict data isolation for attorney trust account and ledger records.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Section 1: LPP & Confidentiality */}
+                <div className="space-y-2">
+                  <h5 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-800 text-xs flex items-center justify-center font-bold">1</span>
+                    <span>Protection of Legal Professional Privilege (LPP) &amp; Work Product</span>
+                  </h5>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    Under South African common law, communications between legal practitioners and their clients for the purpose of obtaining legal advice or in contemplation of litigation are privileged. ForensicDocAudit guarantees:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1 text-xs text-slate-600">
+                    <li>
+                      <strong>Zero Third-Party Inspection:</strong> Uploaded litigation documents, draft contracts, and expert briefing materials are encrypted in client-isolated tenants.
+                    </li>
+                    <li>
+                      <strong>Non-Waiver Covenant:</strong> Processing of evidence through the Forensic AI engine does not constitute a waiver of legal privilege.
+                    </li>
+                    <li>
+                      <strong>Privileged Header Markings:</strong> Reports generated in Attorney/Litigation mode automatically carry the statutory endorsement: <em>"CONFIDENTIAL &amp; SUBJECT TO LEGAL PROFESSIONAL PRIVILEGE (LPP) &bull; ATTORNEY WORK PRODUCT"</em>.
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Section 2: ECTA Section 15 & Digital Evidence */}
+                <div className="space-y-2">
+                  <h5 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-800 text-xs flex items-center justify-center font-bold">2</span>
+                    <span>Evidential Weight &amp; Admissibility under ECTA (Act No. 25 of 2002)</span>
+                  </h5>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    In terms of <strong>Section 15 of the Electronic Communications and Transactions Act (ECTA)</strong>, the rules of evidence must not be applied to deny the admissibility of a data message under South African law. ForensicDocAudit adheres to statutory evidential requirements:
+                  </p>
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs text-slate-700">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Cryptographic SHA-256 Hashing (§ 15(1)(a)):</strong> Every document processed receives a unique 256-bit client-side hash before transmission to verify that the integrity of the data message has remained intact.
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Chain of Custody Timestamping (§ 15(1)(b)):</strong> Forensic event logs track the precise timestamp, user ID, and processing sequence in immutable audit logs.
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Expert Witness Verification (§ 213 Criminal Procedure Act):</strong> Certificates are structured to support expert testimony in High Court, Commercial Crimes Court, and Specialised Commercial Crime Units (Hawks/DPCI).
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 3: High Court Uniform Rule 35 Discovery */}
+                <div className="space-y-2">
+                  <h5 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-800 text-xs flex items-center justify-center font-bold">3</span>
+                    <span>Uniform High Court Rule 35 (Discovery and Inspection of Documents)</span>
+                  </h5>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    Forensic audit outputs are cataloged with distinct engagement reference numbers, date stamps, and itemized discrepancy findings, enabling litigation teams to incorporate findings directly into <strong>First Schedule, Part 1</strong> (documents in possession to be produced) or <strong>First Schedule, Part 2</strong> (privileged documents) of High Court discovery notices.
+                  </p>
+                </div>
+
+                {/* Section 4: LPA Rule 54 Trust Record Protection */}
+                <div className="space-y-2">
+                  <h5 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-800 text-xs flex items-center justify-center font-bold">4</span>
+                    <span>Legal Practice Act Rule 54 &amp; Trust Account Integrity</span>
+                  </h5>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    For legal practitioners auditing trust payments, conveyancing balances, or Section 86 trust interest remittances, ForensicDocAudit enforces strict isolation of trust records from business operational expenses, preventing commingling in accordance with Legal Practice Council (LPC) accounting rules.
+                  </p>
+                </div>
+
+                {/* LSSA Contact and Advisory Notice */}
+                <div className="p-4 bg-indigo-50/50 border border-indigo-200 rounded-2xl text-xs text-indigo-950 space-y-1.5">
+                  <div className="font-extrabold text-indigo-900 flex items-center gap-2">
+                    <Scale className="w-4 h-4 text-indigo-700" />
+                    <span>LSSA Practitioner Inquiries &amp; Litigation Support Desk</span>
+                  </div>
+                  <p>
+                    For litigation support, expert testimony certification, or specialized legal practitioner compliance inquiries in South Africa:
+                  </p>
+                  <div className="font-semibold text-indigo-800">
+                    Email: legal@forensicdocaudit.co.za &bull; Telephone: +27 (0)11 555 0188
+                  </div>
                 </div>
               </div>
             )}

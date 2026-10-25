@@ -442,6 +442,15 @@ export function AuditDashboard() {
             </button>
 
             <button
+              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }))}
+              className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer"
+              title="Configure firm branding, custom logo, palettes, and client portals"
+            >
+              <Crown className="w-3.5 h-3.5 text-amber-600" />
+              <span>White Label Studio</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('scanner')}
               className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md shadow-purple-200"
             >

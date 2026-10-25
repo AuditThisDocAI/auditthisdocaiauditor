@@ -19,7 +19,9 @@ import {
   RefreshCw,
   Eye,
   Sliders,
-  Check
+  Check,
+  Scale,
+  Award
 } from 'lucide-react';
 import { ExportPdfReportModal } from './ExportPdfReportModal';
 import { downloadImageFile } from '../lib/pdfReportGenerator';
@@ -83,6 +85,7 @@ export function SecureDocumentUploader({ onScanComplete, onViewHeatmap }: Secure
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [manualText, setManualText] = useState('');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [isPrivilegedWorkProduct, setIsPrivilegedWorkProduct] = useState(false);
   
   // Advanced forensic toggles
   const [checks, setChecks] = useState({
@@ -513,6 +516,57 @@ export function SecureDocumentUploader({ onScanComplete, onViewHeatmap }: Secure
           </div>
         )}
 
+        {/* POPIA (Act 4 of 2013) & LSSA Legal Practice Standards Assurance Bar */}
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-50/90 via-indigo-50/90 to-purple-50/90 border border-slate-200 text-xs text-slate-700 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-start sm:items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 font-black text-xs shadow-2xs">
+              🇿🇦
+            </div>
+            <div>
+              <div className="font-extrabold text-slate-900 flex flex-wrap items-center gap-1.5">
+                <span>POPIA (Act 4 of 2013) &amp; LSSA Legal Practice Standards</span>
+                <span className="px-1.5 py-0.2 rounded bg-amber-200 text-amber-900 text-[10px] font-black uppercase tracking-wider">
+                  Operator § 21
+                </span>
+                <span className="px-1.5 py-0.2 rounded bg-indigo-200 text-indigo-900 text-[10px] font-black uppercase tracking-wider">
+                  ECTA § 15
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Ephemeral memory parsing &bull; SHA-256 chain-of-custody verification &bull; High Court Rule 35 Discovery Qualified
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <label className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 hover:border-indigo-300 transition-colors cursor-pointer" title="Mark this audit report with Attorney-Client Legal Professional Privilege (LPP)">
+              <input
+                type="checkbox"
+                checked={isPrivilegedWorkProduct}
+                onChange={e => setIsPrivilegedWorkProduct(e.target.checked)}
+                className="w-3.5 h-3.5 accent-indigo-600 rounded cursor-pointer"
+              />
+              <Scale className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Legal Privilege (LPP)</span>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'popia' } }))}
+              className="text-[11px] font-bold text-amber-800 hover:text-amber-900 hover:underline px-2 py-1 cursor-pointer"
+            >
+              POPIA Info
+            </button>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'lssa' } }))}
+              className="text-[11px] font-bold text-indigo-800 hover:text-indigo-900 hover:underline px-2 py-1 cursor-pointer"
+            >
+              LSSA Standards
+            </button>
+          </div>
+        </div>
+
         {/* Drag & Drop Upload Zone */}
         {!file && (
           <div
@@ -917,6 +971,7 @@ export function SecureDocumentUploader({ onScanComplete, onViewHeatmap }: Secure
             })),
             keyMetrics: result.keyMetrics
           }}
+          initialIsPrivileged={isPrivilegedWorkProduct}
         />
       )}
     </div>
