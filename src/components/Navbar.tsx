@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Bot, LogOut, User, Crown, Building2, ShieldCheck, Clock, Hourglass, Scale } from 'lucide-react';
+import { Menu, X, Bot, LogOut, User, Crown, Building2, ShieldCheck, Clock, Hourglass, Scale, Handshake } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getWhiteLabelConfig, WhiteLabelConfig } from '../lib/whitelabel';
 import { WhiteLabelModal } from './WhiteLabelModal';
@@ -87,6 +87,7 @@ export function Navbar() {
     { name: 'Currency & Forex', href: '#currency-tools' },
     ...(isPro ? [{ name: 'Audit Trail', href: '#audittrail' }] : []), // Audit Trail - strictly visible to paying subscribers
     { name: 'White Label', href: '#whitelabel', badge: isPro ? undefined : 'PRO' },
+    { name: 'Partnership (35%)', href: '#partnership', badge: '35%' },
     { name: 'Bookkeeping', href: '#bookkeeping' },
     { name: 'Features', href: '#features' },
     ...(isLoggedIn ? [{ name: 'Staff Team', href: '#staff' }, { name: 'Firm Clients', href: '#clients' }] : []),
@@ -171,6 +172,8 @@ export function Navbar() {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'bookkeeping' } }));
                         } else if (link.name === 'Branding' || link.name === 'White Label') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));
+                        } else if (link.name.includes('Partner') || link.name.includes('Partnership')) {
+                          window.dispatchEvent(new CustomEvent('open-partnership-modal'));
                         } else if (link.name === 'Staff Team') {
                           window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'staff' } }));
                         } else if (link.name === 'Currency & Forex' || link.name === 'Currency Tools') {
@@ -215,17 +218,6 @@ export function Navbar() {
             </div>
 
             <div className="hidden lg:flex items-center gap-3">
-              {/* Dr. Aria AI Chat Quick Launcher */}
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent('open-dr-aria-chat'))}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C3AED] text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer shadow-xs"
-                title="Chat with Dr. Aria (AI Forensic Auditor)"
-              >
-                <Bot className="w-3.5 h-3.5 text-[#7C3AED]" />
-                <span>Dr. Aria AI</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              </button>
-
               {/* POPIA & LSSA Statutory Compliance Badge */}
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('open-legal-modal', { detail: { tab: 'popia' } }))}
@@ -234,6 +226,16 @@ export function Navbar() {
               >
                 <span className="text-xs">🇿🇦</span>
                 <span>POPIA &bull; LSSA</span>
+              </button>
+
+              {/* Partnership 35% Recurring Referral Program Button */}
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('open-partnership-modal'))}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C3AED] text-xs font-bold transition-all hover:scale-[1.02] cursor-pointer shadow-2xs"
+                title="Partner Program - Earn 35% Recurring Commission on User Referrals"
+              >
+                <Handshake className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <span>Partner (35%)</span>
               </button>
 
               {/* Global Currency Selector - ALWAYS visible for document auditing & entire site */}
@@ -367,24 +369,6 @@ export function Navbar() {
               className="absolute top-full left-0 right-0 bg-white border-t border-[#E2E8F0] p-4 lg:hidden shadow-2xl"
             >
               <div className="flex flex-col gap-2.5">
-                {/* Dr. Aria AI Launcher Mobile */}
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    window.dispatchEvent(new CustomEvent('open-dr-aria-chat'));
-                  }}
-                  className="bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C3AED] px-4 py-2.5 rounded-xl font-bold text-sm flex items-center justify-between transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Bot className="w-4 h-4 text-[#7C3AED]" />
-                    <span>Chat with Dr. Aria AI</span>
-                  </div>
-                  <span className="flex items-center gap-1 text-[11px] bg-white px-2 py-0.5 rounded-full border border-purple-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Online
-                  </span>
-                </button>
-
                 {/* Global Page Currency Selector - ALWAYS visible on mobile */}
                 <div className="flex items-center justify-between p-2.5 my-1 bg-slate-50 border border-slate-200 rounded-xl">
                   <div className="flex flex-col">
@@ -413,6 +397,35 @@ export function Navbar() {
                   </span>
                   <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-300 text-amber-950 border border-amber-400">
                     OPEN &rarr;
+                  </span>
+                </button>
+
+                {/* Partnership Program 35% Recurring Commission card */}
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('open-partnership-modal'));
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left font-black text-purple-950 bg-gradient-to-r from-purple-100 via-indigo-50 to-purple-100 border-2 border-purple-300 hover:border-purple-400 px-4 py-3 rounded-2xl text-xs flex items-center justify-between cursor-pointer shadow-xs my-1 transition-all"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#7C3AED] to-indigo-600 text-white flex items-center justify-center font-black shrink-0 shadow-xs">
+                      <Handshake className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-extrabold text-slate-950 text-xs flex items-center gap-1.5">
+                        <span>🤝 Partnership Program</span>
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-purple-200 text-purple-900 border border-purple-300">
+                          35% RECURRING
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-purple-800 font-semibold mt-0.5">
+                        Earn 35% monthly recurring commission per user referral
+                      </div>
+                    </div>
+                  </span>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#7C3AED] text-white shadow-2xs shrink-0">
+                    JOIN &rarr;
                   </span>
                 </button>
 
@@ -461,6 +474,10 @@ export function Navbar() {
                       } else if (link.name === 'Branding' || link.name === 'White Label') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'whitelabel' } }));
+                      } else if (link.name.includes('Partner') || link.name.includes('Partnership')) {
+                        e.preventDefault();
+                        setMobileMenuOpen(false);
+                        window.dispatchEvent(new CustomEvent('open-partnership-modal'));
                       } else if (link.name === 'Staff Team') {
                         e.preventDefault();
                         window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'staff' } }));

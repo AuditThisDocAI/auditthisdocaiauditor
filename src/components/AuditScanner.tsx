@@ -1294,21 +1294,6 @@ Payment Method: Standard Corporate Lockbox ACH`);
                       Download {isPdfFile ? 'PDF Document' : 'Scan Image'}
                     </button>
                   )}
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('open-dr-aria-chat', {
-                        detail: { 
-                          prompt: `Dr. Aria, please review this ${result.documentType} issued by ${result.keyMetrics.detectedVendor} with risk score ${result.riskScore}/100. Exactly what remediation or escrow freeze do you advise?` 
-                        }
-                      }));
-                    }}
-                    className="px-4 py-3 rounded-xl font-bold bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C3AED] flex items-center gap-2 transition-all text-xs sm:text-sm shadow-xs cursor-pointer"
-                  >
-                    <Bot className="w-4 h-4 text-[#7C3AED]" />
-                    Consult Dr. Aria
-                  </button>
                 </div>
 
                 <button

@@ -8,7 +8,8 @@ import {
   Palette, 
   Globe, 
   FileCheck, 
-  ArrowRight 
+  ArrowRight,
+  Handshake
 } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { Features } from './components/Features';
@@ -24,10 +25,10 @@ import { StaffManagement } from './components/StaffManagement';
 import { ClientManagement } from './components/ClientManagement';
 import { FreemiusCheckoutModal } from './components/FreemiusCheckoutModal';
 import { LegalModal, LegalPolicyTab } from './components/LegalModal';
+import { PartnershipModal } from './components/PartnershipModal';
 import { SessionTimeoutModal } from './components/SessionTimeoutModal';
 import { AuditTrail } from './components/AuditTrail';
 import AuditScanner from './components/AuditScanner';
-import { DrAriaChatPopup } from './components/DrAriaChatPopup';
 import { FinancialTools } from './components/FinancialTools';
 import { TrialExpiredModal } from './components/TrialExpiredModal';
 import { PopiaConsentBanner } from './components/PopiaConsentBanner';
@@ -46,6 +47,7 @@ export default function App() {
   const [checkoutInterval, setCheckoutInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [legalModalOpen, setLegalModalOpen] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<LegalPolicyTab>('terms');
+  const [partnershipModalOpen, setPartnershipModalOpen] = useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -62,6 +64,13 @@ export default function App() {
       setCheckoutInterval(interval);
       setFreemiusCheckoutOpen(true);
       window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('partner') === 'true' || urlParams.get('ref')) {
+      // If a user visits with referral or partner flag, record referral cookie
+      const ref = urlParams.get('ref') || urlParams.get('partner');
+      if (ref && typeof ref === 'string') {
+        localStorage.setItem('audit_referred_by', ref);
+        localStorage.setItem('audit_referred_timestamp', new Date().toISOString());
+      }
     }
 
     const handleNavigate = (e: Event) => {
@@ -72,6 +81,8 @@ export default function App() {
           const pricingEl = document.getElementById('pricing');
           if (pricingEl) pricingEl.scrollIntoView({ behavior: 'smooth' });
         }, 100);
+      } else if (customEvent.detail && customEvent.detail.view === 'partnership') {
+        setPartnershipModalOpen(true);
       } else if (customEvent.detail && customEvent.detail.view) {
         setCurrentView(customEvent.detail.view);
         window.scrollTo(0, 0);
@@ -96,6 +107,10 @@ export default function App() {
       setLegalModalOpen(true);
     };
 
+    const handleOpenPartnership = () => {
+      setPartnershipModalOpen(true);
+    };
+
     const checkPro = () => setIsPro(isUserPro());
     checkPro();
 
@@ -103,6 +118,7 @@ export default function App() {
     window.addEventListener('open-freemius-checkout', handleOpenFreemiusCheckout);
     window.addEventListener('open-stripe-checkout', handleOpenFreemiusCheckout);
     window.addEventListener('open-legal-modal', handleOpenLegal);
+    window.addEventListener('open-partnership-modal', handleOpenPartnership);
     window.addEventListener('pro-status-changed', checkPro);
     window.addEventListener('admin-auth-changed', checkPro);
     window.addEventListener('storage', checkPro);
@@ -111,6 +127,7 @@ export default function App() {
       window.removeEventListener('open-freemius-checkout', handleOpenFreemiusCheckout);
       window.removeEventListener('open-stripe-checkout', handleOpenFreemiusCheckout);
       window.removeEventListener('open-legal-modal', handleOpenLegal);
+      window.removeEventListener('open-partnership-modal', handleOpenPartnership);
       window.removeEventListener('pro-status-changed', checkPro);
       window.removeEventListener('admin-auth-changed', checkPro);
       window.removeEventListener('storage', checkPro);
@@ -139,10 +156,14 @@ export default function App() {
         initialTab={legalModalTab}
       />
 
+      <PartnershipModal
+        isOpen={partnershipModalOpen}
+        onClose={() => setPartnershipModalOpen(false)}
+      />
+
       <SessionTimeoutModal />
       <TrialExpiredModal />
       <PopiaConsentBanner />
-      <DrAriaChatPopup />
 
       {/* Trial Expired Warning Banner */}
       {isTrialExpired && !isPro && (
@@ -542,6 +563,16 @@ export default function App() {
                     className="hover:text-[#7C3AED] transition-colors cursor-pointer text-left"
                   >
                     Subscription Pricing & Plans
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => setPartnershipModalOpen(true)}
+                    className="hover:text-[#7C3AED] transition-colors cursor-pointer text-left flex items-center gap-1.5 font-bold text-purple-700"
+                  >
+                    <Handshake className="w-3.5 h-3.5 text-[#7C3AED]" />
+                    <span>Partnership Program (35% Recurring)</span>
+                    <span className="bg-purple-100 text-purple-800 text-[10px] px-1.5 py-0.2 rounded font-black">35%</span>
                   </button>
                 </li>
                 <li>
